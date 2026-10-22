@@ -3,7 +3,7 @@ import { listImports } from "@/db/repositories/imports";
 import { HttpError, json, parseIntParam, withApi } from "@/lib/http";
 import { requireApiKeyStore } from "@/lib/session";
 import { acceptUpload, type UploadFile } from "@/lib/upload";
-import { serializeImport } from "@/app/api/stores/[slug]/imports/route";
+import { serializeImport } from "@/lib/serializers";
 
 /**
  * Public import API (Bearer `cf_live_…` key, created in Settings).

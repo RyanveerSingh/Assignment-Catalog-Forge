@@ -177,7 +177,8 @@ const CATEGORY_KEYWORDS: Array<[RegExp, string]> = [
   [/\b(drill|bohrer|perceuse)\b/i, "Hardware > Tools > Power Tools"],
 ];
 
-const OPTION_TAIL = /\s*[-–,|/(]?\s*(\d+([.,]\d+)?\s?(cm|mm|m|in|inch|"|l|ml|kg|g)\b|xs|s|m|l|xl|xxl|small|medium|large)\s*\)?\s*$/i;
+// A size token must be its own word ("Bowl" is not "Bow" + size L): require a separator or space before it.
+const OPTION_TAIL = /(?:\s+|\s*[-–,|/(]\s*)(\d+([.,]\d+)?\s?(cm|mm|m|in|inch|"|l|ml|kg|g)\b|xs|s|m|l|xl|xxl|small|medium|large)\s*\)?\s*$/i;
 
 function titleCase(s: string): string {
   return s

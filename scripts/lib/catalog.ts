@@ -212,7 +212,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Espresso Cup Set",
     descriptionEn:
       "Set of four 80 ml espresso cups in white porcelain with a thick base that holds heat. Dishwasher-safe and stackable, they take up almost no cupboard space. Saucers are not included.",
-    categoryPrefix: "Home & Garden > Kitchen & Dining > Tableware > Drinkware",
+    categoryPrefix: "Home & Garden > Kitchen & Dining > Tableware > Coffee & Tea Sets",
     brand: "Casa Tierra",
     material: "porcelain",
     basePriceCents: 2200,
@@ -234,7 +234,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Serving Bowl",
     descriptionEn:
       "Deep stoneware serving bowl with a food-safe glaze in speckled oatmeal and a hand-painted metallic rim. Dishwasher-safe on a normal cycle. Sized for salads, pasta and family-style sides.",
-    categoryPrefix: "Home & Garden > Kitchen & Dining > Tableware > Serveware",
+    categoryPrefix: "Home & Garden > Kitchen & Dining > Tableware > Serveware > Serving Bowls",
     brand: "Casa Tierra",
     material: "stoneware",
     notes: "Metallic rim: not microwave-safe.",
@@ -259,7 +259,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Dinner Plate",
     descriptionEn:
       "27 cm dinner plate in vitrified stoneware with a raised rim and a matte outer edge. Chip-resistant and dishwasher-safe for daily use. Made to be mixed with the rest of the range.",
-    categoryPrefix: "Home & Garden > Kitchen & Dining > Tableware > Plates",
+    categoryPrefix: "Home & Garden > Kitchen & Dining > Tableware > Dinnerware > Plates",
     brand: "Casa Tierra",
     material: "stoneware",
     notes: "Chip-resistant stoneware, not unbreakable.",
@@ -277,7 +277,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Ceramic Teapot",
     descriptionEn:
       "900 ml teapot in glazed stoneware with a removable stainless steel infuser and a drip-free spout. The lid locks into the handle so it stays put while pouring. Hand wash only.",
-    categoryPrefix: "Home & Garden > Kitchen & Dining > Tableware > Coffee & Tea Sets",
+    categoryPrefix: "Home & Garden > Kitchen & Dining > Tableware > Serveware > Teapots",
     brand: null,
     material: "stoneware",
     notes: "Hand wash only, not dishwasher-safe.",
@@ -328,7 +328,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Wool Throw",
     descriptionEn:
       "Herringbone throw in 100% merino wool, woven in Scotland on traditional looms and finished with a fringed edge. Generous 130 x 180 cm size for sofas and beds. Dry clean only.",
-    categoryPrefix: "Home & Garden > Linens & Bedding > Blankets",
+    categoryPrefix: "Home & Garden > Linens & Bedding > Bedding > Blankets",
     brand: "Hinterland",
     material: "merino wool",
     notes: "Dry clean only; not machine washable.",
@@ -346,7 +346,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Cotton Table Runner",
     descriptionEn:
       "Table runner in 100% organic cotton with a woven stripe and hand-knotted tassels at both ends. Measures 40 x 150 cm and is machine washable at 40 °C. The natural dyes mellow gently over time.",
-    categoryPrefix: "Home & Garden > Linens & Bedding > Table Linens > Table Runners",
+    categoryPrefix: "Home & Garden > Kitchen & Dining > Tableware > Table Linens",
     brand: "Hinterland",
     material: "organic cotton",
     care: "Machine washable at 40 °C.",
@@ -514,7 +514,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Olive Wood Spoon Set",
     descriptionEn:
       "Set of three cooking spoons carved from olive wood and hand-finished with food-grade oil. The dense grain resists staining and will not scratch non-stick pans. Hand wash and re-oil occasionally.",
-    categoryPrefix: "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils",
+    categoryPrefix: "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils > Cooking Utensils",
     brand: "Oliva",
     material: "olive wood",
     notes: "Hand wash, not dishwasher-safe.",
@@ -556,7 +556,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Stainless Steel Whisk",
     descriptionEn:
       "Balloon whisk in 18/8 stainless steel with twelve wires and a sealed, weighted handle. Dishwasher-safe and rust-resistant. 30 cm long, so it reaches the corners of a tall jug.",
-    categoryPrefix: "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils",
+    categoryPrefix: "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils > Cooking Utensils",
     brand: "Oliva",
     material: "stainless steel",
     basePriceCents: 1299,
@@ -572,7 +572,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Cast-Iron Skillet",
     descriptionEn:
       "Pre-seasoned cast-iron skillet with two pour spouts and a helper handle. Oven-safe to 260 °C and induction compatible, it goes from hob to oven to table. Builds a natural non-stick surface with use.",
-    categoryPrefix: "Home & Garden > Kitchen & Dining > Cookware > Skillets & Frying Pans",
+    categoryPrefix: "Home & Garden > Kitchen & Dining > Cookware > Pots & Pans",
     brand: "Oliva",
     material: "cast iron",
     notes: "Never soak; not dishwasher-safe. Dry and oil after washing.",
@@ -597,7 +597,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Silicone Spatula Set",
     descriptionEn:
       "Set of three spatulas in BPA-free silicone over a stainless steel core. Heat-resistant to 230 °C and safe on non-stick coatings. Dishwasher-safe and one-piece, so nothing collects in the seams.",
-    categoryPrefix: "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils",
+    categoryPrefix: "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils > Cooking Utensils",
     brand: "Oliva",
     material: "silicone",
     colours: col(["red", "RD"], ["grey", "GR"], ["mustard", "MU"]),
@@ -615,7 +615,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Hand Trowel",
     descriptionEn:
       "Hand trowel with a stainless steel blade and an ash handle that is oiled rather than varnished for better grip. The blade has depth marks for bulbs and a sharpened edge for cutting roots. Leather loop for hanging.",
-    categoryPrefix: "Home & Garden > Lawn & Garden > Gardening > Gardening Tools",
+    categoryPrefix: "Home & Garden > Lawn & Garden > Gardening > Gardening Tools > Hand Trowels",
     brand: "Greenhand",
     material: "stainless steel",
     basePriceCents: 1500,
@@ -648,7 +648,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Watering Can",
     descriptionEn:
       "5 litre watering can in galvanised steel with a long spout and a removable rose for a fine spray on seedlings. Powder-coated inside and out so it will not drip rust onto the patio. Balanced to carry full with one hand.",
-    categoryPrefix: "Home & Garden > Lawn & Garden > Gardening > Watering Cans",
+    categoryPrefix: "Home & Garden > Lawn & Garden > Gardening > Gardening Tools > Watering Cans",
     brand: "Greenhand",
     material: "galvanised steel",
     colours: col(["sage green", "SG"], ["grey", "GR"], ["ochre", "OC"]),

@@ -3,7 +3,7 @@ import { getImport, listImportEvents } from "@/db/repositories/imports";
 import { getBus, type ImportLogEvent, type ImportProgressEvent } from "@/lib/events";
 import { HttpError, parseIntParam, withApi } from "@/lib/http";
 import { requireStore } from "@/lib/session";
-import { serializeImport } from "../../route";
+import { serializeImport } from "@/lib/serializers";
 
 export const dynamic = "force-dynamic";
 

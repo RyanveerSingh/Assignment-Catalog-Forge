@@ -145,7 +145,12 @@ export function groundProductOutput(input: GroundingInput): GroundingResult {
   let category = output.category.trim();
   let categorySnapped = false;
   let categoryFallback = false;
-  if (!TAXONOMY.includes(category)) {
+  const isParentNode = !TAXONOMY.includes(category) && TAXONOMY.some((p) => p.startsWith(`${category} > `));
+  if (isParentNode) {
+    // A parent node ("Home & Garden > Decor") is a legitimate, deliberately vague answer: keep it, cap confidence.
+    issues.push(issue("category.generic", "info", `Category "${category}" is a parent node, not a leaf`, { field: "category", ec: "D3" }));
+    categorySnapped = true;
+  } else if (!TAXONOMY.includes(category)) {
     const nearest = nearestTaxonomyPath(category);
     if (nearest) {
       issues.push(issue("category.snapped", "info", `Category "${category}" mapped to "${nearest}"`, { field: "category", ec: "D3" }));

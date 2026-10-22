@@ -1,0 +1,119 @@
+import { unstable_cache } from "next/cache";
+import { cookies, headers } from "next/headers";
+import { notFound } from "next/navigation";
+import { resolveLocale, type LocaleResolution } from "@/core/i18n/locale";
+import { getStorefrontDb } from "@/db/client";
+import { getStorefrontProduct, getStorefrontStore, listStorefrontCategories, listStorefrontProducts, type StorefrontRow, type StorefrontStore } from "@/db/repositories/storefront";
+
+/**
+ * Server-only helpers shared by every storefront page. Everything reads through the dedicated
+ * storefront pool and sits behind a 30 s data cache so a running import never adds load (EC-H6).
+ */
+
+export const PAGE_SIZE = 24;
+export const COUNTRY_COOKIE = "cf_country";
+const REVALIDATE_SECONDS = 30;
+
+export type StorefrontSort = "newest" | "price_asc" | "price_desc";
+
+/** The published row minus the Date column: the data cache round-trips through JSON, so Dates would silently become strings. */
+export type StorefrontProduct = Omit<StorefrontRow, "updatedAt" | "storeId" | "locale">;
+
+export interface StorefrontContext {
+  store: StorefrontStore;
+  locale: string;
+  country: string | null;
+  source: LocaleResolution["source"];
+}
+
+export function parseSort(value: string | undefined): StorefrontSort {
+  return value === "price_asc" || value === "price_desc" ? value : "newest";
+}
+
+export function parsePage(value: string | undefined): number {
+  const n = Number.parseInt(value ?? "", 10);
+  return Number.isFinite(n) && n >= 1 ? Math.min(n, 10_000) : 1;
+}
+
+export function firstParam(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function storeTag(storeId: string): string {
+  return `storefront:${storeId}`;
+}
+
+export function cachedStore(slug: string): Promise<StorefrontStore | null> {
+  return unstable_cache(() => getStorefrontStore(getStorefrontDb(), slug), ["storefront-store", slug], { revalidate: REVALIDATE_SECONDS, tags: ["storefront-stores"] })();
+}
+
+/** Cookie (explicit choice) beats the geo header (EC-H4); unmapped countries fall back to English (EC-H3). */
+export async function loadStorefront(slug: string): Promise<StorefrontContext> {
+  const store = await cachedStore(slug);
+  if (!store) notFound();
+  const [jar, hdrs] = await Promise.all([cookies(), headers()]);
+  const cookieCountry = jar.get(COUNTRY_COOKIE)?.value || null;
+  const geoCountry = hdrs.get("cf-ipcountry") ?? hdrs.get("x-vercel-ip-country") ?? hdrs.get("x-country");
+  const resolved = resolveLocale({ country: cookieCountry ?? geoCountry, map: store.countryLocaleMap, available: store.locales });
+  return { store, locale: resolved.locale, country: resolved.country, source: resolved.source };
+}
+
+function toProduct(row: StorefrontRow): StorefrontProduct {
+  return {
+    productId: row.productId,
+    handle: row.handle,
+    title: row.title,
+    descriptionHtml: row.descriptionHtml,
+    category: row.category,
+    tags: row.tags,
+    attributes: row.attributes,
+    variants: row.variants,
+    images: row.images,
+    priceFromCents: row.priceFromCents,
+    currency: row.currency,
+    seo: row.seo,
+    fallbackFields: row.fallbackFields,
+  };
+}
+
+export function cachedProducts(storeId: string, locale: string, opts: { category?: string; page: number; sort: StorefrontSort }): Promise<{ items: StorefrontProduct[]; total: number }> {
+  return unstable_cache(
+    async () => {
+      const { items, total } = await listStorefrontProducts(getStorefrontDb(), storeId, locale, {
+        category: opts.category,
+        limit: PAGE_SIZE,
+        offset: (opts.page - 1) * PAGE_SIZE,
+        sort: opts.sort,
+      });
+      return { items: items.map(toProduct), total };
+    },
+    ["storefront-products", storeId, locale, opts.category ?? "", String(opts.page), opts.sort],
+    { revalidate: REVALIDATE_SECONDS, tags: [storeTag(storeId)] },
+  )();
+}
+
+export function cachedProduct(storeId: string, locale: string, handle: string): Promise<StorefrontProduct | null> {
+  return unstable_cache(
+    async () => {
+      const row = await getStorefrontProduct(getStorefrontDb(), storeId, locale, handle);
+      return row ? toProduct(row) : null;
+    },
+    ["storefront-product", storeId, locale, handle],
+    { revalidate: REVALIDATE_SECONDS, tags: [storeTag(storeId)] },
+  )();
+}
+
+export function cachedCategories(storeId: string, locale: string): Promise<Array<{ category: string; n: number }>> {
+  return unstable_cache(() => listStorefrontCategories(getStorefrontDb(), storeId, locale), ["storefront-categories", storeId, locale], {
+    revalidate: REVALIDATE_SECONDS,
+    tags: [storeTag(storeId)],
+  })();
+}
+
+export function categoryHref(slug: string, category: string): string {
+  return `/store/${encodeURIComponent(slug)}/c/${encodeURIComponent(category)}`;
+}
+
+export function productHref(slug: string, handle: string): string {
+  return `/store/${encodeURIComponent(slug)}/p/${encodeURIComponent(handle)}`;
+}

@@ -2,7 +2,7 @@ import { getDb } from "@/db/client";
 import { getImport, listImportEvents } from "@/db/repositories/imports";
 import { HttpError, json, withApi } from "@/lib/http";
 import { requireApiKeyStore } from "@/lib/session";
-import { serializeImport } from "@/app/api/stores/[slug]/imports/route";
+import { serializeImport } from "@/lib/serializers";
 
 export const GET = withApi(async (req: Request, { params }: { params: Promise<{ id: string }> }) => {
   const { storeId } = await requireApiKeyStore(req);

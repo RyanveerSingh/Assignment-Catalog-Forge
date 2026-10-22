@@ -12,7 +12,7 @@ Status legend
 | ❌ | Not handled: with the reason and what it would take |
 | ⬜ | Planned: not built yet |
 
-Counts (kept current by hand, last pass 2026-10-23 04:30 IST): ✅ 76 · 🟡 50 · ❌ 9 · ⬜ 4
+Counts (kept current by hand, last pass 2026-10-23 04:35 IST): ✅ 77 · 🟡 49 · ❌ 9 · ⬜ 4
 
 Tests reference these IDs by name (for example `EC-B5: parses "1.299,00 €" as 129900 EUR`), so a status is flipped to ✅ only when such a test exists. Run `npx vitest run` and grep for `EC-` to see them all.
 
@@ -194,7 +194,7 @@ Tests reference these IDs by name (for example `EC-B5: parses "1.299,00 €" as 
 
 | ID | What happens | What CatalogForge does (and why) | Status |
 |---|---|---|---|
-| I1 | A user guesses another store's IDs | Every repository call is scoped by the session's store; IDs are UUIDs. | 🟡 isolation test pending |
+| I1 | A user guesses another store's IDs | Every repository call is scoped by the session's store; IDs are UUIDs; the same product key in two stores yields two independent products. | ✅ |
 | I2 | An API key ends up in logs | Keys are hashed at rest, shown masked, and redacted by the logger. | ✅ mask/hash tests |
 | I3 | Supplier HTML tries to execute in the dashboard | Sanitised at ingest and again before storage; rendered only from sanitised HTML. | 🟡 |
 | I4 | An image URL or webhook target points at an internal address | Neither feature is built (see C14); nothing fetches merchant-supplied URLs. | ❌ by omission |

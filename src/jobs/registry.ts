@@ -68,7 +68,11 @@ export async function onJobDead(job: Job, error: string, db: Db): Promise<void> 
   }
 }
 
-/** Reconciler tick (EC-E10, E3). */
+const COMPLETED_JOB_RETENTION_MS = 24 * 60 * 60_000;
+
+/** Reconciler tick (EC-E10, E3) plus housekeeping: completed jobs older than a day are pruned. */
 export async function onWorkerTick(db: Db): Promise<void> {
   await driveAllActiveImports(db);
+  const { pruneCompleted } = await import("@/queue/queue");
+  await pruneCompleted(db, COMPLETED_JOB_RETENTION_MS);
 }

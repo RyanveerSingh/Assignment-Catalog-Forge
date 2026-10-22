@@ -132,16 +132,31 @@ function assignKeys(rows: CleanedRow[]): Keyed[] {
     stem: row.sku ? deriveSkuStem(row.sku) : null,
     tkey: row.title ? titleKey(row.title) : "",
   }));
-  // (b) a stem counts when at least two different SKUs share it; parent-keyed rows are already placed.
+  // (b) a stem counts when at least two different SKUs share it AND their base titles agree: "ES-CP-001-01"
+  // and "ES-CP-002-01" share the stem "ES-CP" but are "Espresso Cup Set No. 1" and "No. 2", two products.
+  // Parent-keyed rows are already placed.
+  const stemBucket = (i: (typeof info)[number]): string => `${i.stem?.toLowerCase() ?? ""}|${i.tkey}`;
   const stemSkus = new Map<string, Set<string>>();
+  const titlesPerStem = new Map<string, Set<string>>();
   for (const i of info) {
     if (i.row.parentKey || !i.stem || !i.row.sku) continue;
-    const set = stemSkus.get(i.stem.toLowerCase()) ?? new Set<string>();
+    const bucket = stemBucket(i);
+    const set = stemSkus.get(bucket) ?? new Set<string>();
     set.add(i.row.sku.toUpperCase());
-    stemSkus.set(i.stem.toLowerCase(), set);
+    stemSkus.set(bucket, set);
+    const titles = titlesPerStem.get(i.stem.toLowerCase()) ?? new Set<string>();
+    titles.add(i.tkey);
+    titlesPerStem.set(i.stem.toLowerCase(), titles);
   }
-  const byStem = (i: (typeof info)[number]): boolean =>
-    !i.row.parentKey && i.stem !== null && (stemSkus.get(i.stem.toLowerCase())?.size ?? 0) >= 2;
+  const byStem = (i: (typeof info)[number]): boolean => !i.row.parentKey && i.stem !== null && (stemSkus.get(stemBucket(i))?.size ?? 0) >= 2;
+  // The stem alone is the key when every row with that stem has the same base title; otherwise the
+  // title is appended so two products never collapse into one key.
+  const stemKey = (i: (typeof info)[number]): string => {
+    const stem = i.stem ?? "";
+    const titles = titlesPerStem.get(stem.toLowerCase());
+    if (!titles || titles.size <= 1 || i.tkey === "") return stem;
+    return `${stem}-${slugify(stripOptionTokens(i.row.title ?? "")) || i.tkey.replace(/ /g, "-")}`;
+  };
   // (c) a title counts when the rows sharing it have different (or missing) SKUs.
   const titleRows = new Map<string, { skus: Set<string>; missing: boolean; count: number }>();
   for (const i of info) {
@@ -155,7 +170,7 @@ function assignKeys(rows: CleanedRow[]): Keyed[] {
   return info.map((i) => {
     const parentKey = i.row.parentKey;
     if (parentKey) return { row: i.row, key: parentKey, source: /[a-z]/.test(parentKey) ? "handle" : "parent" };
-    if (byStem(i) && i.stem) return { row: i.row, key: i.stem, source: "sku_stem" };
+    if (byStem(i) && i.stem) return { row: i.row, key: stemKey(i), source: "sku_stem" };
     const t = titleRows.get(i.tkey);
     if (t && t.count >= 2 && (t.skus.size >= 2 || t.missing)) {
       const key = slugify(stripOptionTokens(i.row.title ?? "")) || i.tkey.replace(/ /g, "-");

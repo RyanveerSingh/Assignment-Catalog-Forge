@@ -1,6 +1,7 @@
 import { getDb } from "@/db/client";
 import { listImports } from "@/db/repositories/imports";
 import { HttpError, json, parseIntParam, withApi } from "@/lib/http";
+import { serializeImport } from "@/lib/serializers";
 import { requireStore } from "@/lib/session";
 import { acceptUpload, type UploadFile } from "@/lib/upload";
 
@@ -40,27 +41,3 @@ export const POST = withApi(async (req: Request, { params }: Ctx) => {
   });
   return json(result, { status: result.reused ? 200 : 202 });
 });
-
-export function serializeImport(row: Awaited<ReturnType<typeof listImports>>[number]) {
-  return {
-    id: row.id,
-    name: row.name,
-    status: row.status,
-    mode: row.mode,
-    totalRows: row.totalRows,
-    counts: row.counts,
-    productCount: row.productCount,
-    pausedUntil: row.pausedUntil?.toISOString() ?? null,
-    pauseReason: row.pauseReason,
-    costMicros: row.costMicros,
-    costSummary: row.costSummary,
-    budgetCents: row.budgetCents,
-    error: row.error,
-    parseMeta: row.parseMeta,
-    columnMap: row.columnMap,
-    startedAt: row.startedAt?.toISOString() ?? null,
-    finishedAt: row.finishedAt?.toISOString() ?? null,
-    createdAt: row.createdAt.toISOString(),
-    updatedAt: row.updatedAt.toISOString(),
-  };
-}

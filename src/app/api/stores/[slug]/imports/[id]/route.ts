@@ -5,7 +5,7 @@ import { requestDrive } from "@/jobs/drive";
 import { HttpError, json, parseIntParam, withApi } from "@/lib/http";
 import { requireStore } from "@/lib/session";
 import { ACTIVE_IMPORT_STATUSES } from "@/db/schema";
-import { serializeImport } from "../route";
+import { serializeImport } from "@/lib/serializers";
 
 type Ctx = { params: Promise<{ slug: string; id: string }> };
 

@@ -93,11 +93,10 @@ function readNumber(token: string, locale: NumberLocale): NumberParts | null {
   const [intPart, after] = parts;
   if (after.length !== 3) return { intDigits: intPart, decDigits: after, ambiguous: null };
 
-  // "1.299": a thousands group is far likelier than three decimals unless the column's own
-  // separator convention says this character is the decimal one.
+  // "1.299": retail prices never carry three decimals, so this is read as a thousands group even when the
+  // column's own convention uses this separator for decimals; it is flagged unless the locale confirms it.
   const localeDecimal = locale === "eu" ? "," : locale === "us" ? "." : null;
-  if (localeDecimal === null) return { intDigits: intPart + after, decDigits: "", ambiguous: "thousands" };
-  if (localeDecimal === sep) return { intDigits: intPart, decDigits: after, ambiguous: "decimal" };
+  if (localeDecimal === null || localeDecimal === sep) return { intDigits: intPart + after, decDigits: "", ambiguous: "thousands" };
   return { intDigits: intPart + after, decDigits: "", ambiguous: null };
 }
 
