@@ -1,0 +1,36 @@
+{
+  "label": "during-10k-import",
+  "at": "2026-10-22T23:24:08.691Z",
+  "duration": 30,
+  "connections": 50,
+  "targets": {
+    "collection": {
+      "requestsPerSecond": 145,
+      "latencyMs": {
+        "p50": 341,
+        "p95": 419,
+        "p99": 448,
+        "max": 477,
+        "mean": 343.77
+      },
+      "non2xx": 0,
+      "errors": 0,
+      "timeouts": 0,
+      "totalRequests": 4350
+    },
+    "product": {
+      "requestsPerSecond": 154.4,
+      "latencyMs": {
+        "p50": 320,
+        "p95": 369,
+        "p99": 410,
+        "max": 539,
+        "mean": 324.02
+      },
+      "non2xx": 0,
+      "errors": 0,
+      "timeouts": 0,
+      "totalRequests": 4632
+    }
+  }
+}

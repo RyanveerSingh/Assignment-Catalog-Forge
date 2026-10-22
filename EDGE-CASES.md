@@ -12,7 +12,7 @@ Status legend
 | ❌ | Not handled: with the reason and what it would take |
 | ⬜ | Planned: not built yet |
 
-Counts (kept current by hand, last pass 2026-10-23 04:35 IST): ✅ 77 · 🟡 49 · ❌ 9 · ⬜ 4
+Counts (kept current by hand, last pass 2026-10-23 05:10 IST): ✅ 78 · 🟡 48 · ❌ 9 · ⬜ 4
 
 Tests reference these IDs by name (for example `EC-B5: parses "1.299,00 €" as 129900 EUR`), so a status is flipped to ✅ only when such a test exists. Run `npx vitest run` and grep for `EC-` to see them all.
 
@@ -183,7 +183,7 @@ Tests reference these IDs by name (for example `EC-B5: parses "1.299,00 €" as 
 | H3 | The visitor's country has no translation (US, IN, …) | English. | ✅ |
 | H4 | The country switcher disagrees with the geo header | The explicit choice wins. | ✅ |
 | H5 | A product is deleted while a visitor has it open | The storefront rows are removed; the next load is a 404. | 🟡 |
-| H6 | A 10k-row import is running | The storefront reads only the published table through its own pool with a 2 s statement timeout; pages are cached for 30 s. | 🟡 measured numbers pending |
+| H6 | A 10k-row import is running | The storefront reads only the published table through its own pool with a 2 s statement timeout; pages are cached for 30 s. Measured with autocannon (50 connections, 30 s) while the 10k import and two workers ran on the same machine: ~150 req/s, p50 ≈ 330 ms, p99 ≈ 450 ms, zero errors (see README and `docs/load/`). | ✅ measured |
 | H7 | Two products produce the same handle | `-2` suffix; handles are stored and stable across re-imports. | 🟡 |
 | H8 | A product has no image | Placeholder; never a broken `<img>`. | 🟡 |
 | H9 | A product has variants in different currencies | Per-variant prices; "from X" only when all variants share a currency. | 🟡 |
