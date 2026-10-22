@@ -30,7 +30,7 @@ services:
       AI_PROVIDER: ${AI_PROVIDER:-mock}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       APP_SECRET: ${APP_SECRET:-local-dev-secret-change-me-please-32}
-      BASE_URL: http://localhost:3000
+      APP_BASE_URL: http://localhost:3000
       PORT: "3000"
     ports:
       - "3000:3000"
