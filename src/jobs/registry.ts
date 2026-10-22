@@ -2,6 +2,7 @@ import type { Db } from "@/db/client";
 import type { QueueName } from "@/db/schema";
 import type { Job } from "@/queue/queue";
 import type { JobHandler } from "@/worker/loop";
+import { batchPollHandler, batchSubmitHandler } from "./batch";
 import { cleanHandler } from "./clean";
 import { driveAllActiveImports, driveImport } from "./drive";
 import { enrichHandler, failEnrichBatch } from "./enrich";
@@ -26,6 +27,8 @@ export function buildHandlers(): Record<string, JobHandler> {
     [JOB_TYPES.group]: groupHandler,
     [JOB_TYPES.photos]: photosHandler,
     [JOB_TYPES.enrich]: enrichHandler,
+    [JOB_TYPES.batchSubmit]: batchSubmitHandler,
+    [JOB_TYPES.batchPoll]: batchPollHandler,
     [JOB_TYPES.translate]: translateHandler,
     [JOB_TYPES.finalize]: finalizeHandler,
     [JOB_TYPES.publish]: publishHandler,

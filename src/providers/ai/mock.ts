@@ -115,7 +115,7 @@ const CATEGORY_KEYWORDS: Array<[RegExp, string]> = [
   [/\b(knife|knives|messer|couteau)\b/i, "Home & Garden > Kitchen & Dining > Cutlery > Knives"],
   [/\b(spatula|whisk|ladle|utensil|kochlöffel|pfannenwender|spatule)\b/i, "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils > Cooking Utensils"],
   [/\b(grater|peeler|reibe|sparschäler|râpe|éplucheur)\b/i, "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils > Graters & Peelers"],
-  [/\b(saucepan|frying pan|pot|topf|pfanne|casserole|poêle)\b/i, "Home & Garden > Kitchen & Dining > Cookware > Pots & Pans"],
+  [/\b(skillet|saucepan|frying pan|stockpot|dutch oven|pot|topf|pfanne|bratpfanne|casserole|poêle|cocotte)\b/i, "Home & Garden > Kitchen & Dining > Cookware > Pots & Pans"],
   [/\b(baking dish|auflaufform|plat à gratin)\b/i, "Home & Garden > Kitchen & Dining > Cookware > Baking Dishes"],
   [/\b(food container|storage jar|vorratsdose|vorratsglas|boîte de conservation|bocal)\b/i, "Home & Garden > Kitchen & Dining > Food Storage > Food Containers"],
   [/\b(lunch box|brotdose|boîte à lunch)\b/i, "Home & Garden > Kitchen & Dining > Food Storage > Lunch Boxes"],
@@ -204,9 +204,14 @@ function deriveTitle(p: EnrichProductInput): { title: string; confidence: number
 }
 
 function deriveCategory(p: EnrichProductInput, title: string): { category: string; confidence: number; reason: string | null } {
-  const hay = `${title} ${p.category_hint ?? ""} ${p.source_description ?? ""}`.toLowerCase();
+  // The title names the product; the description only disambiguates, so it is searched second.
+  const titleHay = `${title} ${p.category_hint ?? ""}`.toLowerCase();
   for (const [re, path] of CATEGORY_KEYWORDS) {
-    if (re.test(hay)) return { category: path, confidence: 86, reason: null };
+    if (re.test(titleHay)) return { category: path, confidence: 88, reason: null };
+  }
+  const descHay = (p.source_description ?? "").toLowerCase();
+  for (const [re, path] of CATEGORY_KEYWORDS) {
+    if (re.test(descHay)) return { category: path, confidence: 72, reason: null };
   }
   if (p.category_hint) {
     const hint = p.category_hint.toLowerCase();

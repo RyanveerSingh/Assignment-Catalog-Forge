@@ -1,6 +1,6 @@
 import { and, eq, sql } from "drizzle-orm";
 import type { DbOrTx } from "@/db/client";
-import { aiRequests, evalRuns, imports } from "@/db/schema";
+import { evalRuns, imports } from "@/db/schema";
 
 export interface StoreMetrics {
   products: { total: number; byStatus: Record<string, number>; successRate: number; reviewRate: number; failureRate: number };

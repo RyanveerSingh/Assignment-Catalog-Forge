@@ -6,7 +6,7 @@ import { products, storefrontProducts, stores, translations, type ProductContent
 import { JobError } from "@/queue/errors";
 import type { JobHandler } from "@/worker/loop";
 
-const TRANSLATED_FIELDS = ["title", "descriptionHtml", "metaTitle", "metaDescription"] as const;
+type TranslatedField = "title" | "descriptionHtml" | "metaTitle" | "metaDescription";
 
 /**
  * Approve = copy the draft into the published snapshot and rebuild the storefront rows for every
@@ -55,7 +55,7 @@ export async function rebuildStorefrontRows(db: DbOrTx, storeId: string, product
   const images: StorefrontImage[] = snapshot.imageIds.map((id) => ({ id, thumbId: id, alt: snapshot.title ?? handle }));
 
   for (const locale of locales) {
-    const pick = (field: (typeof TRANSLATED_FIELDS)[number], english: string | null): { text: string | null; fallback: boolean } => {
+    const pick = (field: TranslatedField, english: string | null): { text: string | null; fallback: boolean } => {
       if (locale === "en" || !english) return { text: english, fallback: false };
       const t = trows.find((r) => r.locale === locale && r.field === field);
       if (t && t.text && (t.status === "fresh" || t.origin === "manual")) return { text: t.text, fallback: false };

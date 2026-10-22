@@ -6,6 +6,7 @@ import { listPhotosForImport } from "@/db/repositories/photos";
 import { assignAiBatchKeys, upsertProductFromGroup } from "@/db/repositories/products";
 import { assignRowsToProduct, getAllCleanedRows, markDuplicateRows, setRowsStatusForProduct } from "@/db/repositories/rows";
 import { products, stores } from "@/db/schema";
+import { stableHash } from "@/lib/crypto";
 import { JobError } from "@/queue/errors";
 import type { JobHandler } from "@/worker/loop";
 import { driveImport } from "./drive";
@@ -46,6 +47,9 @@ export const groupHandler: JobHandler = async ({ job, db, log, signal }) => {
 
   for (const group of result.groups) {
     if (signal.aborted) throw new JobError("lease lost while grouping", { retryable: true, retryAfterMs: 0 });
+    // The model reads every source cell, so any cell change must invalidate the AI result, not just
+    // changes to the product-level fields the grouping hash covers (EC-C10, D20).
+    group.sourceHash = stableHash({ base: group.sourceHash, corpus: group.sourceCorpus });
     const outcome = await db.transaction(async (tx) => {
       const up = await upsertProductFromGroup(tx, imp.storeId, importId, group);
       await assignRowsToProduct(tx, importId, group.sourceRows, up.productId, group.productKey);
@@ -56,7 +60,8 @@ export const groupHandler: JobHandler = async ({ job, db, log, signal }) => {
         return "unchanged" as const;
       }
       const tier = routeTier(group, photoCount > 0 ? group.images.length || 1 : 0).tier;
-      await tx.update(products).set({ aiTier: tier, status: "pending_ai", updatedAt: new Date() }).where(eq(products.id, up.productId));
+      // A fresh batch key per import: a product carried over from an earlier upload must not reuse that upload's job key.
+      await tx.update(products).set({ aiTier: tier, aiBatchKey: null, status: "pending_ai", updatedAt: new Date() }).where(eq(products.id, up.productId));
       return up.created ? ("created" as const) : ("pending" as const);
     });
     if (outcome === "created") created += 1;

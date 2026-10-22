@@ -91,8 +91,11 @@ export async function driveImport(db: Db, importId: string): Promise<void> {
         break;
       }
       if (imp.mode === "economy") {
-        const tiers = [...new Set(batches.map((b) => b.tier))];
-        for (const tier of tiers) specs.push({ key: jobKeys.batchSubmit(importId, tier), type: JOB_TYPES.batchSubmit, payload: { tier }, ...base, queue: "ai" });
+        // Batch API per tier; anything explicitly sent back to realtime (rt:…) or split after an error runs as a normal job.
+        const realtime = batches.filter((b) => b.key.startsWith("rt:") || b.key.includes(":single:"));
+        const batched = batches.filter((b) => !realtime.includes(b));
+        for (const tier of new Set(batched.map((b) => b.tier))) specs.push({ key: jobKeys.batchSubmit(importId, tier), type: JOB_TYPES.batchSubmit, payload: { tier }, ...base, queue: "ai" });
+        for (const b of realtime) specs.push({ key: jobKeys.enrich(b.key), type: JOB_TYPES.enrich, payload: { productIds: b.productIds, tier: b.tier }, ...base, queue: "ai" });
       } else {
         for (const b of batches) specs.push({ key: jobKeys.enrich(b.key), type: JOB_TYPES.enrich, payload: { productIds: b.productIds, tier: b.tier }, ...base, queue: "ai" });
       }

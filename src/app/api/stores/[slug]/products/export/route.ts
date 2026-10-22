@@ -1,4 +1,5 @@
 import { CSV_BOM, streamJsonArray, streamProductsCsv, streamShopifyCsv } from "@/core/export";
+import type { ExportProduct } from "@/core/export/types";
 import { getDb } from "@/db/client";
 import { iterateProductsForExport } from "@/db/repositories/export";
 import { PRODUCT_STATUSES, type ProductStatus } from "@/db/schema";
@@ -9,6 +10,8 @@ import { requireStore } from "@/lib/session";
 export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ slug: string }> };
+
+const PAGE = 50;
 
 /** Streams CSV, JSON or Shopify CSV; never buffers the whole catalog (EC-J7, J8, I6). */
 export const GET = withApi(async (req: Request, { params }: Ctx) => {
@@ -24,7 +27,6 @@ export const GET = withApi(async (req: Request, { params }: Ctx) => {
   const imageUrl = (blobId: string): string => `${base}/api/img/${encodeURIComponent(slug)}/${blobId}`;
   const source = iterateProductsForExport(getDb(), store.id, imageUrl, { status: statuses.length ? statuses : undefined, importId, ids: ids.length ? ids : undefined });
 
-  const encoder = new TextEncoder();
   const stamp = new Date().toISOString().slice(0, 10);
   let filename = `catalogforge-${slug}-${stamp}.csv`;
   let contentType = "text/csv; charset=utf-8";
@@ -32,14 +34,15 @@ export const GET = withApi(async (req: Request, { params }: Ctx) => {
   if (format === "json") {
     filename = `catalogforge-${slug}-${stamp}.json`;
     contentType = "application/json; charset=utf-8";
-    chunks = asyncify(streamJsonArray, source);
+    chunks = paged(source, (items) => streamJsonArray(items), "json");
   } else if (format === "shopify") {
     filename = `shopify-products-${slug}-${stamp}.csv`;
-    chunks = prefixed(CSV_BOM, asyncify(streamShopifyCsv, source));
+    chunks = prefixed(CSV_BOM, paged(source, (items) => streamShopifyCsv(items), "csv"));
   } else {
-    chunks = asyncify((it) => streamProductsCsv(it, { bom: true }), source);
+    chunks = paged(source, (items) => streamProductsCsv(items, { bom: true }), "csv");
   }
 
+  const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       try {
@@ -53,46 +56,39 @@ export const GET = withApi(async (req: Request, { params }: Ctx) => {
   return new Response(stream, { headers: { "Content-Type": contentType, "Content-Disposition": `attachment; filename="${filename}"`, "Cache-Control": "no-store" } });
 });
 
-/** The exporters are synchronous generators over an Iterable; feed them from the async DB stream one page at a time. */
-async function* asyncify<T>(make: (items: Iterable<T>) => Iterable<string>, source: AsyncIterable<T>): AsyncGenerator<string> {
-  const buffer: T[] = [];
-  let done = false;
-  const iterator = source[Symbol.asyncIterator]();
-  // Pull products lazily: a tiny sync iterable that is refilled between yields.
-  const pullable: Iterable<T> = {
-    [Symbol.iterator]() {
-      return {
-        next(): IteratorResult<T> {
-          const v = buffer.shift();
-          return v === undefined ? { done: true, value: undefined as never } : { done: false, value: v };
-        },
-      };
-    },
-  };
-  let header = true;
-  while (!done) {
-    const r = await iterator.next();
-    if (r.done) {
-      done = true;
-    } else {
-      buffer.push(r.value);
-    }
-    if (buffer.length >= 50 || done) {
-      // Each call re-runs the generator over the current buffer; strip repeated headers after the first batch.
-      let first = true;
-      for (const chunk of make(pullable)) {
-        if (!header && first && (chunk.startsWith("﻿") || /^"?Handle|^"?handle|^\[/.test(chunk))) {
-          first = false;
-          if (chunk === "[" || chunk === "]") continue;
-          continue;
-        }
-        first = false;
-        if (!header && (chunk === "[" || chunk === "]")) continue;
-        yield chunk;
+/**
+ * The exporters are synchronous generators over an Iterable. Feed them one page of products at a
+ * time: CSV pages repeat the header, so it is dropped after the first page; JSON pages each come
+ * wrapped in "[" … "]", so the brackets are stripped and commas inserted between pages.
+ */
+async function* paged(source: AsyncIterable<ExportProduct>, make: (items: Iterable<ExportProduct>) => Iterable<string>, kind: "csv" | "json"): AsyncGenerator<string> {
+  let page: ExportProduct[] = [];
+  let pageIndex = 0;
+  let emittedObject = false;
+  function* flush(items: ExportProduct[], index: number): Generator<string> {
+    const parts = [...make(items)];
+    if (kind === "csv") {
+      for (const [i, c] of parts.entries()) {
+        if (index > 0 && i === 0) continue;
+        yield c;
       }
-      header = false;
+      return;
+    }
+    const inner = parts.slice(1, -1);
+    if (index === 0) yield "[";
+    if (inner.length > 0 && emittedObject) yield ",";
+    for (const c of inner) yield c;
+    if (inner.length > 0) emittedObject = true;
+  }
+  for await (const item of source) {
+    page.push(item);
+    if (page.length >= PAGE) {
+      yield* flush(page, pageIndex++);
+      page = [];
     }
   }
+  yield* flush(page, pageIndex++);
+  if (kind === "json") yield "]";
 }
 
 async function* prefixed(prefix: string, inner: AsyncIterable<string>): AsyncGenerator<string> {

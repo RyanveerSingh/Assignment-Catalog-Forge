@@ -43,8 +43,8 @@ describe.skipIf(!process.env.DATABASE_URL)("import pipeline (integration)", () =
     });
   }
 
-  async function createImportFor(buffer: Buffer, name: string): Promise<string> {
-    const imp = await createImport(db, { storeId, name, mode: "fast" });
+  async function createImportFor(buffer: Buffer, name: string, mode: "fast" | "economy" = "fast"): Promise<string> {
+    const imp = await createImport(db, { storeId, name, mode });
     const blob = await getStorage().put(storeId, buffer, "text/csv");
     await attachImportFile(db, { importId: imp.id, storeId, kind: "sheet", blobId: blob.id, sha256: blob.sha256, size: blob.size, mime: "text/csv", originalName: name });
     await updateImport(db, imp.id, { status: "queued", fileHash: sha256Hex(buffer) });
@@ -129,7 +129,7 @@ describe.skipIf(!process.env.DATABASE_URL)("import pipeline (integration)", () =
 
   it("EC-E1: a worker killed mid-import resumes after restart with nothing lost or doubled", async () => {
     // Change one cell so the content is new and the AI stage must run again.
-    const changed = Buffer.from(sample.toString("utf8").replace("Terracotta", "Terracotta Classic"), "utf8");
+    const changed = Buffer.from(sample.toString("utf8").replaceAll("Terracotta", "Terracotta Classic"), "utf8");
     const importId = await createImportFor(changed, "tiny-10-v2.csv");
     // Let the first stage start, then kill the worker abruptly (in-flight jobs are abandoned).
     const deadline = Date.now() + 20_000;
@@ -147,10 +147,24 @@ describe.skipIf(!process.env.DATABASE_URL)("import pipeline (integration)", () =
     expect(status).toBe("completed");
     const imp = (await getImportById(db, importId))!;
     expect(imp.counts.done + imp.counts.needs_review + imp.counts.failed).toBe(10);
+    // The content changed, so the AI stage must have run again for this import.
+    const calls = await db.select({ n: sql<number>`count(*)::int` }).from(aiRequests).where(and(eq(aiRequests.importId, importId), eq(aiRequests.purpose, "enrich"), eq(aiRequests.status, "succeeded")));
+    expect(calls[0]!.n).toBeGreaterThan(0);
     const rows = await db.select({ n: sql<number>`count(*)::int` }).from(importRows).where(eq(importRows.importId, importId));
     expect(rows[0]!.n).toBe(10);
     const prods = await db.select({ n: sql<number>`count(*)::int` }).from(products).where(eq(products.storeId, storeId));
     expect(prods[0]!.n).toBe(4);
+  });
+
+  it("EC-D14: economy mode runs through the batch API path and lands every row", { timeout: 90_000 }, async () => {
+    const changed = Buffer.from(sample.toString("utf8").replaceAll("drainage hole", "drainage hole and saucer"), "utf8");
+    const importId = await createImportFor(changed, "tiny-10-economy.csv", "economy");
+    const status = await waitForTerminal(importId, 80_000);
+    const imp = (await getImportById(db, importId))!;
+    expect(status, imp.error ?? "").toBe("completed");
+    expect(imp.counts.done + imp.counts.needs_review + imp.counts.failed).toBe(10);
+    const batched = await db.select({ n: sql<number>`count(*)::int` }).from(aiRequests).where(and(eq(aiRequests.importId, importId), sql`${aiRequests.batchId} is not null`, eq(aiRequests.status, "succeeded")));
+    expect(batched[0]!.n).toBeGreaterThan(0);
   });
 
   it("EC-H1/H2: approving publishes storefront rows per locale with English fallbacks where needed", async () => {
