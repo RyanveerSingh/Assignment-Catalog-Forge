@@ -1,26 +1,192 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
+/*
+  CatalogForge design tokens — "foundry ledger".
+  Warm paper ground, ink text, one molten-amber accent, hairline borders, tabular numerals.
+  Status colours are semantic and never the only signal (text/icon always accompanies them).
+*/
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-heading: var(--font-fraunces), "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-soft: var(--brand-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-paper: var(--paper);
+  --color-paper-deep: var(--paper-deep);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  color-scheme: light;
+  --paper: #f6f3ee;
+  --paper-deep: #ece7df;
+  --ink: #1a1714;
+  --ink-muted: #6b6259;
+
+  --background: #f6f3ee;
+  --foreground: #1a1714;
+  --card: #fffcf8;
+  --card-foreground: #1a1714;
+  --popover: #fffcf8;
+  --popover-foreground: #1a1714;
+  --primary: #1a1714;
+  --primary-foreground: #f6f3ee;
+  --secondary: #ece7df;
+  --secondary-foreground: #1a1714;
+  --muted: #efeae2;
+  --muted-foreground: #6b6259;
+  --accent: #f1e9dd;
+  --accent-foreground: #1a1714;
+  --destructive: #b42318;
+  --border: #e2dbd1;
+  --input: #d9d1c6;
+  --ring: #b45309;
+
+  --brand: #b45309;
+  --brand-foreground: #fff7ed;
+  --brand-soft: #fdebd3;
+  --success: #3b6d11;
+  --success-soft: #e6f0d8;
+  --warning: #b45309;
+  --warning-soft: #fdebd3;
+  --info: #3f5f8a;
+  --info-soft: #e1e8f2;
+
+  --chart-1: #b45309;
+  --chart-2: #1a1714;
+  --chart-3: #3b6d11;
+  --chart-4: #3f5f8a;
+  --chart-5: #9a3412;
+  --radius: 0.375rem;
+
+  --sidebar: #fffcf8;
+  --sidebar-foreground: #1a1714;
+  --sidebar-primary: #1a1714;
+  --sidebar-primary-foreground: #f6f3ee;
+  --sidebar-accent: #f1e9dd;
+  --sidebar-accent-foreground: #1a1714;
+  --sidebar-border: #e2dbd1;
+  --sidebar-ring: #b45309;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    font-feature-settings: "cv11", "ss01";
+  }
+  body {
+    @apply bg-background text-foreground;
+    position: relative;
+    min-height: 100dvh;
+  }
+  /* Faint paper grain: pure CSS, no network, no layout cost. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  body > * {
+    position: relative;
+    z-index: 1;
+  }
+  h1, h2, h3, .font-display {
+    font-family: var(--font-heading);
+    font-variation-settings: "opsz" 72, "SOFT" 30, "WONK" 0;
+    letter-spacing: -0.01em;
+  }
+  ::selection {
+    background: var(--brand-soft);
+    color: var(--ink);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@utility num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+@utility hairline {
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+@utility rule-brand {
+  border-left: 3px solid var(--brand);
+}
+
+@utility prose-product {
+  & p { margin: 0 0 0.75em; line-height: 1.6; }
+  & ul, & ol { margin: 0 0 0.75em 1.25em; }
+  & li { margin-bottom: 0.25em; }
+  & strong { font-weight: 600; }
+  & h2, & h3, & h4 { font-family: var(--font-heading); margin: 1em 0 0.4em; }
+  & a { text-decoration: underline; text-underline-offset: 3px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

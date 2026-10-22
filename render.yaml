@@ -1,0 +1,35 @@
+# Render Blueprint: one free web service running the dashboard, storefront and the embedded worker.
+# Database: Neon (free) — set DATABASE_URL in the Render dashboard after creating the service.
+services:
+  - type: web
+    name: catalogforge
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm ci --no-audit --no-fund && npm run build
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: WORKER_MODE
+        value: embedded
+      - key: STORAGE_DRIVER
+        value: pg
+      - key: SEED_DEMO
+        value: "true"
+      - key: AI_PROVIDER
+        value: anthropic
+      - key: APP_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: APP_BASE_URL
+        sync: false
+      - key: LOG_LEVEL
+        value: info

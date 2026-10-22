@@ -298,7 +298,7 @@ export const importRows = pgTable(
 // Products, variants, photos
 // ---------------------------------------------------------------------------
 
-export const PRODUCT_STATUSES = ["pending_ai", "draft", "needs_review", "approved", "rejected", "archived"] as const;
+export const PRODUCT_STATUSES = ["pending_ai", "draft", "needs_review", "approved", "rejected", "archived", "failed"] as const;
 export type ProductStatus = (typeof PRODUCT_STATUSES)[number];
 
 export interface ProductClaim {
@@ -366,8 +366,14 @@ export const products = pgTable(
     sourceHash: text("source_hash"),
     language: text("language").notNull().default("und"),
     aiTier: text("ai_tier"),
+    /** Stable job key assigned once so re-driving an import re-enqueues the same batches (EC-E1). */
+    aiBatchKey: text("ai_batch_key"),
     aiModel: text("ai_model"),
     promptVersion: text("prompt_version"),
+    /** Why the AI stage failed for this product, when status is failed. */
+    failureReason: text("failure_reason"),
+    /** Translation bookkeeping: set when every locale is fresh or failed, cleared when English changes. */
+    translatedAt: timestamp("translated_at", { withTimezone: true }),
     aiCostMicros: bigint("ai_cost_micros", { mode: "number" }).notNull().default(0),
     aiLatencyMs: integer("ai_latency_ms"),
     /** Optimistic concurrency for merchant edits (EC-F7). */
@@ -388,6 +394,7 @@ export const products = pgTable(
     index("products_store_status_idx").on(t.storeId, t.status),
     index("products_store_updated_idx").on(t.storeId, t.updatedAt),
     index("products_last_import_idx").on(t.lastImportId),
+    index("products_import_batch_idx").on(t.lastImportId, t.aiBatchKey),
   ],
 );
 
