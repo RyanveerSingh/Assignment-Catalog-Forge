@@ -1,0 +1,57 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: catalogforge-postgres
+    environment:
+      POSTGRES_USER: catalogforge
+      POSTGRES_PASSWORD: catalogforge
+      POSTGRES_DB: catalogforge
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U catalogforge -d catalogforge"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # `docker compose --profile full up` runs web and worker as separate containers.
+  # This is the configuration used in the recording to kill the worker mid-import
+  # and watch the import resume.
+  web:
+    profiles: ["full"]
+    build: .
+    container_name: catalogforge-web
+    command: ["node", "server.js"]
+    environment:
+      DATABASE_URL: postgres://catalogforge:catalogforge@postgres:5432/catalogforge
+      WORKER_MODE: none
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      APP_SECRET: ${APP_SECRET:-local-dev-secret-change-me-please-32}
+      BASE_URL: http://localhost:3000
+      PORT: "3000"
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  worker:
+    profiles: ["full"]
+    build: .
+    container_name: catalogforge-worker
+    command: ["node", "worker.js"]
+    environment:
+      DATABASE_URL: postgres://catalogforge:catalogforge@postgres:5432/catalogforge
+      WORKER_MODE: separate
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      APP_SECRET: ${APP_SECRET:-local-dev-secret-change-me-please-32}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
