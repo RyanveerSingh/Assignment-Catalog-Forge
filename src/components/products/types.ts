@@ -1,0 +1,190 @@
+import type { DuplicateRow, Issue, ProductGroup } from "@/core/types";
+
+/**
+ * Wire shapes of the products API as the browser sees them (JSON: dates are ISO strings).
+ * Declared here rather than imported from src/db so client bundles never touch the database layer.
+ */
+
+export type ProductStatus = "pending_ai" | "draft" | "needs_review" | "approved" | "rejected" | "archived" | "failed";
+
+export const PRODUCT_STATUSES: ReadonlyArray<ProductStatus> = ["pending_ai", "draft", "needs_review", "approved", "rejected", "archived", "failed"];
+
+export type ProductSortKey = "updatedAt" | "title" | "status" | "confidence" | "price" | "createdAt";
+
+export interface ProductListItem {
+  id: string;
+  productKey: string;
+  handle: string;
+  status: ProductStatus;
+  title: string | null;
+  category: string | null;
+  confidence: Record<string, number>;
+  minConfidence: number | null;
+  reviewReasons: string[];
+  variantCount: number;
+  priceFromCents: number | null;
+  currency: string | null;
+  photoCount: number;
+  thumbBlobId: string | null;
+  aiTier: string | null;
+  aiModel: string | null;
+  aiCostMicros: number;
+  language: string;
+  lastImportId: string | null;
+  missingFromImportId: string | null;
+  sourceChangedAt: string | null;
+  published: boolean;
+  deletedAt: string | null;
+  translations: { fresh: number; outdated: number; failed: number; pending: number };
+  updatedAt: string;
+  createdAt: string;
+}
+
+export interface ProductListResponse {
+  items: ProductListItem[];
+  total: number;
+  categories?: Array<{ category: string; n: number }>;
+}
+
+export interface BulkApproveResponse {
+  approved: string[];
+  skipped: Array<{ id: string; reason: string }>;
+}
+
+export interface ProductSeo {
+  metaTitle: string | null;
+  metaDescription: string | null;
+}
+
+export interface ProductContent {
+  title: string | null;
+  descriptionHtml: string | null;
+  category: string | null;
+  tags: string[];
+  attributes: Record<string, string>;
+  seo: ProductSeo;
+}
+
+export interface ProductClaim {
+  text: string;
+  source: string;
+  row?: number;
+  column?: string;
+  verified: boolean;
+}
+
+export interface ProductRow {
+  id: string;
+  storeId: string;
+  productKey: string;
+  handle: string;
+  status: ProductStatus;
+  draft: ProductContent | null;
+  published: { publishedAt: string; version: number } | null;
+  manualOverrides: Partial<ProductContent>;
+  confidence: Record<string, number>;
+  claims: ProductClaim[];
+  reviewReasons: string[];
+  group: ProductGroup | null;
+  sourceRows: number[];
+  duplicateRows: DuplicateRow[];
+  language: string;
+  aiTier: string | null;
+  aiModel: string | null;
+  promptVersion: string | null;
+  failureReason: string | null;
+  aiCostMicros: number;
+  aiLatencyMs: number | null;
+  version: number;
+  lastImportId: string | null;
+  missingFromImportId: string | null;
+  sourceChangedAt: string | null;
+  approvedAt: string | null;
+  publishedAt: string | null;
+  deletedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VariantRow {
+  id: string;
+  sku: string;
+  skuDisplay: string;
+  synthetic: boolean;
+  options: Record<string, string>;
+  priceCents: number | null;
+  currency: string | null;
+  compareAtCents: number | null;
+  weightGrams: number | null;
+  dimensions: { lengthCm?: number; widthCm?: number; heightCm?: number; diameterCm?: number } | null;
+  quantity: number | null;
+  barcode: string | null;
+  position: number;
+  sourceRows: number[];
+  issues: Issue[];
+}
+
+export interface PhotoRow {
+  id: string;
+  blobId: string;
+  thumbBlobId: string;
+  originalName: string;
+  width: number;
+  height: number;
+  position: number;
+  matchMethod: string;
+  matchScore: number;
+  variantId: string | null;
+}
+
+export type TranslationStatus = "fresh" | "outdated" | "pending" | "failed";
+
+export interface TranslationRow {
+  id: string;
+  field: string;
+  locale: string;
+  sourceHash: string;
+  text: string | null;
+  origin: "ai" | "manual";
+  status: TranslationStatus;
+  error: string | null;
+  updatedAt: string;
+}
+
+export interface SourceRow {
+  rowNumber: number;
+  raw: Record<string, string>;
+  issues: unknown;
+  status: string;
+  duplicateOfRow: number | null;
+}
+
+export interface ProductDetail {
+  product: ProductRow;
+  variants: VariantRow[];
+  photos: PhotoRow[];
+  translations: TranslationRow[];
+  sourceRows: SourceRow[];
+  importName: string | null;
+}
+
+/** A source cell the merchant is pointing at (claim chip hover/focus). `column` absent = whole row. */
+export interface SourceHighlight {
+  row: number;
+  column?: string;
+}
+
+export type ProductAction =
+  | { action: "approve"; force?: boolean }
+  | { action: "reject"; reason?: string }
+  | { action: "send_back"; reason: string }
+  | { action: "rerun"; tier?: "cheap" | "strong" | "vision" | "escalation"; promptVersion?: string }
+  | { action: "delete" }
+  | { action: "restore" }
+  | { action: "translate"; field: string; locale: string; text: string };
+
+export const EMPTY_CONTENT: ProductContent = { title: null, descriptionHtml: null, category: null, tags: [], attributes: {}, seo: { metaTitle: null, metaDescription: null } };
+
+export function imageUrl(storeSlug: string, blobId: string): string {
+  return `/api/img/${encodeURIComponent(storeSlug)}/${blobId}`;
+}
