@@ -7,6 +7,7 @@ const fraunces = Fraunces({ subsets: ["latin"], variable: "--font-fraunces", dis
 const jetbrains = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains", display: "swap" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.APP_BASE_URL ?? "http://localhost:3000"),
   title: { default: "CatalogForge", template: "%s · CatalogForge" },
   description: "Messy supplier sheets in, store-ready multi-language catalog out.",
 };

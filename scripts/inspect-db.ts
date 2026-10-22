@@ -15,6 +15,8 @@ async function main(): Promise<void> {
   await show("ai_requests", sql`select import_id, purpose, status, batch_id, custom_id, cost_micros from ai_requests order by created_at desc limit 10`);
   await show("events (latest import)", sql`select level, message from import_events where import_id = (select id from imports order by created_at desc limit 1) order by id`);
   await show("review reasons", sql`select product_key, status, review_reasons, confidence, draft->>'category' as category, draft->>'title' as title from products order by updated_at desc limit 8`);
+  await show("photo matching (latest import with photos)", sql`select ph.status, ph.match_method, count(*)::int as n from photos ph where ph.import_id = (select import_id from photos order by created_at desc limit 1) group by 1, 2 order by 3 desc`);
+  await show("photo names vs products", sql`select ph.original_name, ph.status, ph.match_method, p.product_key from photos ph left join products p on p.id = ph.product_id where ph.import_id = (select import_id from photos order by created_at desc limit 1) order by ph.original_name limit 60`);
   await closeDb();
 }
 

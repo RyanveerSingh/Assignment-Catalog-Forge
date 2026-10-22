@@ -1,8 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Standalone output keeps the Docker image small; `next start` still works for Render.
-  output: "standalone",
+  // Served with `next start` everywhere (Render and Docker); no standalone output so one start command fits both.
   // Native/Node-only packages must not be bundled for the server runtime.
   serverExternalPackages: ["sharp", "pg", "pino", "yauzl", "xlsx", "jschardet", "iconv-lite"],
   // We serve our own pre-resized WebP variants from blob routes; Next's optimizer would

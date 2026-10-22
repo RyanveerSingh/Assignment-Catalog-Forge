@@ -4,8 +4,11 @@
  * Every `allowedClaims` phrase appears verbatim (case-insensitively) in the English
  * description, notes or care text; every `negatedClaims` phrase appears inside a negation in
  * the notes ("not frost-proof"). `validateCatalog()` enforces both so the ground truth can be
- * trusted by the evaluation harness.
+ * trusted by the evaluation harness. Every `categoryPrefix` is a TAXONOMY path or a strict prefix
+ * of one (EC-D3), so the harness can compare category output by prefix.
  */
+
+import { TAXONOMY } from "../../src/core/ai/taxonomy";
 
 export interface SizeOption {
   /** Option value as the supplier writes it: "20 cm", "M", "40 x 40 cm", "A5". */
@@ -690,7 +693,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Kneeling Pad",
     descriptionEn:
       "Thick memory foam kneeling pad with a wipe clean cover and a carry handle. Saves knees during planting and weeding and doubles as a seat cushion for camping. Dries quickly after rain.",
-    categoryPrefix: "Home & Garden > Lawn & Garden > Gardening > Gardening Accessories",
+    categoryPrefix: "Home & Garden > Lawn & Garden > Gardening",
     brand: null,
     material: "memory foam",
     basePriceCents: 1400,
@@ -707,7 +710,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Oak Side Table",
     descriptionEn:
       "Round side table in solid oak with a turned pedestal base and a hand-oiled top. The timber is FSC-certified and finished without stain, so the grain shows through. Delivered flat-packed with two fixings.",
-    categoryPrefix: "Furniture > Tables > Accent Tables > End Tables",
+    categoryPrefix: "Furniture > Tables > Side Tables",
     brand: "Hinterland",
     material: "oak",
     care: "Wipe with a damp cloth; re-oil once a year.",
@@ -750,7 +753,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Wall Shelf",
     descriptionEn:
       "Floating wall shelf in solid pine with a hidden steel bracket and all fixings included. Holds up to 10 kg of books when mounted into masonry or studs. Sanded smooth and left unfinished for painting or oiling.",
-    categoryPrefix: "Furniture > Shelving > Wall Shelves & Ledges",
+    categoryPrefix: "Furniture > Shelving",
     brand: "Hinterland",
     material: "pine",
     sizes: cm(["60 cm", "90 cm"], [1, 1.4]),
@@ -767,7 +770,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Bedside Table",
     descriptionEn:
       "Bedside table with one drawer and an open shelf, in ash veneer over an engineered board with solid ash legs. The drawer runs on wooden runners and has a cut-out pull instead of a handle. Arrives assembled.",
-    categoryPrefix: "Furniture > Tables > Nightstands",
+    categoryPrefix: "Furniture > Tables > Side Tables",
     brand: "Hinterland",
     material: "ash veneer",
     notes: "Ash veneer over engineered board, not solid wood.",
@@ -791,7 +794,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Plant Stand",
     descriptionEn:
       "Plant stand in powder-coated steel with a round top that takes pots up to 25 cm across. Suitable for indoor use; the slim legs keep it light enough to move with the plant on it. Comes in two heights.",
-    categoryPrefix: "Home & Garden > Decor > Plant Stands",
+    categoryPrefix: "Home & Garden > Decor",
     brand: "Form & Fibre",
     material: "powder-coated steel",
     notes: "Indoor use only; not suitable for outdoor use.",
@@ -869,7 +872,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "String Lights",
     descriptionEn:
       "Warm white LED string lights on a dark green cable with an IP44 transformer, rated for covered outdoor areas. 8 lighting modes with a memory function. Plug-in, with a 3 m lead cable.",
-    categoryPrefix: "Home & Garden > Lighting > Lighting Fixtures > String Lights",
+    categoryPrefix: "Home & Garden > Lighting > String Lights",
     brand: "Lumo",
     material: "pvc, led",
     notes: "IP44 splash-proof, not waterproof; do not submerge.",
@@ -910,7 +913,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Ceramic Pet Bowl",
     descriptionEn:
       "Heavy stoneware pet bowl with a non-slip base and a wide rim that keeps whiskers clear. Dishwasher-safe and glazed with a lead-free finish. Three sizes from cat to large dog.",
-    categoryPrefix: "Animals & Pet Supplies > Pet Supplies > Pet Bowls, Feeders & Waterers",
+    categoryPrefix: "Animals & Pet Supplies > Pet Supplies > Pet Bowls & Feeders",
     brand: "Pawfolk",
     material: "stoneware",
     sizes: sml([1, 1.4, 1.9]),
@@ -934,7 +937,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Rope Dog Toy",
     descriptionEn:
       "Knotted tug toy in thick cotton rope, 35 cm long with a loop handle at one end. Machine washable at 30 °C and dries on the line. Suitable for medium and large dogs.",
-    categoryPrefix: "Animals & Pet Supplies > Pet Supplies > Dog Supplies > Dog Toys",
+    categoryPrefix: "Animals & Pet Supplies > Pet Supplies > Pet Toys",
     brand: "Pawfolk",
     material: "cotton rope",
     notes: "Tough, but not indestructible; supervise play.",
@@ -951,7 +954,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Cat Scratching Post",
     descriptionEn:
       "60 cm scratching post wrapped in natural sisal on a solid base of carpeted MDF. Heavy enough that it will not tip when a large cat leans into it. Replacement sisal sleeves are available.",
-    categoryPrefix: "Animals & Pet Supplies > Pet Supplies > Cat Supplies > Cat Furniture",
+    categoryPrefix: "Animals & Pet Supplies > Pet Supplies > Cat Supplies",
     brand: "Pawfolk",
     material: "sisal, mdf",
     basePriceCents: 3900,
@@ -985,7 +988,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Dog Leash",
     descriptionEn:
       "150 cm dog leash in woven polyester webbing with reflective stitching along both edges and a padded handle. The trigger clip is solid brass. Wipe clean.",
-    categoryPrefix: "Animals & Pet Supplies > Pet Supplies > Dog Supplies > Dog Leashes",
+    categoryPrefix: "Animals & Pet Supplies > Pet Supplies > Dog Supplies",
     brand: "Pawfolk",
     material: "polyester webbing",
     colours: col(["red", "RD"], ["navy", "NV"], ["forest green", "FG"]),
@@ -1003,7 +1006,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Linen Notebook",
     descriptionEn:
       "A5 notebook with a linen cover, 192 dotted pages of FSC-certified paper and a ribbon marker. The lay-flat binding is sewn, not glued. Paper is 100 gsm and takes fountain pen ink without bleeding.",
-    categoryPrefix: "Office Supplies > General Office Supplies > Paper Products > Notebooks",
+    categoryPrefix: "Office Supplies > General Office Supplies > Paper > Notebooks & Notepads",
     brand: "Folio",
     material: "linen, paper",
     colours: col(["natural", "NA"], ["dark blue", "DB"], ["rust", "RU"]),
@@ -1032,7 +1035,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Fountain Pen",
     descriptionEn:
       "Fountain pen with a medium steel nib and a brushed aluminium barrel, converter included for bottled ink. Takes standard international cartridges as well. Writes wet with a slight line variation.",
-    categoryPrefix: "Office Supplies > General Office Supplies > Writing & Drawing Instruments > Pens",
+    categoryPrefix: "Office Supplies > Writing Instruments > Pens",
     brand: "Folio",
     material: "aluminium",
     basePriceCents: 3200,
@@ -1048,7 +1051,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Desk Organiser",
     descriptionEn:
       "Desk organiser in oak veneer with five compartments for pens, phone, cards and clips, felt lined to stop things rattling. Sits flat on the desk without feet. Dust with a dry cloth.",
-    categoryPrefix: "Office Supplies > General Office Supplies > Desk Organizers",
+    categoryPrefix: "Office Supplies > Desk Accessories",
     brand: "Folio",
     material: "oak veneer",
     notes: "Oak veneer over birch ply, not solid oak.",
@@ -1065,7 +1068,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Recycled Paper Pad",
     descriptionEn:
       "Writing pad of 80 sheets in 100% recycled paper, ruled with a faint grey line and glued at the head for clean tearing. Backed with a thick grey board. Available in A4 and A5.",
-    categoryPrefix: "Office Supplies > General Office Supplies > Paper Products > Notepads",
+    categoryPrefix: "Office Supplies > General Office Supplies > Paper > Notebooks & Notepads",
     brand: "Folio",
     material: "recycled paper",
     sizes: [
@@ -1085,7 +1088,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Brass Pencil Sharpener",
     descriptionEn:
       "Single-hole pencil sharpener machined from solid brass with a replacement blade included in the box. The weight keeps it steady on the desk. Fits standard and jumbo pencils.",
-    categoryPrefix: "Office Supplies > General Office Supplies > Writing & Drawing Instruments > Pencil Sharpeners",
+    categoryPrefix: "Office Supplies > Writing Instruments",
     brand: null,
     material: "brass",
     basePriceCents: 1400,
@@ -1102,7 +1105,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Wooden Stacking Blocks",
     descriptionEn:
       "Set of 24 stacking blocks in beech wood, coloured with water-based paint and sanded with rounded edges. Suitable from 12 months. Comes in a cotton drawstring bag.",
-    categoryPrefix: "Toys & Games > Toys > Building Toys > Stacking Blocks",
+    categoryPrefix: "Toys & Games > Toys > Building Toys",
     brand: "Little Larch",
     material: "beech wood",
     basePriceCents: 2900,
@@ -1124,7 +1127,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Plush Rabbit",
     descriptionEn:
       "Soft plush rabbit, 30 cm tall, with embroidered eyes rather than buttons and long floppy ears. Machine washable at 30 °C in a wash bag. Filled with recycled fibre.",
-    categoryPrefix: "Toys & Games > Toys > Stuffed Animals",
+    categoryPrefix: "Toys & Games > Toys > Dolls & Stuffed Animals",
     brand: "Little Larch",
     material: "polyester plush",
     colours: col(["cream", "CR"], ["grey", "GR"]),
@@ -1141,7 +1144,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Wooden Puzzle",
     descriptionEn:
       "Chunky 12 pieces farm puzzle cut from birch plywood with a printed guide underneath each piece. The knobs are sized for small hands. Wipe clean with a damp cloth.",
-    categoryPrefix: "Toys & Games > Puzzles > Jigsaw Puzzles",
+    categoryPrefix: "Toys & Games > Games > Puzzles",
     brand: "Little Larch",
     material: "plywood",
     basePriceCents: 1800,
@@ -1163,7 +1166,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Kite",
     descriptionEn:
       "Single line diamond kite in ripstop nylon with a 2 m tail and fibreglass spars. Flies in light wind and packs into a sleeve. 30 m line on a winder included.",
-    categoryPrefix: "Toys & Games > Outdoor Play Equipment > Kites",
+    categoryPrefix: "Toys & Games > Toys > Outdoor Toys",
     brand: "Little Larch",
     material: "ripstop nylon",
     colours: col(["red", "RD"], ["blue", "BL"]),
@@ -1180,7 +1183,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Toy Truck",
     descriptionEn:
       "Tipper truck in beech wood with rubber wheels that are quiet on wooden floors and a tipping bed that locks upright. Finished with clear water-based lacquer. Small parts: suitable from 3 years.",
-    categoryPrefix: "Toys & Games > Toys > Toy Vehicles",
+    categoryPrefix: "Toys & Games > Toys > Wooden Toys",
     brand: "Little Larch",
     material: "beech wood",
     notes: "Small parts: suitable from 3 years, not suitable for children under 3.",
@@ -1198,7 +1201,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Bamboo Soap Dish",
     descriptionEn:
       "Slatted soap dish in bamboo that drains freely so bars dry between uses. Sealed with a plant-based oil. Rinse under the tap and air dry.",
-    categoryPrefix: "Home & Garden > Bathroom Accessories > Soap Dishes & Holders",
+    categoryPrefix: "Home & Garden > Bathroom Accessories > Soap Dishes & Dispensers",
     brand: "Bathhouse",
     material: "bamboo",
     basePriceCents: 900,
@@ -1265,7 +1268,7 @@ export const CATALOG: ProductTemplate[] = [
     titleEn: "Shower Caddy",
     descriptionEn:
       "Two-tier shower caddy in rust-resistant coated steel that hangs over the shower head with no drilling. Each shelf holds three bottles and has hooks for razors and loofahs. Adjustable hanger for different pipe angles.",
-    categoryPrefix: "Home & Garden > Bathroom Accessories > Shower Caddies",
+    categoryPrefix: "Home & Garden > Bathroom Accessories",
     brand: "Bathhouse",
     material: "coated steel",
     notes: "Rust-resistant coating, not rust-proof; dry occasionally.",
@@ -1345,6 +1348,11 @@ export const MATERIAL_HEX: Record<string, string> = {
   concrete: "#9a9a9a",
 };
 
+/** True when `prefix` is a TAXONOMY path or a strict ancestor of one ("Home & Garden > Decor"). */
+export function isTaxonomyPrefix(prefix: string): boolean {
+  return TAXONOMY.some((path) => path === prefix || path.startsWith(`${prefix} > `));
+}
+
 /** Throws when a template's claims are not actually present in its own text. */
 export function validateCatalog(): void {
   const stems = new Set<string>();
@@ -1361,6 +1369,9 @@ export function validateCatalog(): void {
       if (!notes.includes(`not ${claim}`)) {
         throw new Error(`catalog ${t.stem}: negated claim "${claim}" is not negated in notes`);
       }
+    }
+    if (!isTaxonomyPrefix(t.categoryPrefix)) {
+      throw new Error(`catalog ${t.stem}: categoryPrefix "${t.categoryPrefix}" is not a TAXONOMY path or prefix`);
     }
     const variants = (t.sizes?.length ?? 1) * (t.colours?.length ?? 1);
     if (variants > 6) throw new Error(`catalog ${t.stem}: ${variants} variants, keep products at 6 or fewer`);

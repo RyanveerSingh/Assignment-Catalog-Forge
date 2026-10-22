@@ -54,13 +54,15 @@ export interface ProductListItem {
   createdAt: string;
 }
 
-const minConfidenceSql = sql<number | null>`(select min(value::int) from jsonb_each_text(${products.confidence}))`;
-const variantCountSql = sql<number>`(select count(*)::int from variants v where v.product_id = ${products.id})`;
-const priceFromSql = sql<number | null>`(select min(v.price_cents) from variants v where v.product_id = ${products.id})`;
-const currencySql = sql<string | null>`(select min(v.currency) from variants v where v.product_id = ${products.id} and v.price_cents is not null)`;
-const photoCountSql = sql<number>`(select count(*)::int from photos ph where ph.product_id = ${products.id} and ph.status = 'matched')`;
-const thumbSql = sql<string | null>`(select ph.thumb_blob_id from photos ph where ph.product_id = ${products.id} and ph.status = 'matched' order by ph.position asc limit 1)`;
-const translationSql = sql<Record<string, number>>`(select coalesce(jsonb_object_agg(status, n), '{}'::jsonb) from (select status, count(*)::int as n from translations t where t.product_id = ${products.id} group by status) s)`;
+// Correlated subqueries reference the outer table by its fully qualified name on purpose: Drizzle renders an
+// interpolated main-table column unqualified ("id") inside raw SQL, which would bind to the subquery's own table.
+const minConfidenceSql = sql<number | null>`(select min(value::int) from jsonb_each_text(products.confidence))`;
+const variantCountSql = sql<number>`(select count(*)::int from variants v where v.product_id = products.id)`;
+const priceFromSql = sql<number | null>`(select min(v.price_cents) from variants v where v.product_id = products.id)`;
+const currencySql = sql<string | null>`(select min(v.currency) from variants v where v.product_id = products.id and v.price_cents is not null)`;
+const photoCountSql = sql<number>`(select count(*)::int from photos ph where ph.product_id = products.id and ph.status = 'matched')`;
+const thumbSql = sql<string | null>`(select ph.thumb_blob_id from photos ph where ph.product_id = products.id and ph.status = 'matched' order by ph.position asc limit 1)`;
+const translationSql = sql<Record<string, number>>`(select coalesce(jsonb_object_agg(status, n), '{}'::jsonb) from (select status, count(*)::int as n from translations t where t.product_id = products.id group by status) s)`;
 
 /** Server-side paginated, sortable, filterable product listing for the dashboard table. */
 export async function listProducts(db: DbOrTx, storeId: string, opts: ProductListOptions = {}): Promise<{ items: ProductListItem[]; total: number }> {

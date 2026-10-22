@@ -1,5 +1,5 @@
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
-import { Pool, type PoolClient } from "pg";
+import { Pool } from "pg";
 import { getConfig } from "@/lib/config";
 import { getLogger } from "@/lib/logger";
 import * as schema from "./schema";
@@ -14,8 +14,15 @@ let storefrontPool: Pool | null = null;
 let mainDb: Db | null = null;
 let storefrontDb: Db | null = null;
 
-function makePool(connectionString: string, max: number): Pool {
-  const pool = new Pool({ connectionString, max, idleTimeoutMillis: 30_000, connectionTimeoutMillis: 10_000 });
+function makePool(connectionString: string, max: number, statementTimeoutMs?: number): Pool {
+  const pool = new Pool({
+    connectionString,
+    max,
+    idleTimeoutMillis: 30_000,
+    connectionTimeoutMillis: 10_000,
+    // Sent in the startup packet, so every connection carries the timeout without a racing SET query.
+    ...(statementTimeoutMs ? { options: `-c statement_timeout=${statementTimeoutMs}` } : {}),
+  });
   pool.on("error", (err) => getLogger({ component: "db" }).error({ err }, "idle client error"));
   return pool;
 }
@@ -38,12 +45,7 @@ export function getDb(): Db {
 export function getStorefrontPool(): Pool {
   if (!storefrontPool) {
     const cfg = getConfig();
-    storefrontPool = makePool(cfg.DATABASE_POOL_URL || cfg.DATABASE_URL, 4);
-    storefrontPool.on("connect", (client: PoolClient) => {
-      client.query("SET statement_timeout = 2000").catch((err: unknown) => {
-        getLogger({ component: "db" }).warn({ err }, "could not set storefront statement_timeout");
-      });
-    });
+    storefrontPool = makePool(cfg.DATABASE_POOL_URL || cfg.DATABASE_URL, 4, 2_000);
   }
   return storefrontPool;
 }

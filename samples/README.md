@@ -114,6 +114,9 @@ below 0 °C)" → `negatedClaims: ["frost-proof"]`, `TC-MG` "not oven-safe", `SB
   `£8` → 800 GBP). A price that was blanked, `0` or `N/A` is `null` (currency `null` too) and the product is
   `needs_review` with `expectedReviewReasons: ["no_price"]`. A conflicting SKU pair keeps the original row's
   price and adds `"sku_conflict"`.
+- `categoryPrefix` is always a path from `src/core/ai/taxonomy.ts` (`TAXONOMY`) or a strict prefix of one
+  (e.g. `Home & Garden > Decor` for the plant stand, which has no leaf of its own); the generator and the
+  test both assert this (EC-D3).
 - `variants[].options` are normalised: `{ size: "20 cm", color: "terracotta" }` even when the cell says
   `30cm`, `terracota` or `dunkelblau`.
 - `weightGrams` is `null` when the cell was blanked or a placeholder.

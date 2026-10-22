@@ -253,7 +253,11 @@ export function RowsTable({ storeSlug, importId, counts, totalRows }: { storeSlu
   );
 }
 
-function IssuesCell({ issues }: { issues: Issue[] }) {
+const SEVERITY_RANK: Record<Issue["severity"], number> = { error: 0, warn: 1, info: 2 };
+
+function IssuesCell({ issues: unsorted }: { issues: Issue[] }) {
+  // Most severe first so an "assumed cm" note never hides a missing price.
+  const issues = [...unsorted].sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
   const first = issues[0];
   if (!first) return <span className="text-xs text-ink-muted">—</span>;
   const more = issues.length - 1;

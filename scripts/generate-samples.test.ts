@@ -5,6 +5,7 @@ import { join } from "node:path";
 import Papa from "papaparse";
 import * as yauzl from "yauzl";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { TAXONOMY } from "@/core/ai/taxonomy";
 import type { GroundTruthFile } from "@/core/types";
 import { generateSamples } from "./generate-samples";
 
@@ -88,6 +89,14 @@ describe("generate-samples", () => {
       seen.add(dup.row);
     }
     expect(seen.size).toBe(rowCount);
+  });
+
+  it.each(GROUND_TRUTHS)("EC-D3: every %s categoryPrefix is a TAXONOMY path or a strict prefix of one", (name) => {
+    for (const product of readTruth(name).products) {
+      const prefix = product.categoryPrefix;
+      const matches = TAXONOMY.some((path) => path === prefix || path.startsWith(`${prefix} > `));
+      expect(matches, `${product.productKey}: "${prefix}"`).toBe(true);
+    }
   });
 
   it("EC-C3: duplicateRows in messy-120 are exact copies of their originals", () => {

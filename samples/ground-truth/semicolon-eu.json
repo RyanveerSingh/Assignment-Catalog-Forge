@@ -175,7 +175,7 @@
         "food-safe glaze",
         "dishwasher-safe"
       ],
-      "categoryPrefix": "Home & Garden > Kitchen & Dining > Tableware > Serveware",
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Tableware > Serveware > Serving Bowls",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "de",
@@ -388,7 +388,7 @@
         "set of three",
         "hand-finished"
       ],
-      "categoryPrefix": "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils",
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils > Cooking Utensils",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "de",
@@ -419,7 +419,7 @@
         "oven-safe",
         "induction compatible"
       ],
-      "categoryPrefix": "Home & Garden > Kitchen & Dining > Cookware > Skillets & Frying Pans",
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Cookware > Pots & Pans",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "de",
@@ -462,7 +462,7 @@
         "removable rose",
         "galvanised steel"
       ],
-      "categoryPrefix": "Home & Garden > Lawn & Garden > Gardening > Watering Cans",
+      "categoryPrefix": "Home & Garden > Lawn & Garden > Gardening > Gardening Tools > Watering Cans",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "de",
@@ -513,7 +513,7 @@
         "fsc-certified",
         "flat-packed"
       ],
-      "categoryPrefix": "Furniture > Tables > Accent Tables > End Tables",
+      "categoryPrefix": "Furniture > Tables > Side Tables",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "de",

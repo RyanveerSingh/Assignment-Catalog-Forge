@@ -53,7 +53,7 @@
         "memory foam",
         "wipe clean"
       ],
-      "categoryPrefix": "Home & Garden > Lawn & Garden > Gardening > Gardening Accessories",
+      "categoryPrefix": "Home & Garden > Lawn & Garden > Gardening",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -81,7 +81,7 @@
         "bamboo",
         "drains freely"
       ],
-      "categoryPrefix": "Home & Garden > Bathroom Accessories > Soap Dishes & Holders",
+      "categoryPrefix": "Home & Garden > Bathroom Accessories > Soap Dishes & Dispensers",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -167,7 +167,7 @@
         "pine",
         "fixings included"
       ],
-      "categoryPrefix": "Furniture > Shelving > Wall Shelves & Ledges",
+      "categoryPrefix": "Furniture > Shelving",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -306,7 +306,7 @@
         "warm white",
         "ip44"
       ],
-      "categoryPrefix": "Home & Garden > Lighting > Lighting Fixtures > String Lights",
+      "categoryPrefix": "Home & Garden > Lighting > String Lights",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -351,7 +351,7 @@
         "removable rose",
         "galvanised steel"
       ],
-      "categoryPrefix": "Home & Garden > Lawn & Garden > Gardening > Watering Cans",
+      "categoryPrefix": "Home & Garden > Lawn & Garden > Gardening > Gardening Tools > Watering Cans",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "de",
@@ -403,7 +403,7 @@
         "100% merino wool",
         "woven in scotland"
       ],
-      "categoryPrefix": "Home & Garden > Linens & Bedding > Blankets",
+      "categoryPrefix": "Home & Garden > Linens & Bedding > Bedding > Blankets",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -457,7 +457,7 @@
         "chip-resistant",
         "dishwasher-safe"
       ],
-      "categoryPrefix": "Home & Garden > Kitchen & Dining > Tableware > Plates",
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Tableware > Dinnerware > Plates",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -500,7 +500,7 @@
         "set of three",
         "hand-finished"
       ],
-      "categoryPrefix": "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils",
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils > Cooking Utensils",
       "expectedReviewReasons": [
         "no_price"
       ],
@@ -533,7 +533,7 @@
         "oven-safe",
         "induction compatible"
       ],
-      "categoryPrefix": "Home & Garden > Kitchen & Dining > Cookware > Skillets & Frying Pans",
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Cookware > Pots & Pans",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -579,7 +579,7 @@
         "set of three",
         "dishwasher-safe"
       ],
-      "categoryPrefix": "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils",
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils > Cooking Utensils",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -631,7 +631,7 @@
         "rubber wheels",
         "beech wood"
       ],
-      "categoryPrefix": "Toys & Games > Toys > Toy Vehicles",
+      "categoryPrefix": "Toys & Games > Toys > Wooden Toys",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -731,7 +731,7 @@
         "100% organic cotton",
         "machine washable"
       ],
-      "categoryPrefix": "Home & Garden > Linens & Bedding > Table Linens > Table Runners",
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Tableware > Table Linens",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -803,7 +803,7 @@
         "cotton rope",
         "machine washable"
       ],
-      "categoryPrefix": "Animals & Pet Supplies > Pet Supplies > Dog Supplies > Dog Toys",
+      "categoryPrefix": "Animals & Pet Supplies > Pet Supplies > Pet Toys",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -835,7 +835,7 @@
         "100% recycled paper",
         "80 sheets"
       ],
-      "categoryPrefix": "Office Supplies > General Office Supplies > Paper Products > Notepads",
+      "categoryPrefix": "Office Supplies > General Office Supplies > Paper > Notebooks & Notepads",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -875,7 +875,7 @@
         "steel nib",
         "converter included"
       ],
-      "categoryPrefix": "Office Supplies > General Office Supplies > Writing & Drawing Instruments > Pens",
+      "categoryPrefix": "Office Supplies > Writing Instruments > Pens",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -903,7 +903,7 @@
         "900 ml",
         "stainless steel infuser"
       ],
-      "categoryPrefix": "Home & Garden > Kitchen & Dining > Tableware > Coffee & Tea Sets",
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Tableware > Serveware > Teapots",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -935,7 +935,7 @@
         "powder-coated steel",
         "suitable for indoor use"
       ],
-      "categoryPrefix": "Home & Garden > Decor > Plant Stands",
+      "categoryPrefix": "Home & Garden > Decor",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -1173,7 +1173,7 @@
         "oak veneer",
         "felt lined"
       ],
-      "categoryPrefix": "Office Supplies > General Office Supplies > Desk Organizers",
+      "categoryPrefix": "Office Supplies > Desk Accessories",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -1287,7 +1287,7 @@
         "dotted pages",
         "fsc-certified paper"
       ],
-      "categoryPrefix": "Office Supplies > General Office Supplies > Paper Products > Notebooks",
+      "categoryPrefix": "Office Supplies > General Office Supplies > Paper > Notebooks & Notepads",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "fr",
@@ -1340,7 +1340,7 @@
         "machine washable",
         "embroidered eyes"
       ],
-      "categoryPrefix": "Toys & Games > Toys > Stuffed Animals",
+      "categoryPrefix": "Toys & Games > Toys > Dolls & Stuffed Animals",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -1426,7 +1426,7 @@
         "dishwasher-safe",
         "non-slip base"
       ],
-      "categoryPrefix": "Animals & Pet Supplies > Pet Supplies > Pet Bowls, Feeders & Waterers",
+      "categoryPrefix": "Animals & Pet Supplies > Pet Supplies > Pet Bowls & Feeders",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -1542,7 +1542,7 @@
         "water-based paint",
         "suitable from 12 months"
       ],
-      "categoryPrefix": "Toys & Games > Toys > Building Toys > Stacking Blocks",
+      "categoryPrefix": "Toys & Games > Toys > Building Toys",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -1598,7 +1598,7 @@
         "stainless steel",
         "ash handle"
       ],
-      "categoryPrefix": "Home & Garden > Lawn & Garden > Gardening > Gardening Tools",
+      "categoryPrefix": "Home & Garden > Lawn & Garden > Gardening > Gardening Tools > Hand Trowels",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -1682,7 +1682,7 @@
         "set of four",
         "dishwasher-safe"
       ],
-      "categoryPrefix": "Home & Garden > Kitchen & Dining > Tableware > Drinkware",
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Tableware > Coffee & Tea Sets",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "fr",
@@ -1710,7 +1710,7 @@
         "12 pieces",
         "plywood"
       ],
-      "categoryPrefix": "Toys & Games > Puzzles > Jigsaw Puzzles",
+      "categoryPrefix": "Toys & Games > Games > Puzzles",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -1848,7 +1848,7 @@
         "solid brass",
         "replacement blade included"
       ],
-      "categoryPrefix": "Office Supplies > General Office Supplies > Writing & Drawing Instruments > Pencil Sharpeners",
+      "categoryPrefix": "Office Supplies > Writing Instruments",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -1878,7 +1878,7 @@
         "food-safe glaze",
         "dishwasher-safe"
       ],
-      "categoryPrefix": "Home & Garden > Kitchen & Dining > Tableware > Serveware",
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Tableware > Serveware > Serving Bowls",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -1922,7 +1922,7 @@
         "rust-resistant",
         "no drilling"
       ],
-      "categoryPrefix": "Home & Garden > Bathroom Accessories > Shower Caddies",
+      "categoryPrefix": "Home & Garden > Bathroom Accessories",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -2067,7 +2067,7 @@
         "150 cm",
         "reflective stitching"
       ],
-      "categoryPrefix": "Animals & Pet Supplies > Pet Supplies > Dog Supplies > Dog Leashes",
+      "categoryPrefix": "Animals & Pet Supplies > Pet Supplies > Dog Supplies",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -2119,7 +2119,7 @@
         "stainless steel",
         "dishwasher-safe"
       ],
-      "categoryPrefix": "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils",
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils > Cooking Utensils",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -2234,7 +2234,7 @@
         "ripstop nylon",
         "single line"
       ],
-      "categoryPrefix": "Toys & Games > Outdoor Play Equipment > Kites",
+      "categoryPrefix": "Toys & Games > Toys > Outdoor Toys",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -2276,7 +2276,7 @@
         "sisal",
         "solid base"
       ],
-      "categoryPrefix": "Animals & Pet Supplies > Pet Supplies > Cat Supplies > Cat Furniture",
+      "categoryPrefix": "Animals & Pet Supplies > Pet Supplies > Cat Supplies",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -2304,7 +2304,7 @@
         "one drawer",
         "ash veneer"
       ],
-      "categoryPrefix": "Furniture > Tables > Nightstands",
+      "categoryPrefix": "Furniture > Tables > Side Tables",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
@@ -2335,7 +2335,7 @@
         "fsc-certified",
         "flat-packed"
       ],
-      "categoryPrefix": "Furniture > Tables > Accent Tables > End Tables",
+      "categoryPrefix": "Furniture > Tables > Side Tables",
       "expectedReviewReasons": [],
       "expectedStatus": "done",
       "language": "en",
