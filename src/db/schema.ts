@@ -567,6 +567,13 @@ export const jobs = pgTable(
   ],
 );
 
+/** Live-tunable settings shared by web and worker (chaos toggles, global pause). */
+export const appSettings = pgTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").$type<unknown>().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const queueState = pgTable("queue_state", {
   queue: text("queue", { enum: QUEUE_NAMES }).primaryKey(),
   pausedUntil: timestamp("paused_until", { withTimezone: true }),

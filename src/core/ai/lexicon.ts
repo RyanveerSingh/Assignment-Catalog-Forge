@@ -1,0 +1,91 @@
+/**
+ * Marketing and regulatory claims that must be grounded in the supplier's text (EC-D2).
+ * Each entry: the canonical English term plus spellings and DE/FR equivalents that count as the
+ * same claim appearing in the source. Comparison happens on `foldForMatch` output (lower-case,
+ * accents stripped, punctuation → space), so entries are written that way.
+ */
+
+export interface ClaimTerm {
+  term: string;
+  variants: string[];
+}
+
+export const CLAIM_LEXICON: ReadonlyArray<ClaimTerm> = [
+  { term: "organic", variants: ["organic", "bio", "biologisch", "biologique", "oeko", "öko"] },
+  { term: "handmade", variants: ["handmade", "hand made", "handgefertigt", "handgemacht", "fait main", "fait a la main", "artisanal", "handcrafted", "hand crafted"] },
+  { term: "hand-thrown", variants: ["hand thrown", "handthrown", "handgedreht", "tourne a la main"] },
+  { term: "hand-painted", variants: ["hand painted", "handpainted", "handbemalt", "peint a la main"] },
+  { term: "frost-proof", variants: ["frost proof", "frostproof", "frostsicher", "resistant au gel garanti", "frostfest"] },
+  { term: "frost-resistant", variants: ["frost resistant", "frostresistant", "frostbestandig", "resistant au gel", "frost hardy"] },
+  { term: "waterproof", variants: ["waterproof", "water proof", "wasserdicht", "etanche", "impermeable"] },
+  { term: "water-resistant", variants: ["water resistant", "waterresistant", "wasserabweisend", "wasserfest", "resistant a l eau", "hydrofuge"] },
+  { term: "dishwasher-safe", variants: ["dishwasher safe", "dishwashersafe", "spulmaschinenfest", "spulmaschinengeeignet", "lavable au lave vaisselle", "passe au lave vaisselle"] },
+  { term: "microwave-safe", variants: ["microwave safe", "microwavesafe", "mikrowellengeeignet", "mikrowellenfest", "passe au micro ondes", "compatible micro ondes"] },
+  { term: "oven-safe", variants: ["oven safe", "ovensafe", "ofenfest", "backofenfest", "passe au four"] },
+  { term: "freezer-safe", variants: ["freezer safe", "gefrierfest", "gefriergeeignet", "passe au congelateur"] },
+  { term: "food-safe", variants: ["food safe", "foodsafe", "lebensmittelecht", "lebensmittelsicher", "contact alimentaire", "alimentaire"] },
+  { term: "bpa-free", variants: ["bpa free", "bpafree", "bpa frei", "ohne bpa", "sans bpa"] },
+  { term: "lead-free", variants: ["lead free", "bleifrei", "sans plomb"] },
+  { term: "non-toxic", variants: ["non toxic", "nontoxic", "ungiftig", "schadstofffrei", "non toxique", "atoxique"] },
+  { term: "vegan", variants: ["vegan", "vegane", "veganes", "vegetalien"] },
+  { term: "recycled", variants: ["recycled", "recycelt", "recyclingmaterial", "recycle", "recyclee"] },
+  { term: "recyclable", variants: ["recyclable", "recycelbar", "wiederverwertbar"] },
+  { term: "sustainable", variants: ["sustainable", "sustainably", "nachhaltig", "durable", "ecoresponsable"] },
+  { term: "eco-friendly", variants: ["eco friendly", "ecofriendly", "umweltfreundlich", "ecologique", "ecolo"] },
+  { term: "biodegradable", variants: ["biodegradable", "biologisch abbaubar", "kompostierbar", "compostable"] },
+  { term: "certified", variants: ["certified", "zertifiziert", "certifie", "certifiee"] },
+  { term: "fsc", variants: ["fsc", "fsc certified", "fsc zertifiziert"] },
+  { term: "gots", variants: ["gots", "gots certified"] },
+  { term: "oeko-tex", variants: ["oeko tex", "oekotex", "okotex"] },
+  { term: "fair trade", variants: ["fair trade", "fairtrade", "fair gehandelt", "commerce equitable"] },
+  { term: "hypoallergenic", variants: ["hypoallergenic", "hypoallergen", "hypoallergenique"] },
+  { term: "antibacterial", variants: ["antibacterial", "anti bacterial", "antibakteriell", "antibacterien"] },
+  { term: "uv-resistant", variants: ["uv resistant", "uvresistant", "uv bestandig", "uv stabil", "resistant aux uv", "anti uv"] },
+  { term: "rustproof", variants: ["rustproof", "rust proof", "rust resistant", "rostfrei", "inoxydable", "antirouille"] },
+  { term: "stainless steel", variants: ["stainless steel", "stainless", "edelstahl", "acier inoxydable", "inox"] },
+  { term: "scratch-resistant", variants: ["scratch resistant", "kratzfest", "resistant aux rayures"] },
+  { term: "shatterproof", variants: ["shatterproof", "shatter proof", "bruchsicher", "incassable"] },
+  { term: "heat-resistant", variants: ["heat resistant", "heatproof", "hitzebestandig", "hitzefest", "resistant a la chaleur"] },
+  { term: "fire-retardant", variants: ["fire retardant", "flame retardant", "flammhemmend", "schwer entflammbar", "ignifuge"] },
+  { term: "machine-washable", variants: ["machine washable", "maschinenwaschbar", "waschmaschinenfest", "lavable en machine"] },
+  { term: "pet-safe", variants: ["pet safe", "haustierfreundlich", "sans danger pour les animaux"] },
+  { term: "child-safe", variants: ["child safe", "kindersicher", "sans danger pour les enfants"] },
+  { term: "lifetime warranty", variants: ["lifetime warranty", "lifetime guarantee", "lebenslange garantie", "garantie a vie"] },
+  { term: "100% cotton", variants: ["100 cotton", "100 baumwolle", "100 coton", "reine baumwolle", "pure cotton"] },
+  { term: "100% wool", variants: ["100 wool", "100 wolle", "100 laine", "pure wool", "reine wolle"] },
+  { term: "100% linen", variants: ["100 linen", "100 leinen", "100 lin", "pure linen"] },
+  { term: "solid wood", variants: ["solid wood", "massivholz", "bois massif"] },
+  { term: "made in", variants: ["made in", "hergestellt in", "fabrique en", "produit en", "aus deutschland", "aus portugal", "aus italien"] },
+  { term: "limited edition", variants: ["limited edition", "limitierte auflage", "edition limitee"] },
+  { term: "award-winning", variants: ["award winning", "preisgekront", "prime"] },
+  { term: "bestseller", variants: ["bestseller", "best seller", "meilleure vente"] },
+  { term: "premium", variants: ["premium", "high quality", "hochwertig", "haute qualite", "top quality"] },
+  { term: "natural", variants: ["natural", "100 natural", "naturlich", "naturel", "naturelle"] },
+  { term: "plastic-free", variants: ["plastic free", "plastikfrei", "sans plastique"] },
+  { term: "unbreakable", variants: ["unbreakable", "unzerbrechlich", "incassable"] },
+  { term: "dimmable", variants: ["dimmable", "dimmbar", "a intensite variable"] },
+  { term: "energy-saving", variants: ["energy saving", "energy efficient", "energiesparend", "basse consommation"] },
+];
+
+/** Words that negate the claim that follows within a few tokens (EC-B15). */
+export const NEGATION_TOKENS: ReadonlyArray<string> = [
+  "not",
+  "no",
+  "non",
+  "never",
+  "without",
+  "isn t",
+  "isnt",
+  "aren t",
+  "arent",
+  "kein",
+  "keine",
+  "nicht",
+  "ohne",
+  "pas",
+  "non",
+  "sans",
+  "aucun",
+  "aucune",
+  "jamais",
+];
