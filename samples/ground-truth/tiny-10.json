@@ -1,0 +1,200 @@
+{
+  "duplicateRows": [],
+  "generatedAt": "seed-42",
+  "products": [
+    {
+      "allowedClaims": [
+        "frost-resistant",
+        "handmade in portugal",
+        "drainage hole"
+      ],
+      "categoryPrefix": "Home & Garden > Decor > Planters",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "frost-proof"
+      ],
+      "photos": [],
+      "productKey": "TC-PL",
+      "sourceRows": [
+        1,
+        2,
+        3
+      ],
+      "titleKeywords": [
+        "planter"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "20 cm"
+          },
+          "priceCents": 1250,
+          "sku": "TC-PL-20",
+          "weightGrams": 900
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "30 cm"
+          },
+          "priceCents": 1875,
+          "sku": "TC-PL-30",
+          "weightGrams": 1350
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "40 cm"
+          },
+          "priceCents": 2750,
+          "sku": "TC-PL-40",
+          "weightGrams": 1980
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "dishwasher-safe",
+        "microwave-safe",
+        "350 ml"
+      ],
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Tableware > Drinkware > Mugs",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "oven-safe"
+      ],
+      "photos": [],
+      "productKey": "TC-MG",
+      "sourceRows": [
+        4,
+        5,
+        6
+      ],
+      "titleKeywords": [
+        "mug"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "cream"
+          },
+          "priceCents": 1450,
+          "sku": "TC-MG-01",
+          "weightGrams": 380
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "dark blue"
+          },
+          "priceCents": 1450,
+          "sku": "TC-MG-02",
+          "weightGrams": 380
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "sage green"
+          },
+          "priceCents": 1450,
+          "sku": "TC-MG-03",
+          "weightGrams": 380
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "pre-seasoned",
+        "oven-safe",
+        "induction compatible"
+      ],
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Cookware > Skillets & Frying Pans",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "dishwasher-safe"
+      ],
+      "photos": [],
+      "productKey": "CI-SK",
+      "sourceRows": [
+        7,
+        8
+      ],
+      "titleKeywords": [
+        "skillet"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "20 cm"
+          },
+          "priceCents": 4500,
+          "sku": "CI-SK-20",
+          "weightGrams": 1800
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "26 cm"
+          },
+          "priceCents": 6750,
+          "sku": "CI-SK-26",
+          "weightGrams": 2700
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "chip-resistant",
+        "dishwasher-safe"
+      ],
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Tableware > Plates",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "unbreakable"
+      ],
+      "photos": [],
+      "productKey": "DN-PL",
+      "sourceRows": [
+        9,
+        10
+      ],
+      "titleKeywords": [
+        "plate"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "white"
+          },
+          "priceCents": 1600,
+          "sku": "DN-PL-WH",
+          "weightGrams": 650
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "charcoal"
+          },
+          "priceCents": 1600,
+          "sku": "DN-PL-CH",
+          "weightGrams": 650
+        }
+      ]
+    }
+  ],
+  "sample": "tiny-10",
+  "seed": 42,
+  "unmatchedPhotos": []
+}

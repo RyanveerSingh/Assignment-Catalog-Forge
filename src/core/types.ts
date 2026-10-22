@@ -219,6 +219,8 @@ export interface CleanedRow {
   compareAtPrice: ParsedPrice | null;
   /** Normalised option name → normalised value, e.g. { size: "20 cm", color: "terracotta" }. */
   options: Record<string, string>;
+  /** Product-level colour (normalised) when the sheet treats colour as an attribute, not an option. */
+  color: string | null;
   weightGrams: number | null;
   dimensions: Dimensions | null;
   /** Filenames or URLs referenced by the row, in order. */

@@ -1,0 +1,555 @@
+{
+  "duplicateRows": [],
+  "generatedAt": "seed-42",
+  "products": [
+    {
+      "allowedClaims": [
+        "frost-resistant",
+        "handmade in portugal",
+        "drainage hole"
+      ],
+      "categoryPrefix": "Home & Garden > Decor > Planters",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "de",
+      "negatedClaims": [
+        "frost-proof"
+      ],
+      "photos": [],
+      "productKey": "TC-PL",
+      "sourceRows": [
+        1,
+        2,
+        3
+      ],
+      "titleKeywords": [
+        "planter"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "20 cm"
+          },
+          "priceCents": 1250,
+          "sku": "TC-PL-20",
+          "weightGrams": 900
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "30 cm"
+          },
+          "priceCents": 1875,
+          "sku": "TC-PL-30",
+          "weightGrams": 1350
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "40 cm"
+          },
+          "priceCents": 2750,
+          "sku": "TC-PL-40",
+          "weightGrams": 1980
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "glazed inside and out",
+        "suitable for indoor use"
+      ],
+      "categoryPrefix": "Home & Garden > Decor > Planters",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "de",
+      "negatedClaims": [
+        "frost-proof"
+      ],
+      "photos": [],
+      "productKey": "GL-PT",
+      "sourceRows": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "titleKeywords": [
+        "pot"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "terracotta"
+          },
+          "priceCents": 1890,
+          "sku": "GL-PT-TC",
+          "weightGrams": 1100
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "white"
+          },
+          "priceCents": 1890,
+          "sku": "GL-PT-WH",
+          "weightGrams": 1100
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "sage green"
+          },
+          "priceCents": 1890,
+          "sku": "GL-PT-SG",
+          "weightGrams": 1100
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "dark blue"
+          },
+          "priceCents": 1890,
+          "sku": "GL-PT-DB",
+          "weightGrams": 1100
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "dishwasher-safe",
+        "microwave-safe",
+        "350 ml"
+      ],
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Tableware > Drinkware > Mugs",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "de",
+      "negatedClaims": [
+        "oven-safe"
+      ],
+      "photos": [],
+      "productKey": "TC-MG",
+      "sourceRows": [
+        8,
+        9,
+        10
+      ],
+      "titleKeywords": [
+        "mug"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "cream"
+          },
+          "priceCents": 1450,
+          "sku": "TC-MG-01",
+          "weightGrams": 380
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "dark blue"
+          },
+          "priceCents": 1450,
+          "sku": "TC-MG-02",
+          "weightGrams": 380
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "sage green"
+          },
+          "priceCents": 1450,
+          "sku": "TC-MG-03",
+          "weightGrams": 380
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "food-safe glaze",
+        "dishwasher-safe"
+      ],
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Tableware > Serveware",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "de",
+      "negatedClaims": [
+        "microwave-safe"
+      ],
+      "photos": [],
+      "productKey": "SB-BW",
+      "sourceRows": [
+        11,
+        12
+      ],
+      "titleKeywords": [
+        "bowl"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "20 cm"
+          },
+          "priceCents": 2600,
+          "sku": "SB-BW-20",
+          "weightGrams": 700
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "26 cm"
+          },
+          "priceCents": 3770,
+          "sku": "SB-BW-26",
+          "weightGrams": 1015
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "100% linen",
+        "hidden zip",
+        "machine washable"
+      ],
+      "categoryPrefix": "Home & Garden > Decor > Throw Pillows",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "de",
+      "negatedClaims": [],
+      "photos": [],
+      "productKey": "LN-CU",
+      "sourceRows": [
+        13,
+        14,
+        15,
+        16
+      ],
+      "titleKeywords": [
+        "cushion"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "natural",
+            "size": "40 x 40 cm"
+          },
+          "priceCents": 2900,
+          "sku": "LN-CU-40-NA",
+          "weightGrams": 250
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "rust",
+            "size": "40 x 40 cm"
+          },
+          "priceCents": 2900,
+          "sku": "LN-CU-40-RU",
+          "weightGrams": 250
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "natural",
+            "size": "50 x 50 cm"
+          },
+          "priceCents": 3625,
+          "sku": "LN-CU-50-NA",
+          "weightGrams": 313
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "rust",
+            "size": "50 x 50 cm"
+          },
+          "priceCents": 3625,
+          "sku": "LN-CU-50-RU",
+          "weightGrams": 313
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "feather pad included",
+        "cotton velvet"
+      ],
+      "categoryPrefix": "Home & Garden > Decor > Throw Pillows",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "de",
+      "negatedClaims": [
+        "machine washable"
+      ],
+      "photos": [],
+      "productKey": "VL-CU",
+      "sourceRows": [
+        17,
+        18,
+        19
+      ],
+      "titleKeywords": [
+        "cushion"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "teal"
+          },
+          "priceCents": 3400,
+          "sku": "VL-CU-TE",
+          "weightGrams": 600
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "blush pink"
+          },
+          "priceCents": 3400,
+          "sku": "VL-CU-BP",
+          "weightGrams": 600
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "ochre"
+          },
+          "priceCents": 3400,
+          "sku": "VL-CU-OC",
+          "weightGrams": 600
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "100% beeswax",
+        "cotton wick",
+        "hand-poured"
+      ],
+      "categoryPrefix": "Home & Garden > Decor > Candles",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "de",
+      "negatedClaims": [
+        "dripless"
+      ],
+      "photos": [],
+      "productKey": "BW-CA",
+      "sourceRows": [
+        20,
+        21,
+        22
+      ],
+      "titleKeywords": [
+        "candle"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "10 cm"
+          },
+          "priceCents": 1800,
+          "sku": "BW-CA-10",
+          "weightGrams": 300
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "15 cm"
+          },
+          "priceCents": 2700,
+          "sku": "BW-CA-15",
+          "weightGrams": 450
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "20 cm"
+          },
+          "priceCents": 3600,
+          "sku": "BW-CA-20",
+          "weightGrams": 600
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "olive wood",
+        "set of three",
+        "hand-finished"
+      ],
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "de",
+      "negatedClaims": [
+        "dishwasher-safe"
+      ],
+      "photos": [],
+      "productKey": "OW-SP-01",
+      "sourceRows": [
+        23
+      ],
+      "titleKeywords": [
+        "spoon"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {},
+          "priceCents": 1900,
+          "sku": "OW-SP-01",
+          "weightGrams": 180
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "pre-seasoned",
+        "oven-safe",
+        "induction compatible"
+      ],
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Cookware > Skillets & Frying Pans",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "de",
+      "negatedClaims": [
+        "dishwasher-safe"
+      ],
+      "photos": [],
+      "productKey": "CI-SK",
+      "sourceRows": [
+        24,
+        25
+      ],
+      "titleKeywords": [
+        "skillet"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "20 cm"
+          },
+          "priceCents": 4500,
+          "sku": "CI-SK-20",
+          "weightGrams": 1800
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "26 cm"
+          },
+          "priceCents": 6750,
+          "sku": "CI-SK-26",
+          "weightGrams": 2700
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "5 litre",
+        "removable rose",
+        "galvanised steel"
+      ],
+      "categoryPrefix": "Home & Garden > Lawn & Garden > Gardening > Watering Cans",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "de",
+      "negatedClaims": [],
+      "photos": [],
+      "productKey": "WC-CN",
+      "sourceRows": [
+        26,
+        27,
+        28
+      ],
+      "titleKeywords": [
+        "watering"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "sage green"
+          },
+          "priceCents": 2400,
+          "sku": "WC-CN-SG",
+          "weightGrams": 700
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "grey"
+          },
+          "priceCents": 2400,
+          "sku": "WC-CN-GR",
+          "weightGrams": 700
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "ochre"
+          },
+          "priceCents": 2400,
+          "sku": "WC-CN-OC",
+          "weightGrams": 700
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "solid oak",
+        "fsc-certified",
+        "flat-packed"
+      ],
+      "categoryPrefix": "Furniture > Tables > Accent Tables > End Tables",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "de",
+      "negatedClaims": [],
+      "photos": [],
+      "productKey": "OK-ST",
+      "sourceRows": [
+        29,
+        30
+      ],
+      "titleKeywords": [
+        "table"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "natural oak"
+          },
+          "priceCents": 129900,
+          "sku": "OK-ST-NO",
+          "weightGrams": 6500
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "smoked oak"
+          },
+          "priceCents": 129900,
+          "sku": "OK-ST-SO",
+          "weightGrams": 6500
+        }
+      ]
+    }
+  ],
+  "sample": "semicolon-eu",
+  "seed": 42,
+  "unmatchedPhotos": []
+}

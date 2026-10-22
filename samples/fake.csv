@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Trade portal – session expired</title>
+<style>body{font-family:sans-serif;margin:4em auto;max-width:40em;color:#222}</style>
+</head>
+<body>
+<h1>Your session has expired</h1>
+<p>The price list download could not be completed because you are no longer signed in.</p>
+<form method="post" action="/login">
+<label>Email <input type="email" name="email"></label>
+<label>Password <input type="password" name="password"></label>
+<button type="submit">Sign in and download again</button>
+</form>
+<p><a href="/pricelists/2026-10/export.csv">Return to downloads</a></p>
+</body>
+</html>

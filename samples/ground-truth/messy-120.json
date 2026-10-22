@@ -1,0 +1,2483 @@
+{
+  "duplicateRows": [
+    {
+      "of": 31,
+      "row": 85
+    },
+    {
+      "of": 88,
+      "row": 113
+    },
+    {
+      "of": 112,
+      "row": 120
+    }
+  ],
+  "generatedAt": "seed-42",
+  "products": [
+    {
+      "allowedClaims": [
+        "soy wax",
+        "40 hour burn time",
+        "hand-poured"
+      ],
+      "categoryPrefix": "Home & Garden > Decor > Candles",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "certified organic"
+      ],
+      "photos": [
+        "SY-CA-01.jpg"
+      ],
+      "productKey": "SY-CA-01",
+      "sourceRows": [
+        1
+      ],
+      "titleKeywords": [
+        "candle"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {},
+          "priceCents": 2200,
+          "sku": "SY-CA-01",
+          "weightGrams": 450
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "memory foam",
+        "wipe clean"
+      ],
+      "categoryPrefix": "Home & Garden > Lawn & Garden > Gardening > Gardening Accessories",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [],
+      "productKey": "1E5",
+      "sourceRows": [
+        2
+      ],
+      "titleKeywords": [
+        "kneeling"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {},
+          "priceCents": 1400,
+          "sku": "1E5",
+          "weightGrams": 250
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "bamboo",
+        "drains freely"
+      ],
+      "categoryPrefix": "Home & Garden > Bathroom Accessories > Soap Dishes & Holders",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [],
+      "productKey": "BB-SD-01",
+      "sourceRows": [
+        3
+      ],
+      "titleKeywords": [
+        "soap"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {},
+          "priceCents": 900,
+          "sku": "BB-SD-01",
+          "weightGrams": 90
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "dishwasher-safe",
+        "microwave-safe",
+        "350 ml"
+      ],
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Tableware > Drinkware > Mugs",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "oven-safe"
+      ],
+      "photos": [
+        "TC-MG-02.jpg",
+        "subfolder/TC-MG-01.jpg",
+        "TC-MG-03.png",
+        "TC-MG-02_2.jpg"
+      ],
+      "productKey": "TC-MG",
+      "sourceRows": [
+        4,
+        5,
+        6
+      ],
+      "titleKeywords": [
+        "mug"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "cream"
+          },
+          "priceCents": 1450,
+          "sku": "TC-MG-01",
+          "weightGrams": 380
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "dark blue"
+          },
+          "priceCents": 1450,
+          "sku": "TC-MG-02",
+          "weightGrams": 380
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "sage green"
+          },
+          "priceCents": 1450,
+          "sku": "TC-MG-03",
+          "weightGrams": 380
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "pine",
+        "fixings included"
+      ],
+      "categoryPrefix": "Furniture > Shelving > Wall Shelves & Ledges",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [
+        "WS-SH-90.png",
+        "WS-SH-60.jpg"
+      ],
+      "productKey": "WS-SH",
+      "sourceRows": [
+        7,
+        8
+      ],
+      "titleKeywords": [
+        "shelf"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "60 cm"
+          },
+          "priceCents": 3900,
+          "sku": "WS-SH-60",
+          "weightGrams": 1800
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "90 cm"
+          },
+          "priceCents": 5460,
+          "sku": "WS-SH-90",
+          "weightGrams": 2520
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "100% organic cotton",
+        "machine washable",
+        "non-slip backing"
+      ],
+      "categoryPrefix": "Home & Garden > Bathroom Accessories > Bath Mats & Rugs",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [
+        "BM-MT-NV.jpg"
+      ],
+      "productKey": "BM-MT",
+      "sourceRows": [
+        9,
+        10,
+        11
+      ],
+      "titleKeywords": [
+        "mat"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "grey"
+          },
+          "priceCents": 2900,
+          "sku": "BM-MT-GR",
+          "weightGrams": 800
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "blush pink"
+          },
+          "priceCents": 2900,
+          "sku": "BM-MT-BP",
+          "weightGrams": 800
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "navy"
+          },
+          "priceCents": 2900,
+          "sku": "BM-MT-NV",
+          "weightGrams": 800
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "beech wood",
+        "folds flat",
+        "holds up to 120 kg"
+      ],
+      "categoryPrefix": "Furniture > Chairs > Stools",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "suitable for outdoor use"
+      ],
+      "photos": [],
+      "productKey": "FD-SL",
+      "sourceRows": [
+        12,
+        13
+      ],
+      "titleKeywords": [
+        "stool"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "black"
+          },
+          "priceCents": 4900,
+          "sku": "FD-SL-BK",
+          "weightGrams": 2100
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "natural"
+          },
+          "priceCents": 4900,
+          "sku": "FD-SL-NA",
+          "weightGrams": 2100
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "warm white",
+        "ip44"
+      ],
+      "categoryPrefix": "Home & Garden > Lighting > Lighting Fixtures > String Lights",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "waterproof"
+      ],
+      "photos": [
+        "SL-LT-5.jpg"
+      ],
+      "productKey": "SL-LT",
+      "sourceRows": [
+        14,
+        15
+      ],
+      "titleKeywords": [
+        "lights"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "5 m"
+          },
+          "priceCents": 1900,
+          "sku": "SL-LT-5",
+          "weightGrams": 350
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "10 m"
+          },
+          "priceCents": 3230,
+          "sku": "SL-LT-10",
+          "weightGrams": 595
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "5 litre",
+        "removable rose",
+        "galvanised steel"
+      ],
+      "categoryPrefix": "Home & Garden > Lawn & Garden > Gardening > Watering Cans",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "de",
+      "negatedClaims": [],
+      "photos": [
+        "WC-CN-SG.jpg"
+      ],
+      "productKey": "WC-CN",
+      "sourceRows": [
+        16,
+        17,
+        18
+      ],
+      "titleKeywords": [
+        "watering"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "sage green"
+          },
+          "priceCents": 2400,
+          "sku": "WC-CN-SG",
+          "weightGrams": 700
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "grey"
+          },
+          "priceCents": 2400,
+          "sku": "WC-CN-GR",
+          "weightGrams": 700
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "ochre"
+          },
+          "priceCents": 2400,
+          "sku": "WC-CN-OC",
+          "weightGrams": 700
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "100% merino wool",
+        "woven in scotland"
+      ],
+      "categoryPrefix": "Home & Garden > Linens & Bedding > Blankets",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "machine washable"
+      ],
+      "photos": [
+        "wool-throw.jpg"
+      ],
+      "productKey": "wool-throw",
+      "sourceRows": [
+        19,
+        20,
+        21
+      ],
+      "titleKeywords": [
+        "throw"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "forest green"
+          },
+          "priceCents": 7900,
+          "sku": "WL-TH-FG",
+          "weightGrams": 1200
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "mustard"
+          },
+          "priceCents": 7900,
+          "sku": "WL-TH-MU",
+          "weightGrams": 1200
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "grey"
+          },
+          "priceCents": 7900,
+          "sku": "WL-TH-GR",
+          "weightGrams": 1200
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "chip-resistant",
+        "dishwasher-safe"
+      ],
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Tableware > Plates",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "unbreakable"
+      ],
+      "photos": [],
+      "productKey": "DN-PL",
+      "sourceRows": [
+        22,
+        23
+      ],
+      "titleKeywords": [
+        "plate"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "white"
+          },
+          "priceCents": 1600,
+          "sku": "DN-PL-WH",
+          "weightGrams": 650
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "charcoal"
+          },
+          "priceCents": 1600,
+          "sku": "DN-PL-CH",
+          "weightGrams": 650
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "olive wood",
+        "set of three",
+        "hand-finished"
+      ],
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils",
+      "expectedReviewReasons": [
+        "no_price"
+      ],
+      "expectedStatus": "needs_review",
+      "language": "en",
+      "negatedClaims": [
+        "dishwasher-safe"
+      ],
+      "photos": [],
+      "productKey": "OW-SP-01",
+      "sourceRows": [
+        24
+      ],
+      "titleKeywords": [
+        "spoon"
+      ],
+      "variants": [
+        {
+          "currency": null,
+          "options": {},
+          "priceCents": null,
+          "sku": "OW-SP-01",
+          "weightGrams": 180
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "pre-seasoned",
+        "oven-safe",
+        "induction compatible"
+      ],
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Cookware > Skillets & Frying Pans",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "dishwasher-safe"
+      ],
+      "photos": [
+        "CI-SK-26.jpg"
+      ],
+      "productKey": "CI-SK",
+      "sourceRows": [
+        25,
+        26
+      ],
+      "titleKeywords": [
+        "skillet"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "20 cm"
+          },
+          "priceCents": 4500,
+          "sku": "CI-SK-20",
+          "weightGrams": 1800
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "26 cm"
+          },
+          "priceCents": 6750,
+          "sku": "CI-SK-26",
+          "weightGrams": 2700
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "bpa-free",
+        "heat-resistant",
+        "set of three",
+        "dishwasher-safe"
+      ],
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [
+        "SI-SP-GR.jpg"
+      ],
+      "productKey": "SI-SP",
+      "sourceRows": [
+        27,
+        28,
+        29
+      ],
+      "titleKeywords": [
+        "spatula"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "red"
+          },
+          "priceCents": 1300,
+          "sku": "SI-SP-RD",
+          "weightGrams": 150
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "grey"
+          },
+          "priceCents": 1300,
+          "sku": "SI-SP-GR",
+          "weightGrams": 150
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "mustard"
+          },
+          "priceCents": 1300,
+          "sku": "SI-SP-MU",
+          "weightGrams": 150
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "rubber wheels",
+        "beech wood"
+      ],
+      "categoryPrefix": "Toys & Games > Toys > Toy Vehicles",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "suitable for children under 3"
+      ],
+      "photos": [
+        "TY-TK-01.jpg"
+      ],
+      "productKey": "TY-TK-01",
+      "sourceRows": [
+        30
+      ],
+      "titleKeywords": [
+        "truck"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {},
+          "priceCents": 3400,
+          "sku": "TY-TK-01",
+          "weightGrams": 700
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "100% linen",
+        "hidden zip",
+        "machine washable"
+      ],
+      "categoryPrefix": "Home & Garden > Decor > Throw Pillows",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [
+        "linen-cushion-cover.jpg",
+        "linen-cushion-cover_2.png"
+      ],
+      "productKey": "linen-cushion-cover",
+      "sourceRows": [
+        31,
+        32,
+        33,
+        34
+      ],
+      "titleKeywords": [
+        "cushion"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "natural",
+            "size": "40 x 40 cm"
+          },
+          "priceCents": 2900,
+          "sku": "LN-CU-40-NA",
+          "weightGrams": 250
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "rust",
+            "size": "40 x 40 cm"
+          },
+          "priceCents": 2900,
+          "sku": "LN-CU-40-RU",
+          "weightGrams": 250
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "natural",
+            "size": "50 x 50 cm"
+          },
+          "priceCents": 3625,
+          "sku": "LN-CU-50-NA",
+          "weightGrams": 313
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "rust",
+            "size": "50 x 50 cm"
+          },
+          "priceCents": 3625,
+          "sku": "LN-CU-50-RU",
+          "weightGrams": 313
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "100% organic cotton",
+        "machine washable"
+      ],
+      "categoryPrefix": "Home & Garden > Linens & Bedding > Table Linens > Table Runners",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [],
+      "productKey": "cotton-table-runner",
+      "sourceRows": [
+        35
+      ],
+      "titleKeywords": [
+        "runner"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {},
+          "priceCents": 2400,
+          "sku": "",
+          "weightGrams": 300
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "hand-woven",
+        "natural jute"
+      ],
+      "categoryPrefix": "Home & Garden > Decor > Rugs",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "suitable for outdoor use"
+      ],
+      "photos": [
+        "JT-RG-120.jpg"
+      ],
+      "productKey": "JT-RG",
+      "sourceRows": [
+        36,
+        37
+      ],
+      "titleKeywords": [
+        "rug"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "120 x 180 cm"
+          },
+          "priceCents": 8900,
+          "sku": "JT-RG-120",
+          "weightGrams": 4500
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "160 x 230 cm"
+          },
+          "priceCents": 15130,
+          "sku": "JT-RG-160",
+          "weightGrams": 7650
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "cotton rope",
+        "machine washable"
+      ],
+      "categoryPrefix": "Animals & Pet Supplies > Pet Supplies > Dog Supplies > Dog Toys",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "indestructible"
+      ],
+      "photos": [
+        "RP-TY-01.png"
+      ],
+      "productKey": "RP-TY-01",
+      "sourceRows": [
+        38
+      ],
+      "titleKeywords": [
+        "toy"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {},
+          "priceCents": 900,
+          "sku": "RP-TY-01",
+          "weightGrams": 200
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "100% recycled paper",
+        "80 sheets"
+      ],
+      "categoryPrefix": "Office Supplies > General Office Supplies > Paper Products > Notepads",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [],
+      "productKey": "RP-PD",
+      "sourceRows": [
+        39,
+        40
+      ],
+      "titleKeywords": [
+        "pad"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "A4"
+          },
+          "priceCents": 1200,
+          "sku": "RP-PD-A4",
+          "weightGrams": 375
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "A5"
+          },
+          "priceCents": 800,
+          "sku": "RP-PD-A5",
+          "weightGrams": 250
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "steel nib",
+        "converter included"
+      ],
+      "categoryPrefix": "Office Supplies > General Office Supplies > Writing & Drawing Instruments > Pens",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [],
+      "productKey": "FP-PN-01",
+      "sourceRows": [
+        41
+      ],
+      "titleKeywords": [
+        "pen"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {},
+          "priceCents": 3200,
+          "sku": "FP-PN-01",
+          "weightGrams": 40
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "900 ml",
+        "stainless steel infuser"
+      ],
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Tableware > Coffee & Tea Sets",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "dishwasher-safe"
+      ],
+      "photos": [
+        "TP-OT-01.png"
+      ],
+      "productKey": "TP-OT-01",
+      "sourceRows": [
+        42
+      ],
+      "titleKeywords": [
+        "teapot"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {},
+          "priceCents": 3900,
+          "sku": "TP-OT-01",
+          "weightGrams": 850
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "powder-coated steel",
+        "suitable for indoor use"
+      ],
+      "categoryPrefix": "Home & Garden > Decor > Plant Stands",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "suitable for outdoor use"
+      ],
+      "photos": [
+        "PL-SD-30.png",
+        "PL-SD-50.jpg"
+      ],
+      "productKey": "PL-SD",
+      "sourceRows": [
+        43,
+        99
+      ],
+      "titleKeywords": [
+        "stand"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "30 cm"
+          },
+          "priceCents": 2900,
+          "sku": "PL-SD-30",
+          "weightGrams": 900
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "50 cm"
+          },
+          "priceCents": 3770,
+          "sku": "PL-SD-50",
+          "weightGrams": 1170
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "removable cover",
+        "machine washable",
+        "recycled polyester filling"
+      ],
+      "categoryPrefix": "Animals & Pet Supplies > Pet Supplies > Pet Beds",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "waterproof"
+      ],
+      "photos": [],
+      "productKey": "PT-BD",
+      "sourceRows": [
+        44,
+        45,
+        46
+      ],
+      "titleKeywords": [
+        "bed"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "S"
+          },
+          "priceCents": 4900,
+          "sku": "PT-BD-S",
+          "weightGrams": 1500
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "M"
+          },
+          "priceCents": 7350,
+          "sku": "PT-BD-M",
+          "weightGrams": 2250
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "L"
+          },
+          "priceCents": 10780,
+          "sku": "PT-BD-L",
+          "weightGrams": 3300
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "hand-woven rattan",
+        "e27 fitting",
+        "bulb not included"
+      ],
+      "categoryPrefix": "Home & Garden > Lighting > Lighting Fixtures > Pendant Lights",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [
+        "RT-PD-50.jpg",
+        "RT-PD-35.jpg"
+      ],
+      "productKey": "RT-PD",
+      "sourceRows": [
+        47,
+        48
+      ],
+      "titleKeywords": [
+        "pendant"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "35 cm"
+          },
+          "priceCents": 8900,
+          "sku": "RT-PD-35",
+          "weightGrams": 1300
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "50 cm"
+          },
+          "priceCents": 13350,
+          "sku": "RT-PD-50",
+          "weightGrams": 1950
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "linen shade",
+        "e14 fitting"
+      ],
+      "categoryPrefix": "Home & Garden > Lighting > Lamps > Table Lamps",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "dimmable"
+      ],
+      "photos": [
+        "CR-TL-SG.jpg"
+      ],
+      "productKey": "CR-TL",
+      "sourceRows": [
+        49,
+        50
+      ],
+      "titleKeywords": [
+        "lamp"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "cream"
+          },
+          "priceCents": 6900,
+          "sku": "CR-TL-CR",
+          "weightGrams": 2200
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "sage green"
+          },
+          "priceCents": 6900,
+          "sku": "CR-TL-SG",
+          "weightGrams": 2200
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "latex-coated palm",
+        "breathable"
+      ],
+      "categoryPrefix": "Home & Garden > Lawn & Garden > Gardening > Gardening Gloves",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "waterproof"
+      ],
+      "photos": [],
+      "productKey": "GG-GL",
+      "sourceRows": [
+        51,
+        52,
+        53
+      ],
+      "titleKeywords": [
+        "gloves"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "S"
+          },
+          "priceCents": 1200,
+          "sku": "GG-GL-S",
+          "weightGrams": 90
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "M"
+          },
+          "priceCents": 1200,
+          "sku": "GG-GL-M",
+          "weightGrams": 90
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "L"
+          },
+          "priceCents": 1200,
+          "sku": "GG-GL-L",
+          "weightGrams": 90
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "oak veneer",
+        "felt lined"
+      ],
+      "categoryPrefix": "Office Supplies > General Office Supplies > Desk Organizers",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "solid oak"
+      ],
+      "photos": [],
+      "productKey": "DK-OR-01",
+      "sourceRows": [
+        54
+      ],
+      "titleKeywords": [
+        "organiser"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {},
+          "priceCents": 2800,
+          "sku": "DK-OR-01",
+          "weightGrams": 700
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "pack of 50",
+        "4 hour burn time"
+      ],
+      "categoryPrefix": "Home & Garden > Decor > Candles",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [],
+      "productKey": "TL-ST-01",
+      "sourceRows": [
+        55
+      ],
+      "titleKeywords": [
+        "tealight"
+      ],
+      "variants": [
+        {
+          "currency": "GBP",
+          "options": {},
+          "priceCents": 800,
+          "sku": "TL-ST-01",
+          "weightGrams": 500
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "feather pad included",
+        "cotton velvet"
+      ],
+      "categoryPrefix": "Home & Garden > Decor > Throw Pillows",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "machine washable"
+      ],
+      "photos": [
+        "VL-CU-BP.png",
+        "VL-CU-TE.png"
+      ],
+      "productKey": "VL-CU",
+      "sourceRows": [
+        56,
+        57,
+        58
+      ],
+      "titleKeywords": [
+        "cushion"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "teal"
+          },
+          "priceCents": 3400,
+          "sku": "VL-CU-TE",
+          "weightGrams": 600
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "blush pink"
+          },
+          "priceCents": 3400,
+          "sku": "VL-CU-BP",
+          "weightGrams": 600
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "ochre"
+          },
+          "priceCents": 3400,
+          "sku": "VL-CU-OC",
+          "weightGrams": 600
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "linen cover",
+        "dotted pages",
+        "fsc-certified paper"
+      ],
+      "categoryPrefix": "Office Supplies > General Office Supplies > Paper Products > Notebooks",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "fr",
+      "negatedClaims": [],
+      "photos": [
+        "LN-NB-DB.jpg",
+        "LN-NB-RU.png"
+      ],
+      "productKey": "LN-NB",
+      "sourceRows": [
+        59,
+        60,
+        61
+      ],
+      "titleKeywords": [
+        "notebook"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "natural"
+          },
+          "priceCents": 1600,
+          "sku": "LN-NB-NA",
+          "weightGrams": 300
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "dark blue"
+          },
+          "priceCents": 1600,
+          "sku": "LN-NB-DB",
+          "weightGrams": 300
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "rust"
+          },
+          "priceCents": 1600,
+          "sku": "LN-NB-RU",
+          "weightGrams": 300
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "machine washable",
+        "embroidered eyes"
+      ],
+      "categoryPrefix": "Toys & Games > Toys > Stuffed Animals",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [
+        "PL-RB-GR.jpg"
+      ],
+      "productKey": "PL-RB",
+      "sourceRows": [
+        62,
+        63
+      ],
+      "titleKeywords": [
+        "rabbit"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "cream"
+          },
+          "priceCents": 2200,
+          "sku": "PL-RB-CR",
+          "weightGrams": 250
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "grey"
+          },
+          "priceCents": 2200,
+          "sku": "PL-RB-GR",
+          "weightGrams": 250
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "stoneware",
+        "drainage hole"
+      ],
+      "categoryPrefix": "Home & Garden > Bathroom Accessories > Toothbrush Holders",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "dishwasher-safe"
+      ],
+      "photos": [
+        "TB-HL-CH.png"
+      ],
+      "productKey": "TB-HL",
+      "sourceRows": [
+        64,
+        65
+      ],
+      "titleKeywords": [
+        "toothbrush"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "white"
+          },
+          "priceCents": 1200,
+          "sku": "TB-HL-WH",
+          "weightGrams": 350
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "charcoal"
+          },
+          "priceCents": 1200,
+          "sku": "TB-HL-CH",
+          "weightGrams": 350
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "dishwasher-safe",
+        "non-slip base"
+      ],
+      "categoryPrefix": "Animals & Pet Supplies > Pet Supplies > Pet Bowls, Feeders & Waterers",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [],
+      "productKey": "PT-BW",
+      "sourceRows": [
+        66,
+        95,
+        111
+      ],
+      "titleKeywords": [
+        "bowl"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "S"
+          },
+          "priceCents": 1900,
+          "sku": "PT-BW-S",
+          "weightGrams": 600
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "L"
+          },
+          "priceCents": 3610,
+          "sku": "PT-BW-L",
+          "weightGrams": 1140
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "M"
+          },
+          "priceCents": 2660,
+          "sku": "PT-BW-M",
+          "weightGrams": 840
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "glazed inside and out",
+        "suitable for indoor use"
+      ],
+      "categoryPrefix": "Home & Garden > Decor > Planters",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "frost-proof"
+      ],
+      "photos": [
+        "GL-PT-TC.jpg",
+        "GL-PT-DB_2.jpg"
+      ],
+      "productKey": "GL-PT",
+      "sourceRows": [
+        67,
+        68,
+        69,
+        70
+      ],
+      "titleKeywords": [
+        "pot"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "terracotta"
+          },
+          "priceCents": 1890,
+          "sku": "GL-PT-TC",
+          "weightGrams": 1100
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "white"
+          },
+          "priceCents": 1890,
+          "sku": "GL-PT-WH",
+          "weightGrams": 1100
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "sage green"
+          },
+          "priceCents": 1890,
+          "sku": "GL-PT-SG",
+          "weightGrams": 1100
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "dark blue"
+          },
+          "priceCents": 1890,
+          "sku": "GL-PT-DB",
+          "weightGrams": 1100
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "beech wood",
+        "water-based paint",
+        "suitable from 12 months"
+      ],
+      "categoryPrefix": "Toys & Games > Toys > Building Toys > Stacking Blocks",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [],
+      "productKey": "WD-BL-01",
+      "sourceRows": [
+        71
+      ],
+      "titleKeywords": [
+        "blocks"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {},
+          "priceCents": 2900,
+          "sku": "WD-BL-01",
+          "weightGrams": 900
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "brushed brass",
+        "foot switch"
+      ],
+      "categoryPrefix": "Home & Garden > Lighting > Lamps > Floor Lamps",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [],
+      "productKey": "FL-LP-01",
+      "sourceRows": [
+        72
+      ],
+      "titleKeywords": [
+        "lamp"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {},
+          "priceCents": 11900,
+          "sku": "FL-LP-01",
+          "weightGrams": 4200
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "stainless steel",
+        "ash handle"
+      ],
+      "categoryPrefix": "Home & Garden > Lawn & Garden > Gardening > Gardening Tools",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [],
+      "productKey": "GT-TR-01",
+      "sourceRows": [
+        73
+      ],
+      "titleKeywords": [
+        "trowel"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {},
+          "priceCents": 1500,
+          "sku": "GT-TR-01",
+          "weightGrams": 300
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "hand-cast",
+        "sealed"
+      ],
+      "categoryPrefix": "Home & Garden > Decor > Planters",
+      "expectedReviewReasons": [
+        "no_price"
+      ],
+      "expectedStatus": "needs_review",
+      "language": "en",
+      "negatedClaims": [
+        "waterproof"
+      ],
+      "photos": [
+        "CN-PT-GR.jpg"
+      ],
+      "productKey": "CN-PT",
+      "sourceRows": [
+        74,
+        75,
+        76
+      ],
+      "titleKeywords": [
+        "planter"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "grey"
+          },
+          "priceCents": 1590,
+          "sku": "CN-PT-GR",
+          "weightGrams": 1400
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "charcoal"
+          },
+          "priceCents": 1590,
+          "sku": "CN-PT-CH",
+          "weightGrams": 1400
+        },
+        {
+          "currency": null,
+          "options": {
+            "color": "blush pink"
+          },
+          "priceCents": null,
+          "sku": "CN-PT-BP",
+          "weightGrams": 1400
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "set of four",
+        "dishwasher-safe"
+      ],
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Tableware > Drinkware",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "fr",
+      "negatedClaims": [],
+      "photos": [],
+      "productKey": "ES-CP-01",
+      "sourceRows": [
+        77
+      ],
+      "titleKeywords": [
+        "espresso"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {},
+          "priceCents": 2200,
+          "sku": "ES-CP-01",
+          "weightGrams": 420
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "12 pieces",
+        "plywood"
+      ],
+      "categoryPrefix": "Toys & Games > Puzzles > Jigsaw Puzzles",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [],
+      "productKey": "WD-PZ-01",
+      "sourceRows": [
+        78
+      ],
+      "titleKeywords": [
+        "puzzle"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {},
+          "priceCents": 1800,
+          "sku": "WD-PZ-01",
+          "weightGrams": 400
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "100% organic cotton",
+        "550 gsm",
+        "machine washable"
+      ],
+      "categoryPrefix": "Home & Garden > Linens & Bedding > Towels > Bath Towels",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [
+        "CT-TW-70-WH.png"
+      ],
+      "productKey": "CT-TW",
+      "sourceRows": [
+        79,
+        80,
+        81,
+        82
+      ],
+      "titleKeywords": [
+        "towel"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "white",
+            "size": "50 x 100 cm"
+          },
+          "priceCents": 1900,
+          "sku": "CT-TW-50-WH",
+          "weightGrams": 450
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "sage green",
+            "size": "50 x 100 cm"
+          },
+          "priceCents": 1900,
+          "sku": "CT-TW-50-SG",
+          "weightGrams": 450
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "white",
+            "size": "70 x 140 cm"
+          },
+          "priceCents": 3610,
+          "sku": "CT-TW-70-WH",
+          "weightGrams": 855
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "sage green",
+            "size": "70 x 140 cm"
+          },
+          "priceCents": 3610,
+          "sku": "CT-TW-70-SG",
+          "weightGrams": 855
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "dimmable",
+        "usb-c",
+        "3 colour temperatures"
+      ],
+      "categoryPrefix": "Home & Garden > Lighting > Lamps > Desk Lamps",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [
+        "LD-DL-BK.png"
+      ],
+      "productKey": "LD-DL",
+      "sourceRows": [
+        83,
+        84
+      ],
+      "titleKeywords": [
+        "lamp"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "white"
+          },
+          "priceCents": 4500,
+          "sku": "LD-DL-WH",
+          "weightGrams": 800
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "black"
+          },
+          "priceCents": 4500,
+          "sku": "LD-DL-BK",
+          "weightGrams": 800
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "solid brass",
+        "replacement blade included"
+      ],
+      "categoryPrefix": "Office Supplies > General Office Supplies > Writing & Drawing Instruments > Pencil Sharpeners",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [
+        "BR-SH-01.png"
+      ],
+      "productKey": "BR-SH-01",
+      "sourceRows": [
+        86
+      ],
+      "titleKeywords": [
+        "sharpener"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {},
+          "priceCents": 1400,
+          "sku": "BR-SH-01",
+          "weightGrams": 80
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "food-safe glaze",
+        "dishwasher-safe"
+      ],
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Tableware > Serveware",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "microwave-safe"
+      ],
+      "photos": [
+        "SB-BW-20.png"
+      ],
+      "productKey": "SB-BW",
+      "sourceRows": [
+        87,
+        119
+      ],
+      "titleKeywords": [
+        "bowl"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "20 cm"
+          },
+          "priceCents": 2600,
+          "sku": "SB-BW-20",
+          "weightGrams": 700
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "26 cm"
+          },
+          "priceCents": 3770,
+          "sku": "SB-BW-26",
+          "weightGrams": 1015
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "rust-resistant",
+        "no drilling"
+      ],
+      "categoryPrefix": "Home & Garden > Bathroom Accessories > Shower Caddies",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "rust-proof"
+      ],
+      "photos": [],
+      "productKey": "SH-CD-01",
+      "sourceRows": [
+        88
+      ],
+      "titleKeywords": [
+        "caddy"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {},
+          "priceCents": 2600,
+          "sku": "SH-CD-01",
+          "weightGrams": null
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "frost-resistant",
+        "handmade in portugal",
+        "drainage hole"
+      ],
+      "categoryPrefix": "Home & Garden > Decor > Planters",
+      "expectedReviewReasons": [
+        "sku_conflict"
+      ],
+      "expectedStatus": "needs_review",
+      "language": "en",
+      "negatedClaims": [
+        "frost-proof"
+      ],
+      "photos": [
+        "TC-PL-20.jpg",
+        "TC-PL-20_2.png",
+        "tc-pl-30 (1).jpg",
+        "TC-PL-40.jpg"
+      ],
+      "productKey": "TC-PL",
+      "sourceRows": [
+        89,
+        90,
+        91,
+        102
+      ],
+      "titleKeywords": [
+        "planter"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "20 cm"
+          },
+          "priceCents": 1250,
+          "sku": "TC-PL-20",
+          "weightGrams": 900
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "30 cm"
+          },
+          "priceCents": 1875,
+          "sku": "TC-PL-30",
+          "weightGrams": 1350
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "40 cm"
+          },
+          "priceCents": 2750,
+          "sku": "TC-PL-40",
+          "weightGrams": 1980
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "bamboo",
+        "juice groove"
+      ],
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils > Cutting Boards",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "dishwasher-safe"
+      ],
+      "photos": [
+        "BB-CB-L.png"
+      ],
+      "productKey": "BB-CB",
+      "sourceRows": [
+        92,
+        93,
+        94
+      ],
+      "titleKeywords": [
+        "board"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "S"
+          },
+          "priceCents": 2200,
+          "sku": "BB-CB-S",
+          "weightGrams": 900
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "M"
+          },
+          "priceCents": 3080,
+          "sku": "BB-CB-M",
+          "weightGrams": 1260
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "L"
+          },
+          "priceCents": 3960,
+          "sku": "BB-CB-L",
+          "weightGrams": 1620
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "150 cm",
+        "reflective stitching"
+      ],
+      "categoryPrefix": "Animals & Pet Supplies > Pet Supplies > Dog Supplies > Dog Leashes",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [
+        "DG-LS-RD.png"
+      ],
+      "productKey": "DG-LS",
+      "sourceRows": [
+        96,
+        97,
+        98
+      ],
+      "titleKeywords": [
+        "leash"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "red"
+          },
+          "priceCents": 1800,
+          "sku": "DG-LS-RD",
+          "weightGrams": 150
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "navy"
+          },
+          "priceCents": 1800,
+          "sku": "DG-LS-NV",
+          "weightGrams": 150
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "forest green"
+          },
+          "priceCents": 1800,
+          "sku": "DG-LS-FG",
+          "weightGrams": 150
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "stainless steel",
+        "dishwasher-safe"
+      ],
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [],
+      "productKey": "SS-WK-01",
+      "sourceRows": [
+        100
+      ],
+      "titleKeywords": [
+        "whisk"
+      ],
+      "variants": [
+        {
+          "currency": "USD",
+          "options": {},
+          "priceCents": 1299,
+          "sku": "SS-WK-01",
+          "weightGrams": 120
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "100% beeswax",
+        "cotton wick",
+        "hand-poured"
+      ],
+      "categoryPrefix": "Home & Garden > Decor > Candles",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "de",
+      "negatedClaims": [
+        "dripless"
+      ],
+      "photos": [],
+      "productKey": "BW-CA",
+      "sourceRows": [
+        101,
+        103,
+        104
+      ],
+      "titleKeywords": [
+        "candle"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "10 cm"
+          },
+          "priceCents": 1800,
+          "sku": "BW-CA-10",
+          "weightGrams": 300
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "15 cm"
+          },
+          "priceCents": 2700,
+          "sku": "BW-CA-15",
+          "weightGrams": 450
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "20 cm"
+          },
+          "priceCents": 3600,
+          "sku": "BW-CA-20",
+          "weightGrams": 600
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "carbon steel blades",
+        "bypass"
+      ],
+      "categoryPrefix": "Home & Garden > Lawn & Garden > Gardening > Gardening Tools > Pruning Shears",
+      "expectedReviewReasons": [
+        "no_price"
+      ],
+      "expectedStatus": "needs_review",
+      "language": "en",
+      "negatedClaims": [
+        "suitable for left-handed use"
+      ],
+      "photos": [
+        "GT-PS-01.jpg"
+      ],
+      "productKey": "GT-PS-01",
+      "sourceRows": [
+        105
+      ],
+      "titleKeywords": [
+        "shears"
+      ],
+      "variants": [
+        {
+          "currency": null,
+          "options": {},
+          "priceCents": null,
+          "sku": "GT-PS-01",
+          "weightGrams": 280
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "ripstop nylon",
+        "single line"
+      ],
+      "categoryPrefix": "Toys & Games > Outdoor Play Equipment > Kites",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [
+        "KT-KT-BL.jpg"
+      ],
+      "productKey": "KT-KT",
+      "sourceRows": [
+        106,
+        107
+      ],
+      "titleKeywords": [
+        "kite"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "red"
+          },
+          "priceCents": 2400,
+          "sku": "KT-KT-RD",
+          "weightGrams": 300
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "blue"
+          },
+          "priceCents": 2400,
+          "sku": "KT-KT-BL",
+          "weightGrams": 300
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "sisal",
+        "solid base"
+      ],
+      "categoryPrefix": "Animals & Pet Supplies > Pet Supplies > Cat Supplies > Cat Furniture",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [],
+      "productKey": "CS-PT-01",
+      "sourceRows": [
+        108
+      ],
+      "titleKeywords": [
+        "scratching"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {},
+          "priceCents": 3900,
+          "sku": "CS-PT-01",
+          "weightGrams": 3200
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "one drawer",
+        "ash veneer"
+      ],
+      "categoryPrefix": "Furniture > Tables > Nightstands",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "solid wood"
+      ],
+      "photos": [],
+      "productKey": "BS-TB-01",
+      "sourceRows": [
+        109
+      ],
+      "titleKeywords": [
+        "bedside"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {},
+          "priceCents": 14900,
+          "sku": "BS-TB-01",
+          "weightGrams": 7000
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "solid oak",
+        "fsc-certified",
+        "flat-packed"
+      ],
+      "categoryPrefix": "Furniture > Tables > Accent Tables > End Tables",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [
+        "OK-ST-NO.jpg",
+        "OK-ST-SO.png"
+      ],
+      "productKey": "OK-ST",
+      "sourceRows": [
+        110,
+        112
+      ],
+      "titleKeywords": [
+        "table"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "natural oak"
+          },
+          "priceCents": 129900,
+          "sku": "OK-ST-NO",
+          "weightGrams": 6500
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "smoked oak"
+          },
+          "priceCents": 129900,
+          "sku": "OK-ST-SO",
+          "weightGrams": 6500
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "set of six",
+        "paraffin-free"
+      ],
+      "categoryPrefix": "Home & Garden > Decor > Candles",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [
+        "TP-CA-BU.jpg"
+      ],
+      "productKey": "TP-CA",
+      "sourceRows": [
+        114,
+        115,
+        116
+      ],
+      "titleKeywords": [
+        "taper"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "ochre"
+          },
+          "priceCents": 1400,
+          "sku": "TP-CA-OC",
+          "weightGrams": 200
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "forest green"
+          },
+          "priceCents": 1400,
+          "sku": "TP-CA-FG",
+          "weightGrams": 200
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "burgundy"
+          },
+          "priceCents": 1400,
+          "sku": "TP-CA-BU",
+          "weightGrams": 200
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "galvanised steel",
+        "suitable for outdoor use"
+      ],
+      "categoryPrefix": "Home & Garden > Decor > Planters",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "rust-proof"
+      ],
+      "photos": [],
+      "productKey": "ZN-TR",
+      "sourceRows": [
+        117,
+        118
+      ],
+      "titleKeywords": [
+        "trough"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "40 cm"
+          },
+          "priceCents": 3400,
+          "sku": "ZN-TR-40",
+          "weightGrams": 1800
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "60 cm"
+          },
+          "priceCents": 5100,
+          "sku": "ZN-TR-60",
+          "weightGrams": 2700
+        }
+      ]
+    }
+  ],
+  "sample": "messy-120",
+  "seed": 42,
+  "unmatchedPhotos": [
+    "IMG_0001.jpg",
+    "IMG_0002.jpg",
+    "IMG_0003.jpg",
+    "IMG_0004.jpg",
+    "IMG_0005.jpg",
+    "broken.jpg",
+    "logo.svg",
+    "readme.txt"
+  ]
+}
