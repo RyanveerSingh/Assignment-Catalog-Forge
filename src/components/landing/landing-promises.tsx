@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import { LanguagesIcon, ListChecksIcon, ShieldCheckIcon, StoreIcon } from "lucide-react";
 import { cn } from "cn";
+import { Reveal } from "./reveal";
 import { CONTAINER } from "./site-chrome";
 
 const PROMISES: ReadonlyArray<{ icon: LucideIcon; title: string; text: string }> = [
@@ -30,15 +31,20 @@ export function LandingPromises() {
   return (
     <section aria-labelledby="promises-heading" className="border-b border-border">
       <div className={cn(CONTAINER, "py-12 md:py-16")}>
-        <h2 id="promises-heading" className="mb-8 text-[11px] font-medium uppercase tracking-[0.18em] text-brand">
-          What you can count on
-        </h2>
-        <ul className="grid gap-px bg-border hairline sm:grid-cols-2 lg:grid-cols-4">
-          {PROMISES.map(({ icon: Icon, title, text }) => (
-            <li key={title} className="flex flex-col gap-3 bg-card px-5 py-5">
-              <Icon aria-hidden className="size-5 text-brand" />
-              <h3 className="font-display text-lg leading-snug text-ink">{title}</h3>
-              <p className="text-sm leading-relaxed text-ink-muted">{text}</p>
+        <Reveal>
+          <h2 id="promises-heading" className="text-[11px] font-medium uppercase tracking-[0.18em] text-brand">
+            What you can count on
+          </h2>
+          <p className="font-display mt-3 max-w-2xl text-3xl leading-tight text-ink md:text-4xl">Four things that hold on every import, by construction.</p>
+        </Reveal>
+        <ul className="mt-10 grid gap-px bg-border hairline sm:grid-cols-2 lg:grid-cols-4">
+          {PROMISES.map(({ icon: Icon, title, text }, i) => (
+            <li key={title} className="bg-card">
+              <Reveal delay={i * 0.07} className="flex h-full flex-col gap-3 px-5 py-5">
+                <Icon aria-hidden className="size-5 text-brand" />
+                <h3 className="font-display text-lg leading-snug text-ink">{title}</h3>
+                <p className="text-sm leading-relaxed text-ink-muted">{text}</p>
+              </Reveal>
             </li>
           ))}
         </ul>

@@ -16,12 +16,12 @@ const LINK = "rounded-sm text-sm text-ink-muted underline-offset-4 transition-co
 
 export function SiteHeader({ signIn = true }: { signIn?: boolean }) {
   return (
-    <header className="border-b border-border">
+    <header className="sticky top-0 z-40 border-b border-border bg-paper/85 backdrop-blur supports-[backdrop-filter]:bg-paper/75">
       <div className={cn(CONTAINER, "flex h-14 items-center justify-between gap-4")}>
         <Wordmark />
         <nav aria-label="Site" className="flex items-center gap-5">
-          <Link href="/store/demo-new12" className={LINK}>
-            Storefront demo
+          <Link href="/store/demo" className={LINK}>
+            See the shop
           </Link>
           {signIn ? (
             <Link href="/login" className={LINK}>
@@ -43,8 +43,8 @@ export function SiteFooter() {
           <Link href="/login?demo=1" className={LINK}>
             Open the demo
           </Link>
-          <Link href="/store/demo-new12" className={LINK}>
-            See the storefront
+          <Link href="/store/demo" className={LINK}>
+            See the shop
           </Link>
         </nav>
       </div>

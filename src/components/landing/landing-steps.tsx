@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { cn } from "cn";
+import { Reveal } from "./reveal";
 import { CONTAINER } from "./site-chrome";
 
 interface Step {
@@ -48,12 +49,16 @@ export function LandingSteps() {
   return (
     <section aria-labelledby="steps-heading" className="border-b border-border">
       <div className={cn(CONTAINER, "py-12 md:py-16")}>
-        <h2 id="steps-heading" className="mb-8 text-[11px] font-medium uppercase tracking-[0.18em] text-brand">
-          How it works
-        </h2>
-        <ol className="grid gap-10 md:grid-cols-3 md:gap-6">
+        <Reveal>
+          <h2 id="steps-heading" className="text-[11px] font-medium uppercase tracking-[0.18em] text-brand">
+            How it works
+          </h2>
+          <p className="font-display mt-3 max-w-2xl text-3xl leading-tight text-ink md:text-4xl">Three steps, and you watch every row move through them.</p>
+        </Reveal>
+        <ol className="mt-10 grid gap-10 md:grid-cols-3 md:gap-6">
           {STEPS.map((step, i) => (
             <li key={step.src} className="flex flex-col">
+              <Reveal delay={i * 0.1} className="flex flex-col">
               <figure className="flex flex-col">
                 <div className="relative aspect-[16/10] overflow-hidden bg-paper-deep hairline">
                   {/* On a phone the first screenshot is the largest paint above the fold, so it loads eagerly; the rest wait. */}
@@ -65,6 +70,7 @@ export function LandingSteps() {
                   <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">{step.text}</p>
                 </figcaption>
               </figure>
+              </Reveal>
             </li>
           ))}
         </ol>
