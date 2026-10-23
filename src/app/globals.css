@@ -33,6 +33,7 @@
   --color-ink-muted: var(--ink-muted);
   --color-paper: var(--paper);
   --color-paper-deep: var(--paper-deep);
+  --color-paper-sheet: #fbfaf6;
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
   --color-line: var(--line);
@@ -255,6 +256,18 @@
 
 @utility animate-float {
   animation: float-y var(--float-period, 5s) ease-in-out infinite;
+}
+
+/* The landing's torn page: fine paper grain (static SVG noise) and the faint ruling of a spreadsheet. */
+@utility paper-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.07 0 0 0 0 0.07 0 0 0 0 0.07 0 0 0 0.055 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@utility paper-ruled {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.07 0 0 0 0 0.07 0 0 0 0 0.07 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(to bottom, transparent 0 39px, rgb(17 17 17 / 0.045) 39px 40px),
+    repeating-linear-gradient(to right, transparent 0 159px, rgb(17 17 17 / 0.035) 159px 160px);
 }
 
 /* Skeleton shimmer for loading states. */
