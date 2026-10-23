@@ -1,10 +1,14 @@
 import { unstable_cache } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { SORT_KEYS, type StorefrontSort } from "@/components/storefront/collection-href";
 import { resolveLocale, type LocaleResolution } from "@/core/i18n/locale";
 import { getStorefrontDb } from "@/db/client";
 import { getStorefrontProduct, getStorefrontStore, listStorefrontCategories, listStorefrontProducts, type StorefrontRow, type StorefrontStore } from "@/db/repositories/storefront";
 import { singleFlight } from "@/lib/single-flight";
+
+export { categoryHref } from "@/components/storefront/hrefs";
+export type { StorefrontSort };
 
 /**
  * Server-only helpers shared by every storefront page. Everything reads through the dedicated
@@ -17,10 +21,11 @@ export const PAGE_SIZE = 24;
 export const COUNTRY_COOKIE = "cf_country";
 const REVALIDATE_SECONDS = 30;
 
-export type StorefrontSort = "newest" | "price_asc" | "price_desc";
-
-/** The published row minus the Date column: the data cache round-trips through JSON, so Dates would silently become strings. */
-export type StorefrontProduct = Omit<StorefrontRow, "updatedAt" | "storeId" | "locale">;
+/**
+ * The published row minus the Date column: the data cache round-trips through JSON, so Dates would
+ * silently become strings. `updatedAtMs` carries the same instant as a number for the "New" tag.
+ */
+export type StorefrontProduct = Omit<StorefrontRow, "updatedAt" | "storeId" | "locale"> & { updatedAtMs: number };
 
 export interface StorefrontContext {
   store: StorefrontStore;
@@ -30,7 +35,7 @@ export interface StorefrontContext {
 }
 
 export function parseSort(value: string | undefined): StorefrontSort {
-  return value === "price_asc" || value === "price_desc" ? value : "newest";
+  return SORT_KEYS.find((k) => k === value) ?? "newest";
 }
 
 export function parsePage(value: string | undefined): number {
@@ -61,6 +66,16 @@ export async function loadStorefront(slug: string): Promise<StorefrontContext> {
   return { store, locale: resolved.locale, country: resolved.country, source: resolved.source };
 }
 
+/** A re-uploaded photo is recognised rather than stored twice, so a product can list one blob several times; show it once. */
+function uniqueImages(images: StorefrontRow["images"]): StorefrontRow["images"] {
+  const seen = new Set<string>();
+  return images.filter((img) => {
+    if (seen.has(img.id)) return false;
+    seen.add(img.id);
+    return true;
+  });
+}
+
 function toProduct(row: StorefrontRow): StorefrontProduct {
   return {
     productId: row.productId,
@@ -71,11 +86,12 @@ function toProduct(row: StorefrontRow): StorefrontProduct {
     tags: row.tags,
     attributes: row.attributes,
     variants: row.variants,
-    images: row.images,
+    images: uniqueImages(row.images),
     priceFromCents: row.priceFromCents,
     currency: row.currency,
     seo: row.seo,
     fallbackFields: row.fallbackFields,
+    updatedAtMs: row.updatedAt.getTime(),
   };
 }
 
@@ -116,8 +132,4 @@ export function cachedCategories(storeId: string, locale: string): Promise<Array
     revalidate: REVALIDATE_SECONDS,
     tags: [storeTag(storeId)],
   })();
-}
-
-export function categoryHref(slug: string, category: string): string {
-  return `/store/${encodeURIComponent(slug)}/c/${encodeURIComponent(category)}`;
 }

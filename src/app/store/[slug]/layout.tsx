@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { CountrySwitcher } from "@/components/storefront/country-switcher";
-import { cachedCategories, cachedStore, categoryHref, loadStorefront } from "./storefront-context";
+import { groupCategories } from "@/components/storefront/categories";
+import { localizedCountryNames } from "@/components/storefront/country-names";
+import { t } from "@/components/storefront/i18n";
+import { ShopFooter } from "@/components/storefront/shop-footer";
+import { ShopHeader } from "@/components/storefront/shop-header";
+import { cachedCategories, cachedStore, loadStorefront } from "./storefront-context";
 
 export const dynamic = "force-dynamic";
 
@@ -22,53 +25,19 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 export default async function StorefrontLayout({ children, params }: { children: React.ReactNode; params: Params }) {
   const { slug } = await params;
   const ctx = await loadStorefront(slug);
-  const categories = (await cachedCategories(ctx.store.id, ctx.locale)).slice(0, 6);
-  const home = `/store/${encodeURIComponent(slug)}`;
+  const families = groupCategories(await cachedCategories(ctx.store.id, ctx.locale));
+  const countryNames = localizedCountryNames(ctx.locale, ctx.country);
 
   return (
     <div lang={ctx.locale} className="flex min-h-dvh flex-col bg-paper text-ink">
       <a href="#storefront-main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-sm focus:bg-ink focus:px-3 focus:py-2 focus:text-paper">
-        Skip to content
+        {t(ctx.locale, "skip")}
       </a>
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 md:px-6 md:py-5">
-          <Link href={home} className="font-display text-2xl leading-none tracking-tight text-ink outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-4 focus-visible:ring-offset-paper md:text-3xl">
-            {ctx.store.name}
-          </Link>
-          <CountrySwitcher country={ctx.country} />
-        </div>
-        {categories.length > 0 ? (
-          <nav aria-label="Categories" className="mx-auto max-w-6xl px-4 md:px-6">
-            <ul className="-mb-px flex gap-6 overflow-x-auto text-sm">
-              <li className="shrink-0">
-                <Link href={home} className="inline-block cursor-pointer border-b-2 border-transparent py-3 text-ink-muted outline-none hover:border-ink hover:text-ink focus-visible:border-brand focus-visible:text-ink">
-                  All
-                </Link>
-              </li>
-              {categories.map((c) => (
-                <li key={c.category} className="shrink-0">
-                  <Link href={categoryHref(slug, c.category)} className="inline-block cursor-pointer border-b-2 border-transparent py-3 text-ink-muted outline-none hover:border-ink hover:text-ink focus-visible:border-brand focus-visible:text-ink">
-                    {c.category}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        ) : null}
-      </header>
-
-      <main id="storefront-main" className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 md:px-6 md:py-12">
+      <ShopHeader slug={slug} storeName={ctx.store.name} locale={ctx.locale} country={ctx.country} countryNames={countryNames} families={families} />
+      <main id="storefront-main" className="flex-1">
         {children}
       </main>
-
-      <footer className="border-t border-border">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-6 text-xs text-ink-muted md:px-6">
-          <span>© {ctx.store.name}</span>
-          <span>
-            Catalog by <span className="font-display text-sm text-ink">CatalogForge</span>
-          </span>
-        </div>
-      </footer>
+      <ShopFooter slug={slug} storeName={ctx.store.name} locale={ctx.locale} locales={ctx.store.locales} families={families} />
     </div>
   );
 }

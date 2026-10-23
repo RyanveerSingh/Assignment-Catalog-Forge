@@ -1,16 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Truck, Undo2 } from "lucide-react";
+import { BuyBox } from "@/components/storefront/buy-box";
+import { familyOf, leafLabel, segments, titleCase } from "@/components/storefront/categories";
 import { FallbackNotice } from "@/components/storefront/fallback-notice";
 import { Gallery } from "@/components/storefront/gallery";
-import { storefrontImageUrl } from "@/components/storefront/product-card";
-import { VariantPicker } from "@/components/storefront/variant-picker";
-import { cachedProduct, categoryHref, loadStorefront } from "../../storefront-context";
+import { categoryHref, storeHref } from "@/components/storefront/hrefs";
+import { attributeLabel, t } from "@/components/storefront/i18n";
+import { storefrontImageUrl } from "@/components/storefront/image-url";
+import { ProductGrid } from "@/components/storefront/product-grid";
+import { cachedProduct, cachedProducts, loadStorefront, type StorefrontProduct } from "../../storefront-context";
 
 export const dynamic = "force-dynamic";
 
 type Params = Promise<{ slug: string; handle: string }>;
+
+const CARE_KEYS = new Set(["care", "care_instructions", "pflege", "entretien"]);
+const RELATED_LIMIT = 4;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug, handle } = await params;
@@ -25,6 +32,23 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   };
 }
 
+/** Leaf category first, then the family, then the whole catalogue: the first level with at least one other product wins. */
+async function relatedProducts(storeId: string, locale: string, product: StorefrontProduct): Promise<{ label: string; items: StorefrontProduct[] } | null> {
+  const levels: Array<{ category?: string; label: string }> = [];
+  if (product.category) {
+    levels.push({ category: product.category, label: t(locale, "moreFrom", { category: leafLabel(product.category) }) });
+    const family = familyOf(product.category);
+    if (family !== product.category) levels.push({ category: family, label: t(locale, "moreFrom", { category: titleCase(family) }) });
+  }
+  levels.push({ label: t(locale, "moreFromCatalogue") });
+  for (const level of levels) {
+    const { items } = await cachedProducts(storeId, locale, { category: level.category, page: 1, sort: "newest" });
+    const others = items.filter((p) => p.productId !== product.productId).slice(0, RELATED_LIMIT);
+    if (others.length > 0) return { label: level.label, items: others };
+  }
+  return null;
+}
+
 /** Only published products exist in the storefront table, so anything under review is a 404 (EC-H1). */
 export default async function ProductPage({ params }: { params: Params }) {
   const { slug, handle } = await params;
@@ -32,47 +56,75 @@ export default async function ProductPage({ params }: { params: Params }) {
   const product = await cachedProduct(ctx.store.id, ctx.locale, handle);
   if (!product) notFound();
 
-  const home = `/store/${encodeURIComponent(slug)}`;
+  const locale = ctx.locale;
+  const related = await relatedProducts(ctx.store.id, locale, product);
   const titleFallback = product.fallbackFields.includes("title");
   const descriptionFallback = product.fallbackFields.includes("descriptionHtml");
-  const attributes = Object.entries(product.attributes).filter(([, v]) => v.trim() !== "");
+  const entries = Object.entries(product.attributes).filter(([, v]) => v.trim() !== "");
+  const care = entries.find(([k]) => CARE_KEYS.has(k.trim().toLowerCase()))?.[1] ?? null;
+  const details = entries.filter(([k]) => !CARE_KEYS.has(k.trim().toLowerCase()));
+  const crumbs = product.category ? segments(product.category) : [];
+  const leaf = product.category ? leafLabel(product.category) : null;
+  const heading = "font-display text-xl text-ink";
 
   return (
-    <article className="space-y-10">
-      <nav aria-label="Breadcrumb" className="text-sm text-ink-muted">
+    <article className="mx-auto max-w-6xl px-4 py-6 md:px-6 md:py-10">
+      <nav aria-label={t(locale, "breadcrumb")} className="text-sm text-ink-muted">
         <ol className="flex flex-wrap items-center gap-1">
           <li>
-            <Link href={home} className="cursor-pointer rounded-sm outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-brand">
-              {ctx.store.name}
+            <Link href={storeHref(slug)} className="cursor-pointer rounded-sm outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-brand">
+              {t(locale, "home")}
             </Link>
           </li>
-          {product.category ? (
-            <li className="flex items-center gap-1">
-              <ChevronRight aria-hidden className="size-3.5" />
-              <Link href={categoryHref(slug, product.category)} className="cursor-pointer rounded-sm outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-brand">
-                {product.category}
-              </Link>
-            </li>
-          ) : null}
-          <li className="flex items-center gap-1 text-ink" aria-current="page">
-            <ChevronRight aria-hidden className="size-3.5" />
-            <span className="line-clamp-1">{product.title}</span>
-          </li>
+          {crumbs.map((seg, i) => {
+            const last = i === crumbs.length - 1;
+            // Middle levels are skipped on purpose: Home › family › leaf is enough to find your way back.
+            if (!last && i !== 0) return null;
+            return (
+              <li key={i} className="flex items-center gap-1">
+                <ChevronRight aria-hidden className="size-3.5" />
+                <Link href={categoryHref(slug, crumbs.slice(0, i + 1).join(" > "))} aria-current={last ? "page" : undefined} className="cursor-pointer rounded-sm outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-brand">
+                  {titleCase(seg)}
+                </Link>
+              </li>
+            );
+          })}
         </ol>
       </nav>
 
-      <div className="grid gap-8 md:grid-cols-2 md:gap-12">
-        <Gallery images={product.images} storeSlug={slug} title={product.title} />
+      <div className="mt-6 grid gap-8 md:grid-cols-12 md:gap-10 lg:gap-14">
+        <div className="md:col-span-7 lg:sticky lg:top-6 lg:self-start">
+          <Gallery images={product.images} storeSlug={slug} title={product.title} locale={locale} />
+        </div>
 
-        <div className="space-y-8">
+        <div className="space-y-8 md:col-span-5">
           <header className="space-y-3">
-            {product.category ? <p className="text-xs font-medium uppercase tracking-[0.18em] text-ink-muted">{product.category}</p> : null}
-            <h1 lang={titleFallback ? "en" : undefined} className="font-display text-3xl leading-tight text-ink md:text-4xl lg:text-5xl">
+            {product.category && leaf ? (
+              <Link href={categoryHref(slug, product.category)} className="inline-block cursor-pointer text-xs font-medium uppercase tracking-[0.18em] text-ink-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-brand">
+                {leaf}
+              </Link>
+            ) : null}
+            <h1 lang={titleFallback ? "en" : undefined} className="font-display text-3xl leading-[1.08] text-ink md:text-4xl">
               {product.title}
             </h1>
           </header>
 
-          <VariantPicker variants={product.variants} locale={ctx.locale} fallbackCurrency={product.currency ?? ctx.store.defaultCurrency} />
+          <BuyBox slug={slug} locale={locale} variants={product.variants} fallbackCurrency={product.currency ?? ctx.store.defaultCurrency} product={{ handle: product.handle, title: product.title, imageId: product.images[0]?.id ?? null }} />
+
+          <ul className="space-y-2 rounded-sm bg-paper-deep/60 px-4 py-3 text-sm">
+            <li className="flex items-start gap-3">
+              <Truck aria-hidden className="mt-0.5 size-4 shrink-0 text-ink-muted" strokeWidth={1.6} />
+              <span>
+                <span className="font-medium text-ink">{t(locale, "delivery")}</span> <span className="text-ink-muted">· {t(locale, "deliveryHint")}</span>
+              </span>
+            </li>
+            <li className="flex items-start gap-3">
+              <Undo2 aria-hidden className="mt-0.5 size-4 shrink-0 text-ink-muted" strokeWidth={1.6} />
+              <span>
+                <span className="font-medium text-ink">{t(locale, "returns")}</span> <span className="text-ink-muted">· {t(locale, "returnsHint")}</span>
+              </span>
+            </li>
+          </ul>
 
           {product.descriptionHtml ? (
             <section aria-label="Description" lang={descriptionFallback ? "en" : undefined}>
@@ -81,19 +133,19 @@ export default async function ProductPage({ params }: { params: Params }) {
             </section>
           ) : null}
 
-          {attributes.length > 0 ? (
+          {details.length > 0 ? (
             <section aria-labelledby="product-details" className="space-y-3">
-              <h2 id="product-details" className="font-display text-xl text-ink">
-                Details
+              <h2 id="product-details" className={heading}>
+                {t(locale, "details")}
               </h2>
               <table className="w-full text-sm">
                 <tbody>
-                  {attributes.map(([key, value]) => (
+                  {details.map(([key, value]) => (
                     <tr key={key} className="border-t border-border">
-                      <th scope="row" className="w-1/3 py-2 pr-4 text-left font-medium text-ink-muted">
-                        {key}
+                      <th scope="row" className="w-2/5 py-2.5 pr-4 text-left align-top font-medium text-ink-muted">
+                        {attributeLabel(locale, key)}
                       </th>
-                      <td className="py-2 text-ink">{value}</td>
+                      <td className="py-2.5 align-top text-ink">{value}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -101,19 +153,44 @@ export default async function ProductPage({ params }: { params: Params }) {
             </section>
           ) : null}
 
-          {product.tags.length > 0 ? (
-            <ul aria-label="Tags" className="flex flex-wrap gap-2">
-              {product.tags.map((tag) => (
-                <li key={tag} className="rounded-sm bg-paper-deep px-2 py-1 text-xs text-ink-muted">
-                  {tag}
-                </li>
-              ))}
-            </ul>
+          {care ? (
+            <section aria-labelledby="product-care" className="space-y-2 border-t border-border pt-6">
+              <h2 id="product-care" className={heading}>
+                {t(locale, "care")}
+              </h2>
+              <p className="text-sm leading-relaxed text-ink">{care}</p>
+            </section>
           ) : null}
 
-          {titleFallback || descriptionFallback ? <FallbackNotice locale={ctx.locale} scope="product" /> : null}
+          {product.tags.length > 0 ? (
+            <section aria-labelledby="product-tags" className="space-y-2 border-t border-border pt-6">
+              <h2 id="product-tags" className="font-sans text-xs font-medium uppercase tracking-[0.14em] text-ink-muted">
+                {t(locale, "tags")}
+              </h2>
+              <ul className="flex flex-wrap gap-2">
+                {product.tags.map((tag) => (
+                  <li key={tag} className="rounded-full bg-paper-deep px-3 py-1.5 text-xs text-ink">
+                    {tag}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          {titleFallback || descriptionFallback ? <FallbackNotice locale={locale} scope="product" /> : null}
         </div>
       </div>
+
+      {related ? (
+        <section aria-labelledby="related-heading" className="mt-16 border-t border-border pt-10 md:mt-24">
+          <h2 id="related-heading" className="font-display text-2xl text-ink md:text-3xl">
+            {related.label}
+          </h2>
+          <div className="mt-6">
+            <ProductGrid products={related.items} slug={slug} locale={locale} now={Date.now()} eager={0} />
+          </div>
+        </section>
+      ) : null}
     </article>
   );
 }

@@ -1,6 +1,7 @@
 import { cn } from "cn";
 import { formatMoney } from "@/core/i18n/locale";
 import type { PublishedVariant } from "@/db/schema";
+import { t } from "./i18n";
 
 export type PriceSummary =
   | { kind: "none" }
@@ -29,20 +30,20 @@ export function summarizePrice(variants: PublishedVariant[], priceFromCents: num
 }
 
 export function Price({ summary, locale, className }: { summary: PriceSummary; locale: string; className?: string }) {
-  if (summary.kind === "none") return <span className={cn("text-ink-muted", className)}>Price on request</span>;
+  if (summary.kind === "none") return <span className={cn("text-ink-muted", className)}>{t(locale, "priceOnRequest")}</span>;
   const amount = <span className="num">{formatMoney(summary.cents, summary.currency, locale)}</span>;
   if (summary.kind === "single") return <span className={className}>{amount}</span>;
   if (summary.kind === "from")
     return (
       <span className={className}>
-        <span className="text-ink-muted">from </span>
+        <span className="text-ink-muted">{t(locale, "from")} </span>
         {amount}
       </span>
     );
   return (
     <span className={className}>
       {amount}
-      <span className="text-ink-muted"> · per variant</span>
+      <span className="text-ink-muted"> · {t(locale, "perVariant")}</span>
     </span>
   );
 }

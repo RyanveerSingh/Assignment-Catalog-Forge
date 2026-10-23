@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { leafLabel } from "@/components/storefront/categories";
 import { Collection } from "../../collection";
 import { categoryHref, firstParam, parsePage, parseSort } from "../../storefront-context";
 
@@ -17,7 +18,7 @@ function decodeCategory(raw: string): string {
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { category } = await params;
-  return { title: decodeCategory(category) };
+  return { title: leafLabel(decodeCategory(category)) };
 }
 
 /** Category prefix match: "Home" also lists "Home > Kitchen" because the repository filters with `like 'Home%'`. */
