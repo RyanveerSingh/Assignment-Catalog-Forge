@@ -122,12 +122,29 @@ export async function unpublishProduct(db: DbOrTx, productId: string): Promise<v
   await db.update(products).set({ published: null, publishedAt: null, updatedAt: new Date() }).where(eq(products.id, productId));
 }
 
+/**
+ * Rebuild a live product's storefront rows from its published snapshot: after a translation lands, or after
+ * a photo is assigned by hand (EC-C13). Photos are deterministic, never AI output, so the snapshot's image
+ * ids are refreshed from the matched photos here instead of waiting for a re-approve; words stay as published.
+ */
 export async function republishIfLive(db: Db, productId: string): Promise<void> {
   const [p] = await db.select({ storeId: products.storeId, handle: products.handle, published: products.published, deletedAt: products.deletedAt }).from(products).where(eq(products.id, productId)).limit(1);
   if (!p?.published || p.deletedAt) return;
   const [store] = await db.select({ locales: stores.locales }).from(stores).where(eq(stores.id, p.storeId)).limit(1);
   if (!store) return;
-  await rebuildStorefrontRows(db, p.storeId, productId, p.handle, p.published, store.locales);
+  const snapshot = await withCurrentImages(db, productId, p.published);
+  if (snapshot !== p.published) await db.update(products).set({ published: snapshot, updatedAt: new Date() }).where(eq(products.id, productId));
+  await rebuildStorefrontRows(db, p.storeId, productId, p.handle, snapshot, store.locales);
+}
+
+/** The snapshot with image ids as the matched photos stand now; the same object back when nothing changed. */
+async function withCurrentImages(db: DbOrTx, productId: string, snapshot: PublishedSnapshot): Promise<PublishedSnapshot> {
+  const [photoRows, variantRows] = await Promise.all([listPhotosForProducts(db, [productId]), getVariants(db, productId)]);
+  const variantIdBySku = new Map(variantRows.map((v) => [v.sku, v.id] as const));
+  const imageIds = photoRows.map((ph) => ph.blobId);
+  const variants = snapshot.variants.map((v) => ({ ...v, imageIds: photoRows.filter((ph) => ph.variantId !== null && ph.variantId === variantIdBySku.get(v.sku)).map((ph) => ph.blobId) }));
+  const same = JSON.stringify(imageIds) === JSON.stringify(snapshot.imageIds) && variants.every((v, i) => JSON.stringify(v.imageIds) === JSON.stringify(snapshot.variants[i]?.imageIds ?? []));
+  return same ? snapshot : { ...snapshot, imageIds, variants };
 }
 
 export const publishHandler: JobHandler = async ({ job, db }) => {
