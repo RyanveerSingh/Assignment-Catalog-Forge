@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { api, ApiError, storeApi } from "@/lib/client/api";
 import { AttributesEditor } from "./attributes-editor";
-import { ClaimChip } from "./claim-chip";
+import { ClaimInspector } from "./claim-inspector";
 import { TagEditor } from "./tag-editor";
 import { EMPTY_CONTENT, type ProductContent, type ProductDetail, type ProductSeo, type SourceHighlight } from "./types";
 
@@ -74,7 +74,23 @@ function Counter({ n, max }: { n: number; max: number }) {
  * The description preview renders HTML with dangerouslySetInnerHTML: the draft was sanitised by
  * `sanitizeDescriptionHtml` when the AI wrote it and again on every PATCH, so the browser only ever sees allow-listed tags.
  */
-export function ReviewListing({ storeSlug, detail, onHighlight, onSaved, onReload }: { storeSlug: string; detail: ProductDetail; onHighlight: (h: SourceHighlight | null) => void; onSaved: () => void; onReload: () => void }) {
+export function ReviewListing({
+  storeSlug,
+  detail,
+  pinned,
+  onHover,
+  onSelect,
+  onSaved,
+  onReload,
+}: {
+  storeSlug: string;
+  detail: ProductDetail;
+  pinned: SourceHighlight | null;
+  onHover: (h: SourceHighlight | null) => void;
+  onSelect: (h: SourceHighlight) => void;
+  onSaved: () => void;
+  onReload: () => void;
+}) {
   const uid = useId();
   const { product } = detail;
   const base = useMemo<ProductContent>(() => product.draft ?? EMPTY_CONTENT, [product.draft]);
@@ -185,18 +201,7 @@ export function ReviewListing({ storeSlug, detail, onHighlight, onSaved, onReloa
         </div>
       </fieldset>
 
-      <div className="flex flex-col gap-1.5">
-        <div className="text-xs font-medium uppercase tracking-wide text-ink-muted">Claims · {product.claims.length}</div>
-        {product.claims.length === 0 ? (
-          <p className="text-xs text-ink-muted">The listing makes no factual claims beyond the source.</p>
-        ) : (
-          <ul className="flex flex-col gap-1.5">
-            {product.claims.map((c, i) => (
-              <ClaimChip key={`${c.text}-${i}`} claim={c} onHighlight={onHighlight} />
-            ))}
-          </ul>
-        )}
-      </div>
+      <ClaimInspector claims={product.claims} guardrails={product.guardrails ?? []} pinned={pinned} onHover={onHover} onSelect={onSelect} />
 
       <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center gap-2 border-t border-border bg-popover px-4 py-2">
         <Button type="submit" size="sm" disabled={!dirty || saving} className="cursor-pointer">

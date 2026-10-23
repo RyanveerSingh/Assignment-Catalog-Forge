@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "cn";
-import { CircleAlertIcon, RefreshCwIcon } from "lucide-react";
+import { CircleAlertIcon, RefreshCwIcon, ScanSearchIcon } from "lucide-react";
 import { StatusBadge } from "@/components/ext/status-badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
@@ -15,7 +15,7 @@ import { ReviewFooter, type FooterNotice } from "./review-footer";
 import { ReviewListing } from "./review-listing";
 import { ReviewTranslations } from "./review-translations";
 import { IssueList, SourceRows } from "./source-rows";
-import type { ProductAction, ProductDetail, SourceHighlight } from "./types";
+import { sameHighlight, type ProductAction, type ProductDetail, type SourceHighlight } from "./types";
 import { VariantTable } from "./variant-table";
 
 const ACTION_DONE: Record<ProductAction["action"], string> = {
@@ -28,13 +28,16 @@ const ACTION_DONE: Record<ProductAction["action"], string> = {
   translate: "Translation saved as a manual fix.",
 };
 
-function Section({ title, count, children }: { title: string; count?: number; children: React.ReactNode }) {
+function Section({ title, count, extra, children }: { title: string; count?: number; extra?: React.ReactNode; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-2">
-      <h3 className="flex items-baseline gap-2 text-xs font-medium uppercase tracking-wide text-ink-muted">
-        {title}
-        {count !== undefined ? <span className="num text-[11px] normal-case tracking-normal">{count}</span> : null}
-      </h3>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="flex items-baseline gap-2 text-xs font-medium uppercase tracking-wide text-ink-muted">
+          {title}
+          {count !== undefined ? <span className="num text-[11px] normal-case tracking-normal">{count}</span> : null}
+        </h3>
+        {extra}
+      </div>
       {children}
     </section>
   );
@@ -42,14 +45,17 @@ function Section({ title, count, children }: { title: string; count?: number; ch
 
 /**
  * Wide right-hand sheet for reviewing one product: raw source on the left, the AI listing on the right,
- * so every claim can be checked against the cell it came from before approving.
+ * so every claim can be checked against the cell it came from before approving. A hovered chip lights
+ * its cell up for as long as the pointer stays; a pressed chip keeps it lit until pressed again.
  */
 export function ReviewDrawer({ storeSlug, productId, onClose, onChanged }: { storeSlug: string; productId: string | null; onClose: () => void; onChanged: () => void }) {
   const [detail, setDetail] = useState<ProductDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadedAt, setLoadedAt] = useState(0);
-  const [highlight, setHighlight] = useState<SourceHighlight | null>(null);
+  const [hover, setHover] = useState<SourceHighlight | null>(null);
+  const [pinned, setPinned] = useState<SourceHighlight | null>(null);
+  const [showCleaning, setShowCleaning] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<FooterNotice | null>(null);
   const [tab, setTab] = useState<"listing" | "translations">("listing");
@@ -76,7 +82,8 @@ export function ReviewDrawer({ storeSlug, productId, onClose, onChanged }: { sto
   useEffect(() => {
     setDetail(null);
     setNotice(null);
-    setHighlight(null);
+    setHover(null);
+    setPinned(null);
     setTab("listing");
     if (productId) void load(productId);
   }, [productId, load]);
@@ -109,6 +116,9 @@ export function ReviewDrawer({ storeSlug, productId, onClose, onChanged }: { sto
     setNotice({ tone: "ok", text: "Saved. Edited fields are now manual overrides and will be re-translated." });
     void load(productId).then(onChanged);
   }, [productId, load, onChanged]);
+
+  // Pressing the chip that is already pinned unpins it.
+  const onSelect = useCallback((h: SourceHighlight) => setPinned((p) => (sameHighlight(p, h) ? null : h)), []);
 
   const product = detail?.product ?? null;
   const group = product?.group ?? null;
@@ -193,8 +203,17 @@ export function ReviewDrawer({ storeSlug, productId, onClose, onChanged }: { sto
                   </span>
                 ) : null}
               </div>
-              <Section title="Rows" count={detail.sourceRows.length}>
-                <SourceRows rows={detail.sourceRows} highlight={highlight} />
+              <Section
+                title="Rows"
+                count={detail.sourceRows.length}
+                extra={
+                  <Button type="button" variant="ghost" size="xs" aria-pressed={showCleaning} onClick={() => setShowCleaning((s) => !s)} className="cursor-pointer text-ink-muted aria-pressed:bg-muted aria-pressed:text-ink" title="What the deterministic cleaner changed in each row before the AI saw it">
+                    <ScanSearchIcon data-icon="inline-start" />
+                    {showCleaning ? "Hide cleaning" : "Show cleaning"}
+                  </Button>
+                }
+              >
+                <SourceRows rows={detail.sourceRows} highlight={hover ?? pinned} showCleaning={showCleaning} />
               </Section>
               <Section title="Photos" count={detail.photos.length}>
                 <PhotoGrid storeSlug={storeSlug} photos={detail.photos} />
@@ -222,7 +241,7 @@ export function ReviewDrawer({ storeSlug, productId, onClose, onChanged }: { sto
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="listing">
-                  <ReviewListing key={`${detail.product.id}:${detail.product.version}`} storeSlug={storeSlug} detail={detail} onHighlight={setHighlight} onSaved={onSaved} onReload={() => productId && void load(productId)} />
+                  <ReviewListing key={`${detail.product.id}:${detail.product.version}`} storeSlug={storeSlug} detail={detail} pinned={pinned} onHover={setHover} onSelect={onSelect} onSaved={onSaved} onReload={() => productId && void load(productId)} />
                 </TabsContent>
                 <TabsContent value="translations">
                   <ReviewTranslations key={`${detail.product.id}:${loadedAt}`} translations={detail.translations} onAction={runAction} />

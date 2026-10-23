@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { DbOrTx } from "@/db/client";
-import { products, variants, type ProductClaim, type ProductContent, type ProductStatus } from "@/db/schema";
+import { products, variants, type ProductClaim, type ProductContent, type ProductGuardrail, type ProductStatus } from "@/db/schema";
 import { slugify } from "@/core/clean/row";
 import type { ProductGroup } from "@/core/types";
 
@@ -148,6 +148,7 @@ async function uniqueHandle(db: DbOrTx, storeId: string, base: string): Promise<
 export interface AiResultInput {
   content: ProductContent;
   claims: ProductClaim[];
+  guardrails: ProductGuardrail[];
   confidence: Record<string, number>;
   reviewReasons: string[];
   status: "draft" | "needs_review";
@@ -168,6 +169,7 @@ export async function setProductAiResult(db: DbOrTx, productId: string, input: A
     .set({
       draft,
       claims: input.claims,
+      guardrails: input.guardrails,
       confidence: input.confidence,
       reviewReasons: input.reviewReasons,
       status: input.status,

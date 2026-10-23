@@ -1,8 +1,11 @@
+import type { BlockedClaim } from "@/core/ai/grounding";
+import type { CleaningXrayEntry } from "@/core/clean/xray";
 import type { DuplicateRow, Issue, ProductGroup } from "@/core/types";
 
 /**
  * Wire shapes of the products API as the browser sees them (JSON: dates are ISO strings).
  * Declared here rather than imported from src/db so client bundles never touch the database layer.
+ * The core imports are type-only, so no server code reaches the bundle either.
  */
 
 export type ProductStatus = "pending_ai" | "draft" | "needs_review" | "approved" | "rejected" | "archived" | "failed";
@@ -70,8 +73,13 @@ export interface ProductClaim {
   source: string;
   row?: number;
   column?: string;
+  /** The words in that cell the claim rests on, as the supplier wrote them. Absent on products written before it was stored. */
+  quote?: string;
   verified: boolean;
 }
+
+/** A claim or marketing term the grounding validator kept out of the listing, with the cell that contradicts it when there is one. */
+export type ProductGuardrail = BlockedClaim;
 
 export interface ProductRow {
   id: string;
@@ -84,6 +92,7 @@ export interface ProductRow {
   manualOverrides: Partial<ProductContent>;
   confidence: Record<string, number>;
   claims: ProductClaim[];
+  guardrails: ProductGuardrail[];
   reviewReasons: string[];
   group: ProductGroup | null;
   sourceRows: number[];
@@ -154,9 +163,11 @@ export interface TranslationRow {
 export interface SourceRow {
   rowNumber: number;
   raw: Record<string, string>;
-  issues: unknown;
+  issues: Issue[];
   status: string;
   duplicateOfRow: number | null;
+  /** What the deterministic cleaner changed in this row, raw → cleaned per field. */
+  xray: CleaningXrayEntry[];
 }
 
 export interface ProductDetail {
@@ -168,10 +179,21 @@ export interface ProductDetail {
   importName: string | null;
 }
 
-/** A source cell the merchant is pointing at (claim chip hover/focus). `column` absent = whole row. */
+/**
+ * A source cell the merchant is pointing at (claim chip or guardrail hover/focus/click). `column` absent = whole
+ * row; `quote` present = mark those words inside the cell. The tone says whether the words support the listing
+ * (claim) or contradict it (guardrail).
+ */
 export interface SourceHighlight {
   row: number;
   column?: string;
+  quote?: string;
+  tone?: "claim" | "guardrail";
+}
+
+export function sameHighlight(a: SourceHighlight | null, b: SourceHighlight | null): boolean {
+  if (a === null || b === null) return a === b;
+  return a.row === b.row && a.column === b.column && a.quote === b.quote && a.tone === b.tone;
 }
 
 export type ProductAction =

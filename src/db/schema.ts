@@ -14,6 +14,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import type { BlockedClaim } from "@/core/ai/grounding";
 import type { Dimensions, DuplicateRow, Issue, ProductGroup, RawRow } from "@/core/types";
 
 /**
@@ -306,8 +307,13 @@ export interface ProductClaim {
   source: string;
   row?: number;
   column?: string;
+  /** The words in that cell the claim rests on, as the supplier wrote them. */
+  quote?: string;
   verified: boolean;
 }
+
+/** What the grounding validator kept out of the listing, for the review drawer (EC-D2, B15). */
+export type ProductGuardrail = BlockedClaim;
 
 export interface ProductSeo {
   metaTitle: string | null;
@@ -358,6 +364,7 @@ export const products = pgTable(
     manualOverrides: jsonb("manual_overrides").$type<Partial<ProductContent>>().notNull().default(sql`'{}'::jsonb`),
     confidence: jsonb("confidence").$type<Record<string, number>>().notNull().default(sql`'{}'::jsonb`),
     claims: jsonb("claims").$type<ProductClaim[]>().notNull().default(sql`'[]'::jsonb`),
+    guardrails: jsonb("guardrails").$type<ProductGuardrail[]>().notNull().default(sql`'[]'::jsonb`),
     reviewReasons: jsonb("review_reasons").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
     /** The deterministic grouping result shown side by side with the AI output. */
     group: jsonb("group_data").$type<ProductGroup>(),

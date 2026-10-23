@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { cn } from "cn";
+import { locateQuote } from "@/core/ai/quote";
 import type { Issue } from "@/core/types";
+import { CleaningXray } from "./cleaning-xray";
 import type { SourceHighlight, SourceRow } from "./types";
 
 function normaliseHeader(h: string): string {
@@ -13,17 +15,47 @@ function cellId(row: number, column: string): string {
   return `src-${row}-${normaliseHeader(column).replace(/[^a-z0-9]+/g, "-")}`;
 }
 
+type Tone = NonNullable<SourceHighlight["tone"]>;
+
+/** Brand for words that support the listing, destructive for words that contradict it; the chip that triggered it says which. */
+const CELL_CLASS: Record<Tone, string> = {
+  claim: "bg-brand-soft/50 ring-1 ring-inset ring-brand/60",
+  guardrail: "bg-destructive/5 ring-1 ring-inset ring-destructive/50",
+};
+const MARK_CLASS: Record<Tone, string> = {
+  claim: "-mx-0.5 rounded-[2px] bg-brand-soft px-0.5 text-ink ring-1 ring-brand",
+  guardrail: "-mx-0.5 rounded-[2px] bg-destructive/15 px-0.5 text-ink ring-1 ring-destructive/70",
+};
+
+/** The cell text with the quoted words wrapped in <mark>; the plain text when the quote cannot be located in it. */
+function CellText({ value, quote, tone }: { value: string; quote: string | undefined; tone: Tone }) {
+  const span = quote ? locateQuote(value, quote) : null;
+  if (!span) return <>{value}</>;
+  return (
+    <>
+      {value.slice(0, span.start)}
+      <mark data-quote className={MARK_CLASS[tone]}>
+        {value.slice(span.start, span.end)}
+      </mark>
+      {value.slice(span.end)}
+    </>
+  );
+}
+
 /**
- * The raw sheet rows behind a product as compact key/value tables. A highlight (from a claim chip) lights up
- * one cell, or the whole row when the claim only names a row, and scrolls it into view.
+ * The raw sheet rows behind a product as compact key/value tables. A highlight (from a claim chip or a guardrail)
+ * lights up one cell and marks the quoted words inside it, or the whole row when only a row is named, and scrolls
+ * it into view. With `showCleaning` each row also carries its cleaning X-ray.
  */
-export function SourceRows({ rows, highlight }: { rows: SourceRow[]; highlight: SourceHighlight | null }) {
+export function SourceRows({ rows, highlight, showCleaning }: { rows: SourceRow[]; highlight: SourceHighlight | null; showCleaning: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const wantedColumn = highlight?.column ? normaliseHeader(highlight.column) : null;
+  const tone: Tone = highlight?.tone ?? "claim";
 
   useEffect(() => {
     if (!highlight || !containerRef.current) return;
-    const target = containerRef.current.querySelector<HTMLElement>(highlight.column ? `#${cellId(highlight.row, highlight.column)}` : `#src-row-${highlight.row}`);
+    const cell = containerRef.current.querySelector<HTMLElement>(highlight.column ? `#${cellId(highlight.row, highlight.column)}` : `#src-row-${highlight.row}`);
+    const target = cell?.querySelector<HTMLElement>("mark[data-quote]") ?? cell;
     target?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [highlight]);
 
@@ -55,8 +87,8 @@ export function SourceRows({ rows, highlight }: { rows: SourceRow[]; highlight: 
                         <th scope="row" className="w-[38%] px-2 py-1 text-left align-top font-medium text-ink-muted">
                           {column}
                         </th>
-                        <td id={cellId(row.rowNumber, column)} className={cn("px-2 py-1 align-top break-words whitespace-pre-wrap text-ink transition-colors", lit && "bg-brand-soft ring-1 ring-inset ring-brand")}>
-                          {String(value)}
+                        <td id={cellId(row.rowNumber, column)} className={cn("px-2 py-1 align-top break-words whitespace-pre-wrap text-ink transition-colors", lit && CELL_CLASS[tone])}>
+                          {lit ? <CellText value={String(value)} quote={highlight?.quote} tone={tone} /> : String(value)}
                         </td>
                       </tr>
                     );
@@ -64,6 +96,7 @@ export function SourceRows({ rows, highlight }: { rows: SourceRow[]; highlight: 
                 </tbody>
               </table>
             )}
+            {showCleaning ? <CleaningXray entries={row.xray} /> : null}
           </section>
         );
       })}

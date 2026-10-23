@@ -136,6 +136,8 @@ describe("helpers", () => {
     ["20,5 cm", "20.5 cm"],
     ["xl", "XL"],
     ["Large", "Large"],
+    ["50 x 100 cm", "50 x 100 cm"],
+    ["30×50cm", "30 x 50cm"],
   ])("EC-B18: normalizeSizeValue(%s) = %s", (input, expected) => {
     expect(normalizeSizeValue(input)).toBe(expected);
   });

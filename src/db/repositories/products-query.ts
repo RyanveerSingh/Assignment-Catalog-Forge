@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, inArray, isNull, sql, type SQL } from "drizzle-orm";
+import type { Issue } from "@/core/types";
 import type { DbOrTx } from "@/db/client";
 import { importRows, imports, photos, products, translations, variants, type ProductStatus } from "@/db/schema";
 
@@ -177,13 +178,25 @@ export async function listProducts(db: DbOrTx, storeId: string, opts: ProductLis
   };
 }
 
+export interface ProductDetailSourceRow {
+  rowNumber: number;
+  raw: Record<string, string>;
+  /** The stored CleanedRow (typed unknown in the schema); the API turns it into the cleaning X-ray. */
+  cleaned: unknown;
+  issues: Issue[];
+  status: string;
+  duplicateOfRow: number | null;
+}
+
 export interface ProductDetail {
   product: typeof products.$inferSelect;
   variants: Array<typeof variants.$inferSelect>;
   photos: Array<typeof photos.$inferSelect>;
   translations: Array<typeof translations.$inferSelect>;
-  sourceRows: Array<{ rowNumber: number; raw: Record<string, string>; issues: unknown; status: string; duplicateOfRow: number | null }>;
+  sourceRows: ProductDetailSourceRow[];
   importName: string | null;
+  /** The import's column map, so the X-ray pairs each raw cell with the field the cleaner read it as. */
+  columnMap: unknown[] | null;
 }
 
 export async function getProductDetail(db: DbOrTx, storeId: string, productId: string): Promise<ProductDetail | null> {
@@ -198,13 +211,13 @@ export async function getProductDetail(db: DbOrTx, storeId: string, productId: s
   const sourceRows =
     product.lastImportId && rowNumbers.length > 0
       ? await db
-          .select({ rowNumber: importRows.rowNumber, raw: importRows.raw, issues: importRows.issues, status: importRows.status, duplicateOfRow: importRows.duplicateOfRow })
+          .select({ rowNumber: importRows.rowNumber, raw: importRows.raw, cleaned: importRows.cleaned, issues: importRows.issues, status: importRows.status, duplicateOfRow: importRows.duplicateOfRow })
           .from(importRows)
           .where(and(eq(importRows.importId, product.lastImportId), inArray(importRows.rowNumber, rowNumbers)))
           .orderBy(asc(importRows.rowNumber))
       : [];
-  const [imp] = product.lastImportId ? await db.select({ name: imports.name }).from(imports).where(eq(imports.id, product.lastImportId)).limit(1) : [];
-  return { product, variants: variantRows, photos: photoRows, translations: translationRows, sourceRows, importName: imp?.name ?? null };
+  const [imp] = product.lastImportId ? await db.select({ name: imports.name, columnMap: imports.columnMap }).from(imports).where(eq(imports.id, product.lastImportId)).limit(1) : [];
+  return { product, variants: variantRows, photos: photoRows, translations: translationRows, sourceRows, importName: imp?.name ?? null, columnMap: imp?.columnMap ?? null };
 }
 
 export async function listCategories(db: DbOrTx, storeId: string): Promise<Array<{ category: string; n: number }>> {

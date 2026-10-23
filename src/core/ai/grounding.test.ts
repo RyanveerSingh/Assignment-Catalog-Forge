@@ -106,7 +106,7 @@ describe("groundProductOutput", () => {
     const r = groundProductOutput({ output: output(), group, rows });
     expect(r.claims.map((c) => c.text)).toEqual(expect.arrayContaining(["hand-thrown", "frost-resistant"]));
     expect(r.claims.every((c) => c.verified && c.row === 14)).toBe(true);
-    expect(r.removedClaims).toEqual([]);
+    expect(r.blocked).toEqual([]);
     expect(r.reviewReasons).toEqual(["No price for 30 cm"]);
     expect(r.status).toBe("needs_review");
     expect(r.content.category).toBe("Home & Garden > Decor > Planters");
@@ -123,7 +123,7 @@ describe("groundProductOutput", () => {
       rows,
     });
     expect(r.claims.map((c) => c.text)).not.toContain("frost-proof");
-    expect(r.removedClaims[0]).toEqual({ text: "frost-proof", reason: "the source explicitly negates it" });
+    expect(r.blocked).toEqual([{ text: "frost-proof", kind: "negated", reason: "the source explicitly negates it", term: "frost-proof", row: 14, column: "Notes", quote: "not frost-proof" }]);
     expect(r.content.descriptionHtml).not.toMatch(/frost-proof/i);
     expect(r.reviewReasons.some((x) => x.includes("negates"))).toBe(true);
     expect(r.issues.some((i) => i.code === "claim.negated" && i.ec === "B15")).toBe(true);
@@ -142,7 +142,7 @@ describe("groundProductOutput", () => {
       rows,
     });
     expect(r.claims.map((c) => c.text)).toEqual(expect.arrayContaining(["hand-thrown", "Not frost-proof; bring indoors below 0 °C"]));
-    expect(r.removedClaims).toEqual([]);
+    expect(r.blocked).toEqual([]);
     expect(r.content.descriptionHtml).toMatch(/not frost-proof/i);
     expect(r.reviewReasons).toEqual(["No price for 30 cm"]);
   });
@@ -160,6 +160,7 @@ describe("groundProductOutput", () => {
     expect(r.reviewReasons).toContain('Listing says "not hand-thrown" but the source says it is');
     expect(r.content.descriptionHtml).not.toMatch(/hand-thrown/i);
     expect(r.content.descriptionHtml).toMatch(/frost-resistant/i);
+    expect(r.blocked).toEqual([{ text: "not hand-thrown", kind: "contradicted", reason: "the source asserts it", term: "hand-thrown", row: 14, column: "Description", quote: "Hand-thrown" }]);
   });
 
   it("EC-B15: a listing that denies something the source never mentions is invented", () => {
@@ -170,6 +171,7 @@ describe("groundProductOutput", () => {
     });
     expect(r.reviewReasons).toContain('Listing says "not dishwasher-safe" but the source does not mention it');
     expect(r.content.descriptionHtml).not.toMatch(/dishwasher/i);
+    expect(r.blocked).toEqual([{ text: "not dishwasher-safe", kind: "unsupported", reason: "the source never mentions it", term: "dishwasher-safe" }]);
   });
 
   it("EC-B15: a negation in the previous sentence does not poison a cited claim", () => {
@@ -189,7 +191,7 @@ describe("groundProductOutput", () => {
       group: localGroup,
       rows: localRows,
     });
-    expect(r.removedClaims).toEqual([]);
+    expect(r.blocked).toEqual([]);
     expect(r.claims.map((c) => c.text)).toEqual(["Suits hallways and living rooms", "7 W, 450 lumens"]);
     expect(r.reviewReasons.filter((x) => x.includes("negates"))).toEqual([]);
   });
@@ -207,8 +209,13 @@ describe("groundProductOutput", () => {
       group,
       rows,
     });
-    expect(r.removedClaims).toEqual([]);
-    expect(r.claims).toEqual(expect.arrayContaining([expect.objectContaining({ text: "Drainage hole included", row: 14, column: "Description", verified: true })]));
+    expect(r.blocked).toEqual([]);
+    expect(r.claims).toEqual(expect.arrayContaining([expect.objectContaining({ text: "Drainage hole included", row: 14, column: "Description", quote: "planter with drainage hole", verified: true })]));
+  });
+
+  it("EC-D2: an uncited lexicon term the source supports is kept and quoted as the supplier wrote it", () => {
+    const r = groundProductOutput({ output: output({ claims: [] }), group, rows });
+    expect(r.claims).toEqual(expect.arrayContaining([expect.objectContaining({ text: "hand-thrown", row: 14, column: "Description", quote: "Hand-thrown" }), expect.objectContaining({ text: "frost-resistant", row: 14, column: "Notes", quote: "frost-resistant" })]));
   });
 
   it("EC-B15 / EC-A4: a negated claim proven by a German quote, in a mojibake cell, stands on its citation", () => {
@@ -228,7 +235,7 @@ describe("groundProductOutput", () => {
       group: de,
       rows: deRows,
     });
-    expect(r.removedClaims).toEqual([]);
+    expect(r.blocked).toEqual([]);
     expect(r.claims.map((c) => c.text)).toEqual(["Not drip-free", "Hand-poured inside and out"]);
     expect(r.reviewReasons.filter((x) => x.includes("source"))).toEqual([]);
   });
@@ -246,12 +253,27 @@ describe("groundProductOutput", () => {
     expect(r.content.descriptionHtml).not.toMatch(/organic/i);
     expect(r.reviewReasons.some((x) => x.includes('"organic"'))).toBe(true);
     expect(r.confidence.description).toBeLessThan(90);
+    expect(r.blocked).toEqual([{ text: "organic", kind: "unsupported", reason: "not found in the source cells" }]);
   });
 
   it("EC-D2: catches an uncited marketing term in the text via the lexicon sweep", () => {
     const r = groundProductOutput({ output: output({ title: "Handmade Dishwasher-safe Terracotta Planter", claims: [] }), group, rows });
     expect(r.content.title).not.toMatch(/dishwasher/i);
     expect(r.reviewReasons.some((x) => x.includes("dishwasher-safe"))).toBe(true);
+    expect(r.blocked).toEqual(expect.arrayContaining([{ text: "handmade", kind: "unsupported", reason: "not found in the source cells", term: "handmade" }, { text: "dishwasher-safe", kind: "unsupported", reason: "not found in the source cells", term: "dishwasher-safe" }]));
+  });
+
+  it("EC-B15: a lexicon term the source negates is blocked with the negation quoted from its cell", () => {
+    const r = groundProductOutput({ output: output({ title: "Frost-proof Terracotta Planter", claims: [] }), group, rows });
+    expect(r.content.title).not.toMatch(/frost-proof/i);
+    expect(r.blocked).toEqual([{ text: "frost-proof", kind: "negated", reason: "the source explicitly negates it", term: "frost-proof", row: 14, column: "Notes", quote: "not frost-proof" }]);
+  });
+
+  it("EC-B15: a negation quoted from a mojibake cell comes back as the readable text", () => {
+    const deRows = [{ row: 5, cells: { Titel: "Terrakotta-Übertopf", Beschreibung: "Frostbeständig, aber nicht frostsicher: im Winter nach drauÃŸen bringen ist keine gute Idee." } }];
+    const de: ProductGroup = { ...group, productKey: "TK-UT", title: "Terrakotta-Übertopf", language: { lang: "de", confidence: 95 }, sourceRows: [5], sourceCorpus: `Titel: Terrakotta-Übertopf\nBeschreibung: ${deRows[0]?.cells.Beschreibung}` };
+    const r = groundProductOutput({ output: output({ product_key: "TK-UT", title: "Frost-proof Terracotta Planter", description_html: "<p>Frost-proof terracotta planter.</p>", attributes: [], claims: [] }), group: de, rows: deRows });
+    expect(r.blocked).toEqual([{ text: "frost-proof", kind: "negated", reason: "the source explicitly negates it", term: "frost-proof", row: 5, column: "Beschreibung", quote: "nicht frostsicher" }]);
   });
 
   it("EC-D4: flags numbers that are not in the source but accepts unit conversions", () => {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { asColumnMappings, buildCleaningXray, isCleanedRow } from "@/core/clean/xray";
 import { getDb } from "@/db/client";
 import { getProductDetail } from "@/db/repositories/products-query";
 import { approveProduct, rejectProduct, rerunProductAi, restoreProduct, sendBackProduct, setManualTranslation, softDeleteProduct, updateProductDraft } from "@/db/repositories/review";
@@ -7,12 +8,21 @@ import { requireStore } from "@/lib/session";
 
 type Ctx = { params: Promise<{ slug: string; id: string }> };
 
+/**
+ * Product detail for the review drawer. Each source row carries its cleaning X-ray (raw → cleaned per
+ * field) instead of the stored CleanedRow blob, which is far larger than what the drawer needs.
+ */
 export const GET = withApi(async (_req: Request, { params }: Ctx) => {
   const { slug, id } = await params;
   const { store } = await requireStore(slug);
   const detail = await getProductDetail(getDb(), store.id, id);
   if (!detail) throw new HttpError(404, "product_not_found", "Product not found");
-  return json(detail);
+  const { columnMap, sourceRows, ...rest } = detail;
+  const mappings = asColumnMappings(columnMap);
+  return json({
+    ...rest,
+    sourceRows: sourceRows.map(({ cleaned, ...row }) => ({ ...row, xray: isCleanedRow(cleaned) ? buildCleaningXray(row.raw, cleaned, row.issues, mappings) : [] })),
+  });
 });
 
 const patchSchema = z.object({

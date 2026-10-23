@@ -6,7 +6,7 @@ import type { Db } from "@/db/client";
 import { appendImportEvent, pauseImport } from "@/db/repositories/imports";
 import { aiRequests, products, stores, translationCache, translations } from "@/db/schema";
 import { refreshChaos } from "@/lib/app-settings";
-import { decryptSecret, sha256Hex, stableHash } from "@/lib/crypto";
+import { safeDecrypt, sha256Hex, stableHash } from "@/lib/crypto";
 import { getAiProvider, isAiError, modelForTier } from "@/providers/ai";
 import { JobError } from "@/queue/errors";
 import type { JobHandler } from "@/worker/loop";
@@ -174,13 +174,5 @@ async function translateFailure(db: Db, importId: string | null, err: unknown): 
       return new JobError(err.message, { retryable: false, cause: err });
     default:
       return new JobError(err.message, { retryable: true, cause: err });
-  }
-}
-
-function safeDecrypt(value: string): string | null {
-  try {
-    return decryptSecret(value);
-  } catch {
-    return null;
   }
 }

@@ -232,6 +232,8 @@ function readDimensions(get: (f: CanonicalField) => string | null, row: number, 
 /** "20cm", "20 CM", "Size 20" → "20 cm"; "S", "Large" → "S", "Large" (EC-B18). */
 export function normalizeSizeValue(raw: string): string {
   const text = normalizeText(raw).replace(/^(size|größe|groesse|taille)\s*:?\s*/i, "");
+  // "50 x 100 cm" is a two-dimensional size (towels, rugs), not a length; keep both numbers.
+  if (/\d\s*[x×*]\s*\d/i.test(text)) return text.replace(/\s*[x×*]\s*/gi, " x ");
   const len = parseLength(text);
   if (len && /\d/.test(text)) {
     // Only treat as a length when a unit was present or the value is purely numeric.

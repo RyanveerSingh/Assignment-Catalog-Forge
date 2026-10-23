@@ -11,7 +11,7 @@ import { failProduct, setProductAiResult, type ProductRecord } from "@/db/reposi
 import { getRawCells, setRowsStatusForProduct } from "@/db/repositories/rows";
 import { imports, products, stores, type ProductClaim } from "@/db/schema";
 import { refreshChaos } from "@/lib/app-settings";
-import { decryptSecret, stableHash } from "@/lib/crypto";
+import { safeDecrypt, stableHash } from "@/lib/crypto";
 import { getLogger } from "@/lib/logger";
 import { getAiProvider, isAiError, modelForTier, type AiImage, type AiProvider, type AiRequest, type AiResponse } from "@/providers/ai";
 import { getStorage } from "@/providers/storage";
@@ -118,10 +118,11 @@ export async function applyEnrichResponse(
     }
     const rows = await getRawCells(db, imp.id, group.sourceRows);
     const grounded = groundProductOutput({ output: out, group, rows });
-    const claims: ProductClaim[] = grounded.claims.map((c) => ({ text: c.text, source: c.source, row: c.row, column: c.column, verified: true }));
+    const claims: ProductClaim[] = grounded.claims.map((c) => ({ text: c.text, source: c.source, row: c.row, column: c.column, quote: c.quote, verified: true }));
     const ok = await setProductAiResult(db, p.id, {
       content: { title: grounded.content.title, descriptionHtml: grounded.content.descriptionHtml, category: grounded.content.category, tags: grounded.content.tags, attributes: grounded.content.attributes, seo: grounded.content.seo },
       claims,
+      guardrails: grounded.blocked,
       confidence: grounded.confidence,
       reviewReasons: grounded.reviewReasons,
       status: grounded.status,
@@ -135,8 +136,8 @@ export async function applyEnrichResponse(
     applied += 1;
     await setRowsStatusForProduct(db, p.id, grounded.status === "needs_review" ? "needs_review" : "done");
     if (grounded.status === "needs_review") needsReview += 1;
-    if (grounded.removedClaims.length > 0) {
-      await appendImportEvent(db, imp.id, "warn", `Removed ${grounded.removedClaims.length} unsupported claim(s) from "${grounded.content.title}"`, { productId: p.id, removed: grounded.removedClaims });
+    if (grounded.blocked.length > 0) {
+      await appendImportEvent(db, imp.id, "warn", `Blocked ${grounded.blocked.length} claim(s) in "${grounded.content.title}" that the source does not support`, { productId: p.id, blocked: grounded.blocked });
     }
   }
   return { missing, needsReview, applied };
@@ -228,13 +229,5 @@ export async function failEnrichBatch(db: Db, job: Job, reason: string): Promise
     await recomputeImportCounts(db, importId);
     await appendImportEvent(db, importId, "error", `${productIds.length} product(s) failed after repeated AI errors: ${reason.slice(0, 200)}`);
     await driveImport(db, importId);
-  }
-}
-
-export function safeDecrypt(value: string): string | null {
-  try {
-    return decryptSecret(value);
-  } catch {
-    return null;
   }
 }

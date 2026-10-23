@@ -63,6 +63,15 @@ export function encryptSecret(plain: string): string {
   return `v1.${iv.toString("base64")}.${tag.toString("base64")}.${enc.toString("base64")}`;
 }
 
+/** A stored key that fails to decrypt (rotated server secret, tampered row) counts as "no key", never as a crash. */
+export function safeDecrypt(stored: string): string | null {
+  try {
+    return decryptSecret(stored);
+  } catch {
+    return null;
+  }
+}
+
 export function decryptSecret(stored: string): string {
   const [v, ivB64, tagB64, encB64] = stored.split(".");
   if (v !== "v1" || !ivB64 || !tagB64 || !encB64) throw new Error("unrecognised secret format");

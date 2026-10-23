@@ -1,16 +1,21 @@
 import { sanitizeDescriptionHtml, htmlToText } from "@/core/clean/html";
-import { foldForMatch, repairMojibake } from "@/core/clean/text";
+import { foldForMatch } from "@/core/clean/text";
 import { parseLength, parseWeight } from "@/core/clean/units";
 import type { Issue, ProductGroup } from "@/core/types";
 import { issue } from "@/core/types";
-import { CLAIM_LEXICON, NEGATION_TOKENS } from "./lexicon";
+import { findNegationInRows, findQuoteInRows, findTermInRows, prepareSourceRows, verifyCitation, type Found } from "./grounding-source";
+import { CLAIM_LEXICON } from "./lexicon";
+import { claimPolarity, isNegated, tokenizeClauses } from "./negation";
 import { clampConfidence, type AiProductOutput } from "./schema";
 import { TAXONOMY, TAXONOMY_FALLBACK } from "./taxonomy";
+
+export { claimPolarity, isNegated, tokenizeClauses };
 
 /**
  * Grounding validator: checks the model's words against the supplier's text.
  * It does not trust the model. Anything it cannot find in the source is removed and the product
- * is sent to review with a reason (EC-D2, D3, D4, D7, B15).
+ * is sent to review with a reason (EC-D2, D3, D4, D7, B15). Everything it removes is reported in
+ * `blocked`, pointing at the source cell that contradicts the listing when there is one.
  */
 
 export interface GroundingInput {
@@ -37,31 +42,41 @@ export interface VerifiedClaim {
   verified: boolean;
 }
 
+/** unsupported: nowhere in the source. negated: the source says "not X". contradicted: the listing says "not X", the source says X. */
+export type BlockedKind = "unsupported" | "negated" | "contradicted";
+
+/** A claim the validator removed or a lexicon term it stripped from the text; shown as a guardrail in the review drawer. */
+export interface BlockedClaim {
+  text: string;
+  kind: BlockedKind;
+  reason: string;
+  /** Canonical lexicon term, when the block came from the lexicon sweep. */
+  term?: string;
+  /** The source cell holding the negation or the assertion the listing contradicts; absent when nothing was found. */
+  row?: number;
+  column?: string;
+  quote?: string;
+}
+
 export interface GroundingResult {
   content: GroundedContent;
   claims: VerifiedClaim[];
-  removedClaims: Array<{ text: string; reason: string }>;
+  blocked: BlockedClaim[];
   confidence: Record<string, number>;
   reviewReasons: string[];
   status: "draft" | "needs_review";
   issues: Issue[];
 }
 
-const NEGATION_WINDOW = 3;
-/** Marks a clause boundary in token streams so "will not scratch floors. Suits hallways" cannot negate "suits". */
-const BOUNDARY = "|";
-const CLAUSE_SPLIT = /[.;:!?,()\n]+|\s[-–—]\s/;
-
 export function groundProductOutput(input: GroundingInput): GroundingResult {
   const { output, group, rows } = input;
   const issues: Issue[] = [];
   const reviewReasons: string[] = [];
-  const removedClaims: Array<{ text: string; reason: string }> = [];
+  const blocked: BlockedClaim[] = [];
 
   const corpus = ` ${foldForMatch(group.sourceCorpus)} `;
   const corpusTokens = tokenizeClauses(group.sourceCorpus);
-  // Cells are matched after mojibake repair: the model quotes the readable text, the sheet may hold "auÃŸen".
-  const foldedRows = rows.map((r) => ({ row: r.row, cells: Object.fromEntries(Object.entries(r.cells).map(([k, v]) => [k, foldForMatch(repairMojibake(v ?? "").text)])) }));
+  const sourceRows = prepareSourceRows(rows);
   const nonEnglish = group.language.lang !== "en" && group.language.lang !== "und";
 
   // --- 1. sanitise the model's HTML (defence in depth) -------------------------
@@ -84,11 +99,11 @@ export function groundProductOutput(input: GroundingInput): GroundingResult {
     const polarity = claimPolarity(c.text);
     const term = canonicalTerm(polarity.core);
     const variants = variantsFor(term);
-    const citation = verifyCitation(c, foldedRows, variants);
+    const citation = verifyCitation(c, sourceRows, variants);
     // A quote that lives in a sibling row of the same product is still a citation (models slip on row numbers).
-    const found = citation ?? findInRows(foldedRows, variants) ?? findQuoteInRows(foldedRows, c.quote);
+    const found = citation ?? findTermInRows(sourceRows, variants) ?? findQuoteInRows(sourceRows, c.quote);
     if (!found) {
-      removedClaims.push({ text: c.text, reason: "not found in the source cells" });
+      blocked.push({ text: c.text, kind: "unsupported", reason: "not found in the source cells" });
       issues.push(issue("claim.unsupported", "warn", `Claim "${c.text}" is not supported by the source`, { field: "claims", value: c.text, ec: "D2" }));
       reviewReasons.push(`AI claimed "${c.text}" but the source does not say it`);
       stripTermFromText(variants, polarity.negated);
@@ -101,7 +116,8 @@ export function groundProductOutput(input: GroundingInput): GroundingResult {
     // language has nothing to compare against and stands on its citation.
     const termInCorpus = variants.some((v) => corpus.includes(` ${v} `));
     if (termInCorpus && polarity.negated !== isNegated(corpusTokens, variants)) {
-      removedClaims.push({ text: c.text, reason: polarity.negated ? "the source asserts it" : "the source explicitly negates it" });
+      const where = polarity.negated ? findTermInRows(sourceRows, variants) : findNegationInRows(sourceRows, variants);
+      blocked.push(block(c.text, polarity.negated ? "contradicted" : "negated", term, where));
       issues.push(issue("claim.negated", "error", polarity.negated ? `Source says "${term}" but the claim denies it; the claim was removed` : `Source says "not ${c.text}"; the claim was removed`, { field: "claims", value: c.text, ec: "B15" }));
       reviewReasons.push(polarity.negated ? `AI denied "${term}" but the source asserts it` : `AI asserted "${c.text}" but the source negates it`);
       stripTermFromText(variants, polarity.negated);
@@ -131,6 +147,7 @@ export function groundProductOutput(input: GroundingInput): GroundingResult {
     if (isNegated(tokenizeClauses(listingText), entry.variants)) {
       // The listing itself denies the term. Fine when the source denies it too; otherwise it is invented.
       if (sourceNegated) continue;
+      blocked.push(inSource ? block(`not ${entry.term}`, "contradicted", entry.term, findTermInRows(sourceRows, entry.variants)) : { text: `not ${entry.term}`, kind: "unsupported", reason: "the source never mentions it", term: entry.term });
       issues.push(issue("claim.unsupported", "warn", inSource ? `Listing says "not ${entry.term}" but the source says "${entry.term}"` : `Listing says "not ${entry.term}" but the source never mentions it`, { value: entry.term, ec: "D2" }));
       reviewReasons.push(inSource ? `Listing says "not ${entry.term}" but the source says it is` : `Listing says "not ${entry.term}" but the source does not mention it`);
       stripTermFromText(entry.variants, true);
@@ -138,18 +155,20 @@ export function groundProductOutput(input: GroundingInput): GroundingResult {
       continue;
     }
     if (!inSource) {
+      blocked.push({ text: entry.term, kind: "unsupported", reason: "not found in the source cells", term: entry.term });
       issues.push(issue("claim.unsupported", "warn", `"${entry.term}" appears in the listing but not in the source`, { value: entry.term, ec: "D2" }));
       reviewReasons.push(`Listing says "${entry.term}" but the source does not`);
       stripTermFromText(entry.variants);
       strippedClaims += 1;
     } else if (sourceNegated) {
+      blocked.push(block(entry.term, "negated", entry.term, findNegationInRows(sourceRows, entry.variants)));
       issues.push(issue("claim.negated", "error", `Source says "not ${entry.term}"; removed from the listing`, { value: entry.term, ec: "B15" }));
       reviewReasons.push(`Listing says "${entry.term}" but the source negates it`);
       stripTermFromText(entry.variants);
       strippedClaims += 1;
     } else {
       // Supported but not cited: keep it, record where it comes from.
-      const found = findInRows(foldedRows, entry.variants);
+      const found = findTermInRows(sourceRows, entry.variants);
       if (found) claims.push({ text: entry.term, source: `row ${found.row}, column ${found.column}`, row: found.row, column: found.column, quote: found.quote, verified: true });
     }
   }
@@ -246,8 +265,8 @@ export function groundProductOutput(input: GroundingInput): GroundingResult {
 
   // --- 10. status ----------------------------------------------------------------------------------
   if (output.status === "needs_review" && output.review_reason) reviewReasons.unshift(output.review_reason);
-  if (confidence.title! < 60) reviewReasons.push("Low confidence in the title");
-  if (confidence.category! < 60) reviewReasons.push("Low confidence in the category");
+  if ((confidence.title ?? 100) < 60) reviewReasons.push("Low confidence in the title");
+  if ((confidence.category ?? 100) < 60) reviewReasons.push("Low confidence in the category");
   const uniqueReasons = [...new Set(reviewReasons.map((r) => r.trim()).filter(Boolean))];
 
   const tags = [...new Set(output.tags.map((t) => t.trim().toLowerCase()).filter((t) => t.length > 1))].slice(0, 10);
@@ -265,7 +284,7 @@ export function groundProductOutput(input: GroundingInput): GroundingResult {
       },
     },
     claims,
-    removedClaims,
+    blocked,
     confidence,
     reviewReasons: uniqueReasons,
     status: uniqueReasons.length > 0 ? "needs_review" : "draft",
@@ -290,6 +309,12 @@ export function groundProductOutput(input: GroundingInput): GroundingResult {
   }
 }
 
+/** A blocked entry whose source cell was found (or not: `where` null leaves the location out). */
+function block(text: string, kind: "negated" | "contradicted", term: string, where: Found | null): BlockedClaim {
+  const reason = kind === "negated" ? "the source explicitly negates it" : "the source asserts it";
+  return where ? { text, kind, reason, term, row: where.row, column: where.column, quote: where.quote } : { text, kind, reason, term };
+}
+
 // ---------------------------------------------------------------------------
 // helpers
 // ---------------------------------------------------------------------------
@@ -302,119 +327,10 @@ function canonicalTerm(text: string): string {
   return folded;
 }
 
-/**
- * "Not frost-proof; bring indoors" → { core: "frost proof", negated: true }. Only the first clause
- * carries the polarity; a claim is one statement, and the rest is qualification.
- */
-export function claimPolarity(text: string): { core: string; negated: boolean } {
-  const firstClause = text.split(CLAUSE_SPLIT).find((s) => foldForMatch(s).length > 0) ?? text;
-  const tokens = foldForMatch(firstClause).split(" ").filter(Boolean);
-  let negated = false;
-  while (tokens.length > 1 && NEGATION_TOKENS.includes(tokens[0]!)) {
-    tokens.shift();
-    negated = true;
-  }
-  return { core: tokens.join(" "), negated };
-}
-
-/** Fold text into match tokens, keeping clause boundaries so a negation never leaks into the next sentence. */
-export function tokenizeClauses(text: string): string[] {
-  const out: string[] = [];
-  for (const clause of text.split(CLAUSE_SPLIT)) {
-    const tokens = foldForMatch(clause).split(" ").filter(Boolean);
-    if (tokens.length === 0) continue;
-    if (out.length > 0) out.push(BOUNDARY);
-    out.push(...tokens);
-  }
-  return out;
-}
-
 function variantsFor(term: string): string[] {
   const entry = CLAIM_LEXICON.find((e) => e.term === term);
   const base = [foldForMatch(term)];
   return entry ? [...new Set([...base, ...entry.variants])] : base;
-}
-
-interface Found {
-  row: number;
-  column: string;
-  quote: string;
-}
-
-function verifyCitation(c: AiProductOutput["claims"][number], rows: Array<{ row: number; cells: Record<string, string> }>, variants: string[]): Found | null {
-  const row = rows.find((r) => r.row === c.source_row);
-  if (!row) return null;
-  const columnKey = Object.keys(row.cells).find((k) => foldForMatch(k) === foldForMatch(c.source_column));
-  if (!columnKey) return null;
-  const cell = ` ${row.cells[columnKey] ?? ""} `;
-  const quote = foldForMatch(c.quote);
-  const quoteOk = quote.length > 0 && (cell.includes(quote) || tokenContainment(quote, cell) >= 0.9);
-  const termOk = variants.some((v) => cell.includes(` ${v} `));
-  if (!quoteOk && !termOk) return null;
-  return { row: row.row, column: columnKey, quote: c.quote.trim().slice(0, 200) };
-}
-
-function findInRows(rows: Array<{ row: number; cells: Record<string, string> }>, variants: string[]): Found | null {
-  for (const r of rows) {
-    for (const [column, folded] of Object.entries(r.cells)) {
-      const padded = ` ${folded} `;
-      const v = variants.find((x) => padded.includes(` ${x} `));
-      if (v) return { row: r.row, column, quote: v };
-    }
-  }
-  return null;
-}
-
-/** The model's quote, looked for in every cell of the product's rows. One-word quotes prove nothing and are ignored. */
-function findQuoteInRows(rows: Array<{ row: number; cells: Record<string, string> }>, quoteRaw: string): Found | null {
-  const quote = foldForMatch(quoteRaw);
-  if (quote.split(" ").filter(Boolean).length < 2) return null;
-  for (const r of rows) {
-    for (const [column, folded] of Object.entries(r.cells)) {
-      const cell = ` ${folded} `;
-      if (cell.includes(` ${quote} `) || tokenContainment(quote, cell) >= 0.9) return { row: r.row, column, quote: quoteRaw.trim().slice(0, 200) };
-    }
-  }
-  return null;
-}
-
-function tokenContainment(needle: string, haystack: string): number {
-  const n = needle.split(" ").filter(Boolean);
-  if (n.length === 0) return 0;
-  const h = new Set(haystack.split(" ").filter(Boolean));
-  return n.filter((t) => h.has(t)).length / n.length;
-}
-
-/**
- * True when every occurrence of the term is preceded by a negation within three tokens of the same
- * clause (EC-B15). Tokens from `tokenizeClauses` carry boundaries; plain token arrays work too.
- */
-export function isNegated(corpusTokens: string[], variants: string[]): boolean {
-  let occurrences = 0;
-  let negated = 0;
-  for (const v of variants) {
-    const vt = v.split(" ");
-    for (let i = 0; i + vt.length <= corpusTokens.length; i++) {
-      let match = true;
-      for (let j = 0; j < vt.length; j++) {
-        if (corpusTokens[i + j] !== vt[j]) {
-          match = false;
-          break;
-        }
-      }
-      if (!match) continue;
-      occurrences += 1;
-      for (let k = i - 1, steps = 0; k >= 0 && steps < NEGATION_WINDOW; k--, steps++) {
-        const t = corpusTokens[k]!;
-        if (t === BOUNDARY) break;
-        if (NEGATION_TOKENS.includes(t)) {
-          negated += 1;
-          break;
-        }
-      }
-    }
-  }
-  return occurrences > 0 && negated === occurrences;
 }
 
 const NUMBER_RE = /\d+(?:[.,]\d+)?/g;
@@ -469,7 +385,7 @@ function nearestTaxonomyPath(category: string): string | null {
   // Leaf-name match: "Planters" → the single path ending in Planters.
   const leaf = foldForMatch(category.split(">").pop() ?? category);
   const leafMatches = TAXONOMY.filter((p) => foldForMatch(p.split(" > ").pop() ?? "") === leaf);
-  return leafMatches.length === 1 ? leafMatches[0]! : null;
+  return leafMatches.length === 1 ? (leafMatches[0] ?? null) : null;
 }
 
 function jaccardTrigrams(a: string, b: string): number {
