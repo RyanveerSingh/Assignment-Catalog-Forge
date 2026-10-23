@@ -8,19 +8,24 @@ import { Kpi } from "@/components/ext/kpi";
 import { EmptyState } from "@/components/ext/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { CostStrategies as CostStrategiesData } from "@/core/metrics/cost-strategies";
 import type { StoreMetrics } from "@/db/repositories/metrics";
 import { api, ApiError, storeApi } from "@/lib/client/api";
 import { formatNumber, formatPercent, formatRelative } from "@/lib/format";
 import { ChartCard, CostOverTimeChart, CoverageLegend, ModelUsageChart, RoutingChart, TranslationCoverageChart } from "./charts";
 import { CostSection } from "./cost-section";
+import { CostStrategies } from "./cost-strategies";
 import { SpeedSection } from "./speed-section";
 import { EvalTable, ModelTable, TranslationTable } from "./tables";
 
 const REFRESH_MS = 30_000;
 const CLOCK_MS = 10_000;
 
+/** The metrics route adds the priced strategies to the repository's figures. */
+type MetricsData = StoreMetrics & { strategies: CostStrategiesData };
+
 export function MetricsDashboard({ storeSlug }: { storeSlug: string }) {
-  const [data, setData] = useState<StoreMetrics | null>(null);
+  const [data, setData] = useState<MetricsData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
@@ -32,7 +37,7 @@ export function MetricsDashboard({ storeSlug }: { storeSlug: string }) {
     inFlight.current = true;
     setRefreshing(true);
     try {
-      const next = await api<StoreMetrics>(`${storeApi(storeSlug)}/metrics`, { cache: "no-store" });
+      const next = await api<MetricsData>(`${storeApi(storeSlug)}/metrics`, { cache: "no-store" });
       setData(next);
       setError(null);
       setUpdatedAt(Date.now());
@@ -138,6 +143,8 @@ export function MetricsDashboard({ storeSlug }: { storeSlug: string }) {
       </section>
 
       <CostSection cost={data.cost} />
+
+      <CostStrategies strategies={data.strategies} />
 
       <section aria-label="Charts" className="grid gap-4 lg:grid-cols-2">
         <ChartCard title="AI cost over time" subtitle="Last 30 days, succeeded calls">

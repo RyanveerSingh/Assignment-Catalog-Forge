@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { serializeImport } from "@/lib/serializers";
 import { ImportLive } from "@/components/upload/import-live";
+import { buildHygieneReport } from "@/core/metrics/hygiene";
 import { getDb } from "@/db/client";
+import { getImportHygiene } from "@/db/repositories/hygiene";
 import { getImport, listImportEvents } from "@/db/repositories/imports";
 import { optionalStore } from "@/lib/session";
 
@@ -20,13 +22,15 @@ export default async function ImportPage({ params }: { params: Promise<{ store: 
   const db = getDb();
   const imp = await getImport(db, ctx.store.id, importId);
   if (!imp) notFound();
-  const events = await listImportEvents(db, importId, 0, 200);
+  // Counted here as well so the hygiene flow renders with the page instead of after a client fetch.
+  const [events, hygiene] = await Promise.all([listImportEvents(db, importId, 0, 200), getImportHygiene(db, ctx.store.id, importId)]);
 
   return (
     <ImportLive
       storeSlug={slug}
       initialImport={serializeImport(imp)}
       initialEvents={events.map((e) => ({ id: e.id, level: e.level, message: e.message, data: e.data, createdAt: e.createdAt.toISOString() }))}
+      initialHygiene={buildHygieneReport(hygiene)}
     />
   );
 }

@@ -2,36 +2,27 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeftIcon, BanIcon, type LucideIcon, PauseIcon, PlayIcon, RotateCcwIcon, TriangleAlertIcon } from "lucide-react";
-import { cn } from "cn";
-import type { serializeImport } from "@/lib/serializers";
-import type { ColumnMapping, Issue } from "@/core/types";
+import { ArrowLeftIcon, BanIcon, PauseIcon, PlayIcon, RotateCcwIcon, TriangleAlertIcon } from "lucide-react";
+import type { HygieneReport } from "@/core/metrics/hygiene";
 import type { ImportLogEvent, ImportProgressEvent } from "@/lib/events";
-import { ConfidenceChip } from "@/components/ext/confidence-chip";
 import { Kpi } from "@/components/ext/kpi";
 import { StatusBadge } from "@/components/ext/status-badge";
 import { Button } from "@/components/ui/button";
 import { api, ApiError, storeApi } from "@/lib/client/api";
-import { formatCountdown, formatDuration, formatMicrosUsd, formatNumber, formatPercent, formatRelative, statusLabel } from "@/lib/format";
+import { formatCountdown, formatDuration, formatMicrosUsd, formatNumber, formatPercent, statusLabel } from "@/lib/format";
+import { HygienePipeline } from "./hygiene-pipeline";
+import { EventLog, MAX_EVENTS } from "./import-live-events";
+import { SheetCard } from "./import-live-sheet";
+import { Banner, ConnBadge, type Connection, Stamp } from "./import-live-status";
+import type { ImportDto, ImportEventDto } from "./import-live-types";
 import { RowsTable } from "./rows-table";
 import { isImportActive, SIDE_STATES, StageStepper, stepIndexFor } from "./stage-stepper";
 
-/** Exactly what the imports API returns; the pages serialize with the same function, so UI and API cannot drift. */
-export type ImportDto = ReturnType<typeof serializeImport>;
-
-export interface ImportEventDto {
-  id: number;
-  level: "info" | "warn" | "error";
-  message: string;
-  data: Record<string, unknown> | null;
-  createdAt: string;
-}
+export type { ImportDto, ImportEventDto } from "./import-live-types";
 
 type ProgressPayload = ImportProgressEvent & { import?: ImportDto };
 type Action = "pause" | "resume" | "cancel" | "retry";
-type Connection = "connecting" | "live" | "reconnecting";
 
-const MAX_EVENTS = 500;
 const MAX_BACKOFF_MS = 10_000;
 const COUNT_KEYS = ["pending", "processing", "done", "needs_review", "failed"] as const;
 
@@ -64,7 +55,7 @@ function useNow(intervalMs: number): number {
   return now;
 }
 
-export function ImportLive({ storeSlug, initialImport, initialEvents }: { storeSlug: string; initialImport: ImportDto; initialEvents: ImportEventDto[] }) {
+export function ImportLive({ storeSlug, initialImport, initialEvents, initialHygiene = null }: { storeSlug: string; initialImport: ImportDto; initialEvents: ImportEventDto[]; initialHygiene?: HygieneReport | null }) {
   const id = initialImport.id;
   const detailUrl = `${storeApi(storeSlug)}/imports/${encodeURIComponent(id)}`;
   const [imp, setImp] = useState(initialImport);
@@ -344,6 +335,8 @@ export function ImportLive({ storeSlug, initialImport, initialEvents }: { storeS
         </dl>
       </section>
 
+      <HygienePipeline storeSlug={storeSlug} importId={id} status={imp.status} active={live} initial={initialHygiene} />
+
       <div className="grid gap-6 lg:grid-cols-2">
         <SheetCard imp={imp} />
         <EventLog events={events} />
@@ -351,206 +344,5 @@ export function ImportLive({ storeSlug, initialImport, initialEvents }: { storeS
 
       <RowsTable storeSlug={storeSlug} importId={id} counts={counts} totalRows={totalRows} />
     </div>
-  );
-}
-
-function Stamp({ iso, now }: { iso: string; now: number }) {
-  return (
-    <time dateTime={iso} title={new Date(iso).toLocaleString("en-GB")} suppressHydrationWarning>
-      {formatRelative(iso, now)}
-    </time>
-  );
-}
-
-function ConnBadge({ live, conn }: { live: boolean; conn: Connection }) {
-  if (!live) {
-    return (
-      <span className="inline-flex items-center gap-1.5">
-        <span aria-hidden className="size-1.5 rounded-full bg-ink/30" />
-        Final
-      </span>
-    );
-  }
-  const label = conn === "live" ? "Live" : conn === "reconnecting" ? "Reconnecting…" : "Connecting…";
-  return (
-    <span className="inline-flex items-center gap-1.5" role="status">
-      <span aria-hidden className={cn("size-1.5 rounded-full", conn === "live" ? "animate-pulse bg-success" : "bg-warning")} />
-      {label}
-    </span>
-  );
-}
-
-const BANNER_CLASS = {
-  warning: ["border-warning bg-warning-soft", "text-warning"],
-  danger: ["border-destructive bg-destructive/5", "text-destructive"],
-  neutral: ["border-border bg-muted", "text-ink-muted"],
-} as const;
-
-function Banner({ tone, icon: Icon, children, action }: { tone: keyof typeof BANNER_CLASS; icon: LucideIcon; children: React.ReactNode; action?: React.ReactNode }) {
-  const [box, iconColor] = BANNER_CLASS[tone];
-  return (
-    <div role="status" className={cn("flex flex-wrap items-center gap-3 border-l-[3px] px-3 py-2 text-sm text-ink", box)}>
-      <Icon className={cn("size-4 shrink-0", iconColor)} aria-hidden />
-      <div className="min-w-0 flex-1">{children}</div>
-      {action}
-    </div>
-  );
-}
-
-function isColumnMapping(v: unknown): v is ColumnMapping {
-  if (typeof v !== "object" || v === null) return false;
-  const o: Record<string, unknown> = { ...v };
-  return typeof o.header === "string" && typeof o.originalHeader === "string" && typeof o.index === "number" && typeof o.confidence === "number" && (o.canonical === null || typeof o.canonical === "string");
-}
-
-function describeDelimiter(d: string | undefined): string | null {
-  if (d === undefined) return null;
-  if (d === "\t") return "tab";
-  if (d === ";") return "; semicolon";
-  if (d === ",") return ", comma";
-  if (d === "|") return "| pipe";
-  return d;
-}
-
-function SheetCard({ imp }: { imp: ImportDto }) {
-  const meta = imp.parseMeta;
-  const mappings = (imp.columnMap ?? []).filter(isColumnMapping);
-  // ingest.ts writes a few fields beyond the declared ImportParseMeta shape; read them defensively.
-  const extra: Record<string, unknown> = meta ? { ...meta } : {};
-  const totalInFile = typeof extra.totalRowsInFile === "number" ? extra.totalRowsInFile : null;
-  const mappedCount = typeof extra.mappedCount === "number" ? extra.mappedCount : mappings.filter((m) => m.canonical !== null).length;
-  const priceLocale = typeof extra.priceLocale === "string" ? extra.priceLocale : null;
-  const truncated = extra.truncated === true;
-  const issues = meta?.issues ?? [];
-  return (
-    <section aria-labelledby="sheet-heading" className="bg-card hairline">
-      <div className="flex items-baseline justify-between border-b border-border px-4 py-2.5">
-        <h2 id="sheet-heading" className="font-display text-lg text-ink">
-          Sheet
-        </h2>
-        {meta?.format ? <span className="rounded-sm bg-muted px-1.5 py-0.5 text-[11px] uppercase tracking-wide text-ink-muted">{meta.format}</span> : null}
-      </div>
-      {!meta ? (
-        <p className="px-4 py-6 text-sm text-ink-muted">Not parsed yet.</p>
-      ) : (
-        <div className="flex flex-col gap-4 px-4 py-3 text-sm">
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
-            <Fact label="Encoding" value={meta.encoding} />
-            <Fact label="Delimiter" value={describeDelimiter(meta.delimiter)} />
-            <Fact label="Sheet" value={meta.sheetName} />
-            <Fact label="Header row" value={meta.headerRowIndex !== undefined ? `row ${meta.headerRowIndex + 1}` : null} />
-            <Fact label="Rows in file" value={totalInFile !== null ? formatNumber(totalInFile) : null} warn={truncated ? `cut to ${formatNumber(imp.totalRows)}` : undefined} />
-            <Fact label="Mapped columns" value={`${mappedCount} of ${mappings.length || meta.headers?.length || 0}`} />
-            {priceLocale ? <Fact label="Price locale" value={priceLocale} /> : null}
-          </dl>
-          {mappings.length > 0 ? (
-            <div>
-              <h3 className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-ink-muted">Column mapping</h3>
-              <ul className="flex flex-wrap gap-1.5">
-                {mappings.map((m) => (
-                  <li key={m.index} className={cn("flex items-center gap-1.5 rounded-sm px-1.5 py-0.5 text-xs ring-1 ring-inset", m.canonical ? "bg-card text-ink ring-border" : "bg-muted text-ink-muted ring-transparent")}>
-                    <span className="num max-w-[160px] truncate" title={m.originalHeader}>
-                      {m.originalHeader || "(blank)"}
-                    </span>
-                    <span aria-hidden>→</span>
-                    <span className="sr-only">maps to</span>
-                    {m.canonical ? (
-                      <>
-                        <span className="font-medium">{m.canonical}</span>
-                        <ConfidenceChip score={m.confidence} />
-                      </>
-                    ) : (
-                      <span className="italic">unmapped · kept as attribute</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-          {issues.length > 0 ? <IssueList issues={issues} /> : null}
-        </div>
-      )}
-    </section>
-  );
-}
-
-function Fact({ label, value, warn }: { label: string; value: string | null | undefined; warn?: string }) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-[11px] uppercase tracking-wider text-ink-muted">{label}</dt>
-      <dd className="num truncate text-xs text-ink" title={value ?? undefined}>
-        {value ?? "—"}
-        {warn ? <span className="ml-1 font-sans text-warning">· {warn}</span> : null}
-      </dd>
-    </div>
-  );
-}
-
-const SEVERITY_TEXT: Record<Issue["severity"], string> = { info: "text-info", warn: "text-warning", error: "text-destructive" };
-
-function IssueList({ issues }: { issues: Issue[] }) {
-  return (
-    <div>
-      <h3 className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-ink-muted">Sheet issues</h3>
-      <ul className="flex flex-col gap-1 text-xs">
-        {issues.map((i, idx) => (
-          <li key={`${i.code}-${idx}`} className="flex gap-2">
-            <span className={cn("w-10 shrink-0 uppercase tracking-wide", SEVERITY_TEXT[i.severity])}>{i.severity}</span>
-            <span className="min-w-0 break-words text-ink">
-              {i.message}
-              {i.ec ? <span className="text-ink-muted"> · EC-{i.ec}</span> : null}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-const LEVEL_CLASS: Record<ImportEventDto["level"], string> = { info: "text-ink-muted", warn: "text-warning", error: "text-destructive" };
-
-function clock(iso: string): string {
-  return new Date(iso).toLocaleTimeString("en-GB", { hour12: false });
-}
-
-function EventLog({ events }: { events: ImportEventDto[] }) {
-  return (
-    <section aria-labelledby="log-heading" className="flex min-h-0 flex-col bg-card hairline">
-      <div className="flex items-baseline justify-between border-b border-border px-4 py-2.5">
-        <h2 id="log-heading" className="font-display text-lg text-ink">
-          Event log
-        </h2>
-        <span className="num text-[11px] text-ink-muted">
-          {events.length}
-          {events.length >= MAX_EVENTS ? "+" : ""} · newest first
-        </span>
-      </div>
-      {events.length === 0 ? (
-        <p className="px-4 py-6 text-sm text-ink-muted">No events yet.</p>
-      ) : (
-        <ol className="max-h-80 divide-y divide-border overflow-y-auto text-xs">
-          {events.map((e) => {
-            const hasData = e.data !== null && Object.keys(e.data).length > 0;
-            return (
-              <li key={e.id} className="flex gap-2 px-4 py-1.5">
-                <time dateTime={e.createdAt} className="num shrink-0 text-ink-muted" suppressHydrationWarning>
-                  {clock(e.createdAt)}
-                </time>
-                <span className={cn("w-10 shrink-0 font-medium uppercase tracking-wide", LEVEL_CLASS[e.level])}>{e.level}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="break-words text-ink">{e.message}</p>
-                  {hasData ? (
-                    <details className="mt-0.5">
-                      <summary className="cursor-pointer text-ink-muted hover:text-ink">data</summary>
-                      <pre className="num mt-1 overflow-x-auto bg-paper-deep/60 p-2 text-[11px] leading-snug">{JSON.stringify(e.data, null, 2)}</pre>
-                    </details>
-                  ) : null}
-                </div>
-              </li>
-            );
-          })}
-        </ol>
-      )}
-    </section>
   );
 }

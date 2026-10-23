@@ -1,6 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import type { DbOrTx } from "@/db/client";
 import { evalRuns, imports } from "@/db/schema";
+import type { ModelUsage } from "@/core/metrics/cost-strategies";
 
 export interface StoreMetrics {
   products: { total: number; byStatus: Record<string, number>; successRate: number; reviewRate: number; failureRate: number };
@@ -12,6 +13,10 @@ export interface StoreMetrics {
   translations: Array<{ locale: string; products: number; fresh: number; outdated: number; failed: number; coverage: number }>;
   routing: Array<{ tier: string; products: number; costMicros: number }>;
   evals: Array<{ id: string; name: string; promptVersion: string; model: string; sample: string; metrics: Record<string, unknown>; createdAt: string }>;
+  /** Succeeded calls per (model, batched) bucket; the cost-strategies table prices these four ways. */
+  usage: ModelUsage[];
+  /** Products that have an AI result, the denominator for "per 1,000 products". */
+  productsThroughAi: number;
 }
 
 /** Everything the Metrics tab shows, computed from the tables of record. Cheap enough for a dashboard refresh. */
@@ -106,6 +111,19 @@ export async function getStoreMetrics(db: DbOrTx, storeId: string): Promise<Stor
 
   const evals = await db.select().from(evalRuns).where(eq(evalRuns.storeId, storeId)).orderBy(sql`${evalRuns.createdAt} desc`).limit(20);
 
+  // A response-cache hit is stored with `cachedFrom` and no tokens; the demo provider also bills zero, so cost alone is not the signal.
+  const usageRows = (
+    await db.execute<{ model: string; batched: boolean; calls: string; cached: string; input_tokens: string; output_tokens: string; cache_read: string; cache_write: string; cost: string }>(sql`
+      select model, (batch_id is not null) as batched, count(*)::text as calls,
+             count(*) filter (where response ? 'cachedFrom' or (input_tokens = 0 and output_tokens = 0 and cost_micros = 0))::text as cached,
+             sum(input_tokens)::text as input_tokens, sum(output_tokens)::text as output_tokens,
+             sum(cache_read_tokens)::text as cache_read, sum(cache_write_tokens)::text as cache_write, sum(cost_micros)::text as cost
+        from ai_requests where store_id = ${storeId} and status = 'succeeded'
+       group by 1, 2 order by 1, 2
+    `)
+  ).rows;
+  const [throughAi] = (await db.execute<{ n: string }>(sql`select count(*)::text as n from products where store_id = ${storeId} and deleted_at is null and ai_model is not null`)).rows;
+
   return {
     products: {
       total,
@@ -153,5 +171,17 @@ export async function getStoreMetrics(db: DbOrTx, storeId: string): Promise<Stor
     })),
     routing: routingRows.map((r) => ({ tier: r.tier, products: Number(r.n), costMicros: Number(r.cost) })),
     evals: evals.map((e) => ({ id: e.id, name: e.name, promptVersion: e.promptVersion, model: e.model, sample: e.sample, metrics: e.metrics, createdAt: e.createdAt.toISOString() })),
+    usage: usageRows.map((r) => ({
+      model: r.model,
+      batched: r.batched === true,
+      calls: Number(r.calls),
+      cachedCalls: Number(r.cached),
+      inputTokens: Number(r.input_tokens),
+      outputTokens: Number(r.output_tokens),
+      cacheReadTokens: Number(r.cache_read),
+      cacheWriteTokens: Number(r.cache_write),
+      costMicros: Number(r.cost),
+    })),
+    productsThroughAi: Number(throughAi?.n ?? 0),
   };
 }
