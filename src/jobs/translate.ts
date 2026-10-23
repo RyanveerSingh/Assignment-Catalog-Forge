@@ -64,7 +64,12 @@ export const translateHandler: JobHandler = async ({ job, db, log }) => {
         continue;
       }
       if (current && current.status === "fresh" && current.sourceHash === sourceHash) continue;
-      const [cached] = await db.select({ text: translationCache.text, model: translationCache.model }).from(translationCache).where(and(eq(translationCache.sourceHash, sourceHash), eq(translationCache.locale, locale))).limit(1);
+      // Keyed by model as well: a demo-provider or older-model translation must never be served to this store.
+      const [cached] = await db
+        .select({ text: translationCache.text, model: translationCache.model })
+        .from(translationCache)
+        .where(and(eq(translationCache.sourceHash, sourceHash), eq(translationCache.locale, locale), eq(translationCache.model, model)))
+        .limit(1);
       if (cached) {
         await upsertTranslation(db, { productId, storeId: p.storeId, field: f.field, locale, sourceHash, text: cached.text, status: "fresh", model: cached.model, costMicros: 0, error: null });
         cachedCount += 1;

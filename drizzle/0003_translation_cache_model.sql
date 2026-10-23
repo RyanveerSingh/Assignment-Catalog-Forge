@@ -1,0 +1,2 @@
+ALTER TABLE "translation_cache" DROP CONSTRAINT "translation_cache_source_hash_locale_pk";--> statement-breakpoint
+ALTER TABLE "translation_cache" ADD CONSTRAINT "translation_cache_source_hash_locale_model_pk" PRIMARY KEY("source_hash","locale","model");

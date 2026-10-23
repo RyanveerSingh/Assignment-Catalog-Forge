@@ -4,11 +4,11 @@ import { aiEnrichBatchSchema, type AiEnrichBatch } from "@/core/ai/schema";
 import { appendImportEvent, getImportById, recomputeImportCounts } from "@/db/repositories/imports";
 import { getProductsByIds } from "@/db/repositories/products";
 import { aiRequests } from "@/db/schema";
-import type { AiResponse } from "@/providers/ai";
+import { isAiError, type AiResponse } from "@/providers/ai";
 import { JobError } from "@/queue/errors";
 import type { JobHandler } from "@/worker/loop";
 import { driveImport } from "./drive";
-import { applyEnrichResponse, chargeImport, prepareEnrichRequest, splitBatch, translateAiFailure, type RequestedTier } from "./enrich-shared";
+import { applyEnrichResponse, chargeImport, halveBatch, prepareEnrichRequest, splitBatch, translateAiFailure, type RequestedTier } from "./enrich-shared";
 
 export { failEnrichBatch, translateAiFailure } from "./enrich-shared";
 
@@ -95,6 +95,13 @@ export const enrichHandler: JobHandler = async ({ job, db, log }) => {
         latencyMs: Date.now() - started,
         error: err instanceof Error ? err.message.slice(0, 2000) : String(err),
       });
+      // A cut-off answer is deterministic: the same batch would be cut off again, so halve it instead (EC-D16).
+      if (isAiError(err) && err.kind === "max_tokens" && batch.length > 1) {
+        await halveBatch(db, job, batch.map((p) => p.id));
+        await appendImportEvent(db, importId, "warn", `The model's answer for ${batch.length} products was cut off; re-queued as two smaller batches`);
+        await driveImport(db, importId);
+        return;
+      }
       throw await translateAiFailure(db, imp.id, job, batch.map((p) => p.id), err);
     }
     await db.insert(aiRequests).values({

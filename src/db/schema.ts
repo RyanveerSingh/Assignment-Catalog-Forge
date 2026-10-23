@@ -495,7 +495,8 @@ export const translationCache = pgTable(
     model: text("model").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [primaryKey({ columns: [t.sourceHash, t.locale] })],
+  // The model is part of the key so a demo-provider or superseded-model translation is never reused.
+  (t) => [primaryKey({ columns: [t.sourceHash, t.locale, t.model] })],
 );
 
 // ---------------------------------------------------------------------------

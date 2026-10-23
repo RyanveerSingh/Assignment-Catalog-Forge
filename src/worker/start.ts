@@ -23,7 +23,8 @@ export async function ensureWorkerStarted(): Promise<WorkerHandle> {
     handlers: buildHandlers(),
     queues: QUEUE_LAYOUT.map((q) => ({
       name: q.name,
-      concurrency: q.name === "ai" ? cfg.AI_CONCURRENCY : Math.max(1, Math.round(q.concurrency * concurrencyScale)),
+      // Both model-call queues follow AI_CONCURRENCY; the rest scale with WORKER_CONCURRENCY.
+      concurrency: q.name === "ai" || q.name === "translate" ? cfg.AI_CONCURRENCY : Math.max(1, Math.round(q.concurrency * concurrencyScale)),
     })),
     onDead: onJobDead,
     onTick: onWorkerTick,

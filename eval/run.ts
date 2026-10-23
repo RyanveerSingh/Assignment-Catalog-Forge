@@ -32,7 +32,7 @@ import type { CallRecord, CostSummary, EvalOptions, EvalProvider, EvalRunResult,
 const BATCH_SIZE = 8;
 const MAX_ATTEMPTS = 3;
 const BACKOFF_MS = 2_000;
-const MAX_TOKENS = 12_000;
+const MAX_TOKENS = 16_000;
 const MAPPING_SAMPLE_ROWS = 50;
 const DEFAULT_CURRENCY = "EUR";
 const SAMPLES_DIR = path.join(process.cwd(), "samples");
@@ -192,6 +192,8 @@ async function callWithRetry(provider: AiProvider, batch: Candidate[], promptVer
       lastError = errorMessage(err);
       calls.push(record(id, batch, attempt, null, lastError, Date.now() - started));
       if (isAiError(err) && !err.retryable) return { outputs: new Map(), error: lastError, fatal: true };
+      // A cut-off answer would be cut off again; let the caller split the batch instead of retrying it.
+      if (isAiError(err) && err.kind === "max_tokens" && batch.length > 1) return { outputs: new Map(), error: lastError, fatal: false };
       if (attempt < MAX_ATTEMPTS) await sleep(BACKOFF_MS);
     }
   }

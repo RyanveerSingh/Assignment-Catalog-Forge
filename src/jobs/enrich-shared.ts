@@ -1,15 +1,15 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { groundProductOutput } from "@/core/ai/grounding";
 import { buildEnrichSystemPrompt, renderEnrichUserText, type EnrichInput } from "@/core/ai/prompts";
 import type { AiTier } from "@/core/ai/routing";
 import { aiEnrichBatchSchema, type AiEnrichBatch } from "@/core/ai/schema";
 import type { ProductGroup } from "@/core/types";
 import type { Db } from "@/db/client";
-import { appendImportEvent, pauseImport, recomputeImportCounts, updateImport, type ImportRow } from "@/db/repositories/imports";
+import { appendImportEvent, pauseImport, recomputeImportCounts, type ImportRow } from "@/db/repositories/imports";
 import { listPhotosForProducts } from "@/db/repositories/photos";
 import { failProduct, setProductAiResult, type ProductRecord } from "@/db/repositories/products";
 import { getRawCells, setRowsStatusForProduct } from "@/db/repositories/rows";
-import { products, stores, type ProductClaim } from "@/db/schema";
+import { imports, products, stores, type ProductClaim } from "@/db/schema";
 import { refreshChaos } from "@/lib/app-settings";
 import { decryptSecret, stableHash } from "@/lib/crypto";
 import { getLogger } from "@/lib/logger";
@@ -21,7 +21,8 @@ import { driveImport } from "./drive";
 import { buildEnrichProductInput } from "./enrich-input";
 
 const MAX_IMAGES_PER_PRODUCT = 3;
-export const ENRICH_MAX_TOKENS = 12_000;
+// Haiku writes ~900 output tokens per product; eight products need headroom (EC-D16).
+export const ENRICH_MAX_TOKENS = 16_000;
 
 export type RequestedTier = AiTier | "escalation";
 
@@ -144,8 +145,13 @@ export async function applyEnrichResponse(
 /** Charge the import and pause it when the budget is exhausted (EC-D19). */
 export async function chargeImport(db: Db, imp: ImportRow, costMicros: number): Promise<void> {
   if (costMicros <= 0) return;
-  const newTotal = imp.costMicros + costMicros;
-  await updateImport(db, imp.id, { costMicros: newTotal });
+  // Atomic increment: six concurrent batches doing read-add-write lost each other's charges.
+  const [row] = await db
+    .update(imports)
+    .set({ costMicros: sql`${imports.costMicros} + ${costMicros}`, updatedAt: new Date() })
+    .where(eq(imports.id, imp.id))
+    .returning({ costMicros: imports.costMicros });
+  const newTotal = row?.costMicros ?? imp.costMicros + costMicros;
   if (newTotal > imp.budgetCents * 10_000) {
     await pauseImport(db, imp.id, null, `Budget of $${(imp.budgetCents / 100).toFixed(2)} reached; raise it in Settings and resume`);
   }
@@ -155,6 +161,14 @@ export async function chargeImport(db: Db, imp: ImportRow, costMicros: number): 
 export async function splitBatch(db: Db, job: Job, productIds: string[], suffix = "single"): Promise<void> {
   for (const id of productIds) {
     await db.update(products).set({ aiBatchKey: `${job.key}:${suffix}:${id.slice(0, 8)}` }).where(eq(products.id, id));
+  }
+}
+
+/** Split a batch in two with fresh keys; used when the answer for the whole batch was cut off (EC-D16). */
+export async function halveBatch(db: Db, job: Job, productIds: string[]): Promise<void> {
+  const half = Math.ceil(productIds.length / 2);
+  for (const [i, id] of productIds.entries()) {
+    await db.update(products).set({ aiBatchKey: `${job.key}:half${job.attempts}:${i < half ? "a" : "b"}` }).where(eq(products.id, id));
   }
 }
 

@@ -192,16 +192,17 @@ export async function driveAllActiveImports(db: Db): Promise<void> {
       getLogger({ component: "drive", importId: imp.id }).error({ err }, "drive failed");
     }
   }
-  // Translations for products edited outside an import (manual edits) also need a driver.
+  // Translations for products edited outside an import (manual edits) also need a driver. The job
+  // keeps the product's import id so its cost is booked to that import and its completion drives it.
   const stale = await db
-    .select({ id: products.id, storeId: products.storeId })
+    .select({ id: products.id, storeId: products.storeId, importId: products.lastImportId })
     .from(products)
     .where(and(sql`${products.status} in ('draft','needs_review','approved')`, sql`${products.translatedAt} is null`, sql`${products.draft} is not null`, sql`${products.deletedAt} is null`))
     .limit(200);
   if (stale.length > 0) {
     await enqueueMany(
       db,
-      stale.map((p) => ({ key: jobKeys.translate(p.id), type: JOB_TYPES.translate, payload: { productId: p.id }, storeId: p.storeId, queue: "translate" as const, priority: 60 })),
+      stale.map((p) => ({ key: jobKeys.translate(p.id), type: JOB_TYPES.translate, payload: { productId: p.id }, storeId: p.storeId, importId: p.importId ?? undefined, queue: "translate" as const, priority: 60 })),
     );
   }
 }

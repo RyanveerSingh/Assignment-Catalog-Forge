@@ -44,7 +44,8 @@ const ingestLazy: JobHandler = async (ctx) => {
 export const QUEUE_LAYOUT: Array<{ name: QueueName; concurrency: number }> = [
   { name: "default", concurrency: 2 },
   { name: "ai", concurrency: 4 },
-  { name: "translate", concurrency: 2 },
+  // Translation is one ~7 s model call per product and locale; it needs the same parallelism as enrichment.
+  { name: "translate", concurrency: 4 },
   { name: "maintenance", concurrency: 1 },
 ];
 
