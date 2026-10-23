@@ -63,7 +63,8 @@ export function ProductCard({ product, storeSlug, locale, priority = false, now 
       href={`/store/${encodeURIComponent(storeSlug)}/p/${encodeURIComponent(product.handle)}`}
       className="group block cursor-pointer rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-4 focus-visible:ring-offset-paper"
     >
-      <div className="relative overflow-hidden rounded-sm bg-paper-deep hairline" style={{ aspectRatio: "4 / 5" }}>
+      {/* The frame lifts by whole pixels so the "New" tag inside it stays crisp; only the photo scales. */}
+      <div className="relative overflow-hidden rounded-sm bg-paper-deep hairline motion-safe:transition-transform motion-safe:duration-300 motion-safe:ease-out motion-safe:group-hover:-translate-y-0.5" style={{ aspectRatio: "4 / 5" }}>
         {first ? (
           <>
             <Image

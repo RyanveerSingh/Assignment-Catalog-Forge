@@ -23,6 +23,8 @@ export interface BagItem {
 
 const CHANGE_EVENT = "cf-bag:change";
 const OPEN_EVENT = "cf-bag:open";
+/** Fired by `addToBag` only (not by quantity edits), so the header can react to "something new went in". */
+const ADD_EVENT = "cf-bag:add";
 const MAX_QTY = 99;
 const EMPTY: BagItem[] = [];
 
@@ -77,6 +79,12 @@ export function addToBag(slug: string, item: Omit<BagItem, "key" | "qty">, qty: 
   const existing = items.find((i) => i.key === key);
   const next = existing ? items.map((i) => (i.key === key ? { ...i, qty: Math.min(MAX_QTY, i.qty + qty) } : i)) : [...items, { ...item, key, qty: Math.min(MAX_QTY, qty) }];
   write(slug, next);
+  window.dispatchEvent(new Event(ADD_EVENT));
+}
+
+export function onBagAdd(listener: () => void): () => void {
+  window.addEventListener(ADD_EVENT, listener);
+  return () => window.removeEventListener(ADD_EVENT, listener);
 }
 
 export function setBagQty(slug: string, key: string, qty: number): void {

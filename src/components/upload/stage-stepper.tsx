@@ -1,5 +1,4 @@
 import { BanIcon, CheckIcon, PauseIcon, TriangleAlertIcon, XIcon } from "lucide-react";
-import { cn } from "cn";
 
 export interface PipelineStep {
   key: string;
@@ -35,9 +34,9 @@ export function isImportActive(status: string): boolean {
   return idx >= 0 && idx < PIPELINE_STEPS.length - 1;
 }
 
-type StepState = "done" | "current" | "upcoming" | "paused" | "attention" | "failed" | "cancelled";
+export type StepState = "done" | "current" | "upcoming" | "paused" | "attention" | "failed" | "cancelled";
 
-const STATE_CLASS: Record<StepState, string> = {
+export const STATE_CLASS: Record<StepState, string> = {
   done: "bg-success-soft text-success ring-success/40",
   current: "bg-brand text-brand-foreground ring-brand",
   upcoming: "bg-card text-ink-muted ring-border",
@@ -47,7 +46,7 @@ const STATE_CLASS: Record<StepState, string> = {
   cancelled: "bg-muted text-ink-muted ring-border",
 };
 
-const STATE_TEXT: Record<StepState, string> = {
+export const STATE_TEXT: Record<StepState, string> = {
   done: "completed",
   current: "in progress",
   upcoming: "not started",
@@ -57,7 +56,8 @@ const STATE_TEXT: Record<StepState, string> = {
   cancelled: "cancelled here",
 };
 
-function sideState(status: string): StepState | null {
+/** Statuses drawn on the last stage the client saw rather than as a stage of their own. */
+export function sideState(status: string): StepState | null {
   switch (status) {
     case "paused":
       return "paused";
@@ -72,7 +72,7 @@ function sideState(status: string): StepState | null {
   }
 }
 
-function StepGlyph({ state, index }: { state: StepState; index: number }) {
+export function StepGlyph({ state, index }: { state: StepState; index: number }) {
   const icon = "size-3";
   switch (state) {
     case "done":
@@ -90,40 +90,4 @@ function StepGlyph({ state, index }: { state: StepState; index: number }) {
     default:
       return <span aria-hidden>{index + 1}</span>;
   }
-}
-
-/**
- * Horizontal pipeline stepper. Side states (paused, failed, …) are drawn on the last pipeline stage
- * the client saw (`lastStage`); when that is unknown the whole row reads as not started.
- */
-export function StageStepper({ status, lastStage, className }: { status: string; lastStage: string | null; className?: string }) {
-  const side = sideState(status);
-  const currentIdx = side ? (lastStage ? stepIndexFor(lastStage) : -1) : stepIndexFor(status);
-  const allDone = status === "completed";
-
-  return (
-    <ol aria-label="Pipeline stages" className={cn("flex flex-wrap items-center gap-y-2 text-xs", className)}>
-      {PIPELINE_STEPS.map((step, i) => {
-        let state: StepState;
-        if (allDone) state = "done";
-        else if (currentIdx < 0) state = "upcoming";
-        else if (i < currentIdx) state = "done";
-        else if (i === currentIdx) state = side ?? "current";
-        else state = "upcoming";
-        const isLast = i === PIPELINE_STEPS.length - 1;
-        return (
-          <li key={step.key} className="flex items-center" aria-current={state === "current" ? "step" : undefined}>
-            <span className={cn("flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-medium ring-1 ring-inset", STATE_CLASS[state])}>
-              <StepGlyph state={state} index={i} />
-            </span>
-            <span className={cn("ml-1.5", state === "upcoming" ? "text-ink-muted" : "text-ink", state === "current" && "font-medium")}>
-              {step.label}
-              <span className="sr-only">, {STATE_TEXT[state]}</span>
-            </span>
-            {isLast ? null : <span aria-hidden className={cn("mx-2 h-px w-3 sm:w-5", state === "done" ? "bg-success/50" : "bg-border")} />}
-          </li>
-        );
-      })}
-    </ol>
-  );
 }

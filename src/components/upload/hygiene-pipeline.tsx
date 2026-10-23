@@ -2,8 +2,11 @@
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { ChevronRightIcon } from "lucide-react";
+import { motion, useInView, useReducedMotion } from "motion/react";
 import { cn } from "cn";
 import { hygieneStageFor, type HygieneItem, type HygieneReport, type HygieneSegment, type HygieneStage, type HygieneStageKey, type HygieneTone } from "@/core/metrics/hygiene";
+import { CountUp } from "@/components/ext/count-up";
+import { settle } from "@/components/ext/motion";
 import { api, storeApi } from "@/lib/client/api";
 import { formatNumber, formatPercent } from "@/lib/format";
 
@@ -116,7 +119,7 @@ function StageCard({ stage, index, isCurrent, isLast }: { stage: HygieneStage; i
         {isCurrent ? <span className="sr-only">, in progress</span> : null}
       </div>
       <div className="mt-2 flex flex-wrap items-baseline gap-x-1.5">
-        <span className="font-display text-2xl leading-none text-ink tabular">{formatNumber(stage.headline.value)}</span>
+        <CountUp value={stage.headline.value} format={formatNumber} className="font-display text-2xl leading-none text-ink tabular" />
         <span className="text-xs text-ink-muted">{stage.headline.unit}</span>
       </div>
       {stage.bar.length > 0 ? <Bar segments={stage.bar} /> : <p className="mt-2 text-[11px] leading-[6px] text-ink-muted">{stage.empty}</p>}
@@ -125,14 +128,24 @@ function StageCard({ stage, index, isCurrent, isLast }: { stage: HygieneStage; i
   );
 }
 
-/** Flex-grow carries the share and a 2 px basis keeps a one-in-ten-thousand segment visible. */
+/**
+ * Flex-grow carries the share and a 2 px basis keeps a one-in-ten-thousand segment visible. The
+ * segments grow out of the left end the first time the card scrolls into view (a transform, so the
+ * track underneath stays put); later refreshes change the shares without replaying the entrance.
+ */
 function Bar({ segments }: { segments: HygieneSegment[] }) {
+  const reduce = useReducedMotion();
+  const track = useRef<HTMLDivElement>(null);
+  // Observe the full-width track, not the child: a box scaled to zero width has no area for IntersectionObserver to see.
+  const inView = useInView(track, { once: true, amount: 0.5 });
   const label = segments.map((s) => `${s.label} ${formatPercent(s.share, 1)}`).join(", ");
   return (
-    <div role="img" aria-label={label} className="mt-2 flex h-1.5 w-full gap-px overflow-hidden rounded-full bg-paper-deep">
-      {segments.map((s) => (
-        <div key={s.key} title={`${s.label}: ${formatNumber(s.value)} (${formatPercent(s.share, 1)})`} className={cn("h-full", TONE_BG[s.tone])} style={{ flex: `${s.share} 1 2px` }} />
-      ))}
+    <div ref={track} role="img" aria-label={label} className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-paper-deep">
+      <motion.div className="flex h-full w-full origin-left gap-px" initial={{ scaleX: 0 }} animate={{ scaleX: inView ? 1 : 0 }} transition={settle(reduce, 0.7, 0.1)}>
+        {segments.map((s) => (
+          <div key={s.key} title={`${s.label}: ${formatNumber(s.value)} (${formatPercent(s.share, 1)})`} className={cn("h-full", TONE_BG[s.tone])} style={{ flex: `${s.share} 1 2px` }} />
+        ))}
+      </motion.div>
     </div>
   );
 }
@@ -160,7 +173,9 @@ function Row({ item, child = false }: { item: HygieneItem; child?: boolean }) {
         <span className="truncate">{item.label}</span>
       </dt>
       <span aria-hidden className="mb-[3px] min-w-2 flex-1 border-b border-dotted border-border" />
-      <dd className={cn("num shrink-0", zero ? "text-ink-muted/80" : "text-ink")}>{formatNumber(item.value)}</dd>
+      <dd className={cn("num shrink-0", zero ? "text-ink-muted/80" : "text-ink")}>
+        <CountUp value={item.value} format={formatNumber} />
+      </dd>
     </div>
   );
 }

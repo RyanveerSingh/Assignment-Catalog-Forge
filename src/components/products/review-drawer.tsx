@@ -147,7 +147,13 @@ export function ReviewDrawer({ storeSlug, productId, onClose, onChanged }: { sto
 
   return (
     <Sheet open={productId !== null} onOpenChange={(open) => (open ? undefined : onClose())}>
-      <SheetContent side="right" initialFocus={titleRef} className="w-full gap-0 p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-[1100px]" aria-busy={loading || busy}>
+      {/* The sheet's own transition is 200 ms from 2.5 rem; a wide review surface earns a longer, softer glide and an ink-tinted shadow. */}
+      <SheetContent
+        side="right"
+        initialFocus={titleRef}
+        className="w-full gap-0 p-0 shadow-[-32px_0_64px_-32px_rgba(26,23,20,0.3)] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] data-[side=right]:w-full data-[side=right]:data-ending-style:translate-x-10 data-[side=right]:data-starting-style:translate-x-16 data-[side=right]:sm:max-w-[1100px]"
+        aria-busy={loading || busy}
+      >
         <header className="flex flex-col gap-2 border-b border-border px-4 py-3 pr-12">
           <div className="flex flex-wrap items-center gap-2">
             <SheetTitle ref={titleRef} tabIndex={-1} className="font-display text-xl leading-tight text-ink outline-none focus-visible:ring-2 focus-visible:ring-brand">

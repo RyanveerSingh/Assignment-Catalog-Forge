@@ -4,22 +4,37 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Minus, Plus, ShoppingBag, X } from "lucide-react";
+import { motion, useAnimate, useReducedMotion } from "motion/react";
 import { cn } from "cn";
 import { formatMoney } from "@/core/i18n/locale";
+import { EASE_OUT, settle } from "@/components/ext/motion";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
-import { bagCount, bagSubtotal, onBagOpen, removeFromBag, setBagQty, useBag, type BagItem } from "./bag-store";
+import { bagCount, bagSubtotal, onBagAdd, onBagOpen, removeFromBag, setBagQty, useBag, type BagItem } from "./bag-store";
 import { plural, t } from "./i18n";
 import { storefrontImageUrl } from "./image-url";
 
 const STEP_BUTTON = "inline-flex size-11 cursor-pointer items-center justify-center text-ink outline-none transition-colors hover:bg-paper-deep focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-not-allowed disabled:opacity-40";
+/** Lines start after the drawer itself has mostly arrived (its own transition is 200 ms). */
+const LINE_DELAY_S = 0.1;
 
 /** Header bag button plus the slide-over drawer. Opens on click or when a product page dispatches `openBag()`. */
 export function Bag({ slug, locale }: { slug: string; locale: string }) {
+  const reduce = useReducedMotion();
   const items = useBag(slug);
   const count = bagCount(items);
   const [open, setOpen] = useState(false);
+  const [badge, animateBadge] = useAnimate<HTMLSpanElement>();
 
   useEffect(() => onBagOpen(() => setOpen(true)), []);
+
+  // Bounce on the add event rather than on a count diff: diffing would also bounce once on load for a returning visitor.
+  useEffect(
+    () =>
+      onBagAdd(() => {
+        if (!reduce && badge.current) void animateBadge(badge.current, { scale: [1, 1.35, 1] }, { duration: 0.45, ease: EASE_OUT, times: [0, 0.3, 1] });
+      }),
+    [reduce, badge, animateBadge],
+  );
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -31,12 +46,13 @@ export function Bag({ slug, locale }: { slug: string; locale: string }) {
       >
         <ShoppingBag aria-hidden className="size-5" strokeWidth={1.6} />
         <span className="hidden sm:inline">{t(locale, "bag")}</span>
-        <span aria-hidden className={cn("num inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] leading-5", count > 0 ? "bg-ink text-paper" : "bg-paper-deep text-ink-muted")}>
+        <span ref={badge} aria-hidden className={cn("num inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] leading-5", count > 0 ? "bg-ink text-paper" : "bg-paper-deep text-ink-muted")}>
           {count}
         </span>
       </button>
 
-      <SheetContent side="right" showCloseButton={false} className="w-full gap-0 border-l border-border bg-paper p-0 text-ink sm:max-w-md">
+      {/* `data-[side=right]:w-full` is needed to beat the sheet's own 3/4-width variant; a plain `w-full` loses on specificity and clipped the line prices on phones. */}
+      <SheetContent side="right" showCloseButton={false} className="gap-0 border-l border-border bg-paper p-0 text-ink shadow-[-24px_0_48px_-24px_rgba(26,23,20,0.25)] data-[side=right]:w-full data-[side=right]:sm:max-w-md">
         <div className="flex items-center justify-between border-b border-border px-4 py-3 md:px-6">
           <SheetTitle className="font-display text-2xl font-normal text-ink">
             {t(locale, "bag")} <span className="num text-base text-ink-muted">({count})</span>
@@ -55,8 +71,8 @@ export function Bag({ slug, locale }: { slug: string; locale: string }) {
           </div>
         ) : (
           <ul className="flex-1 divide-y divide-border overflow-y-auto px-4 md:px-6">
-            {items.map((item) => (
-              <BagLine key={item.key} item={item} slug={slug} locale={locale} onNavigate={() => setOpen(false)} />
+            {items.map((item, i) => (
+              <BagLine key={item.key} item={item} index={i} slug={slug} locale={locale} reduce={reduce} onNavigate={() => setOpen(false)} />
             ))}
           </ul>
         )}
@@ -77,11 +93,12 @@ export function Bag({ slug, locale }: { slug: string; locale: string }) {
   );
 }
 
-function BagLine({ item, slug, locale, onNavigate }: { item: BagItem; slug: string; locale: string; onNavigate: () => void }) {
+function BagLine({ item, index, slug, locale, reduce, onNavigate }: { item: BagItem; index: number; slug: string; locale: string; reduce: boolean | null; onNavigate: () => void }) {
   const href = `/store/${encodeURIComponent(slug)}/p/${encodeURIComponent(item.handle)}`;
   const line = item.priceCents !== null && item.currency ? formatMoney(item.priceCents * item.qty, item.currency, locale) : t(locale, "priceOnRequest");
   return (
-    <li className="flex gap-4 py-4">
+    // `layout` closes the gap with a transform when a line above is removed; the drawer remounts on open, so every line enters together.
+    <motion.li layout={reduce ? false : "position"} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={settle(reduce, 0.3, LINE_DELAY_S + Math.min(index, 5) * 0.04)} className="flex gap-4 py-4">
       <Link href={href} onClick={onNavigate} className="relative block w-20 shrink-0 cursor-pointer overflow-hidden rounded-sm bg-paper-deep hairline" style={{ aspectRatio: "4 / 5" }}>
         {item.imageId ? <Image src={storefrontImageUrl(slug, item.imageId)} alt="" fill sizes="80px" className="object-cover" /> : null}
       </Link>
@@ -112,7 +129,7 @@ function BagLine({ item, slug, locale, onNavigate }: { item: BagItem; slug: stri
           <span className="num text-sm text-ink">{line}</span>
         </div>
       </div>
-    </li>
+    </motion.li>
   );
 }
 

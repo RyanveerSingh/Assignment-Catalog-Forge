@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useId, useRef, useState } from "react";
 import { type FileRejection, useDropzone } from "react-dropzone";
 import { DatabaseIcon, FileArchiveIcon, FileSpreadsheetIcon, ImageIcon, LinkIcon, UploadIcon } from "lucide-react";
+import { AnimatePresence } from "motion/react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -242,9 +243,10 @@ export function UploadPanel({ storeSlug }: { storeSlug: string }) {
         {...getRootProps({
           role: "button",
           "aria-label": "Drop a supplier sheet and photos here, or press Enter to browse",
+          // A held file is answered with a soft amber halo and a 1% swell: enough to say "here", not a bounce.
           className: cn(
-            "flex cursor-pointer flex-col items-center justify-center gap-2 border border-dashed px-6 py-10 text-center transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand",
-            isDragActive ? "border-brand bg-brand-soft/60" : "border-input bg-card hover:bg-paper-deep/40",
+            "flex cursor-pointer flex-col items-center justify-center gap-2 border border-dashed px-6 py-10 text-center outline-none transition-[background-color,border-color,box-shadow,scale] duration-150 ease-out focus-visible:ring-2 focus-visible:ring-brand",
+            isDragActive ? "scale-[1.01] border-brand bg-brand-soft/60 ring-4 ring-brand/15" : "border-input bg-card hover:bg-paper-deep/40",
             busy && "pointer-events-none opacity-60",
           ),
         })}
@@ -308,21 +310,24 @@ export function UploadPanel({ storeSlug }: { storeSlug: string }) {
 
       {sheet || sheetLink || photos.length > 0 ? (
         <ul className="max-h-56 divide-y divide-border overflow-y-auto bg-card text-sm hairline" aria-label="Selected files">
-          {sheet ? (
-            <FileRow icon={extensionOf(sheet.name) === "sql" ? DatabaseIcon : FileSpreadsheetIcon} label={extensionOf(sheet.name) === "sql" ? "Dump" : "Sheet"} name={sheet.name} size={sheet.size} disabled={busy} onRemove={() => setSheet(null)} />
-          ) : null}
-          {sheetLink ? <FileRow icon={LinkIcon} label="Link" name={sheetLink.url} detail={sheetLink.gid === null ? "first tab" : `gid ${sheetLink.gid}`} disabled={busy} onRemove={() => setSheetLink(null)} /> : null}
-          {photos.map((p, idx) => (
-            <FileRow
-              key={`${p.name}-${p.size}-${p.lastModified}`}
-              icon={kindOf(p) === "zip" ? FileArchiveIcon : ImageIcon}
-              label={kindOf(p) === "zip" ? "ZIP" : "Photo"}
-              name={p.name}
-              size={p.size}
-              disabled={busy}
-              onRemove={() => setPhotos((prev) => prev.filter((_, i) => i !== idx))}
-            />
-          ))}
+          <AnimatePresence>
+            {sheet ? (
+              <FileRow key="sheet" index={0} icon={extensionOf(sheet.name) === "sql" ? DatabaseIcon : FileSpreadsheetIcon} label={extensionOf(sheet.name) === "sql" ? "Dump" : "Sheet"} name={sheet.name} size={sheet.size} disabled={busy} onRemove={() => setSheet(null)} />
+            ) : null}
+            {sheetLink ? <FileRow key="link" index={0} icon={LinkIcon} label="Link" name={sheetLink.url} detail={sheetLink.gid === null ? "first tab" : `gid ${sheetLink.gid}`} disabled={busy} onRemove={() => setSheetLink(null)} /> : null}
+            {photos.map((p, idx) => (
+              <FileRow
+                key={`${p.name}-${p.size}-${p.lastModified}`}
+                index={idx + 1}
+                icon={kindOf(p) === "zip" ? FileArchiveIcon : ImageIcon}
+                label={kindOf(p) === "zip" ? "ZIP" : "Photo"}
+                name={p.name}
+                size={p.size}
+                disabled={busy}
+                onRemove={() => setPhotos((prev) => prev.filter((_, i) => i !== idx))}
+              />
+            ))}
+          </AnimatePresence>
         </ul>
       ) : null}
 
@@ -356,7 +361,7 @@ export function UploadPanel({ storeSlug }: { storeSlug: string }) {
       ) : null}
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button onClick={start} disabled={(!sheet && !sheetLink) || busy} className="cursor-pointer bg-brand text-brand-foreground hover:bg-brand/90">
+        <Button onClick={start} disabled={(!sheet && !sheetLink) || busy} className="cursor-pointer bg-brand text-brand-foreground hover:bg-brand/90 motion-safe:active:scale-[0.97]">
           <UploadIcon data-icon="inline-start" aria-hidden />
           {busy ? "Uploading…" : "Start import"}
         </Button>

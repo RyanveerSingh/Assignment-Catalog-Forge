@@ -12,8 +12,10 @@ import { ImagePlaceholder } from "./product-card";
 const ARROW = "absolute top-1/2 hidden size-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-paper/90 text-ink hairline outline-none transition-colors hover:bg-paper focus-visible:ring-2 focus-visible:ring-brand md:inline-flex";
 
 /**
- * Scroll-snap track: swiping on a phone is native scrolling, thumbnails and arrow keys scroll the
- * same track, and the active index is read back from the scroll position so every path agrees.
+ * Below md the slides are a scroll-snap track: swiping is native scrolling and the active index is
+ * read back from the scroll position. From md up the same slides stack and crossfade instead: the
+ * incoming slide fades in on top while the outgoing one waits underneath, so the paper behind never
+ * shows through mid-fade. Thumbnails, arrows and arrow keys drive both through one `go()`.
  */
 export function Gallery({ images, storeSlug, title, locale }: { images: StorefrontImage[]; storeSlug: string; title: string; locale: string }) {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -27,6 +29,7 @@ export function Gallery({ images, storeSlug, title, locale }: { images: Storefro
       if (!el || count === 0) return;
       const clamped = Math.max(0, Math.min(count - 1, next));
       const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      // A no-op on the stacked layout (nothing overflows), so the crossfade alone takes over there.
       el.scrollTo({ left: clamped * el.clientWidth, behavior: reduce ? "auto" : "smooth" });
       setIndex(clamped);
     },
@@ -73,21 +76,31 @@ export function Gallery({ images, storeSlug, title, locale }: { images: Storefro
           onScroll={onScroll}
           onKeyDown={onKeyDown}
           aria-live="polite"
-          className="flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain rounded-sm bg-paper-deep hairline outline-none [scrollbar-width:none] focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-paper [&::-webkit-scrollbar]:hidden"
+          className="flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain rounded-sm bg-paper-deep hairline outline-none [scrollbar-width:none] focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-paper md:relative md:snap-none md:overflow-hidden [&::-webkit-scrollbar]:hidden"
           style={{ aspectRatio: "4 / 5" }}
         >
-          {images.map((img, i) => (
-            <div key={`${img.id}-${i}`} role="group" aria-roledescription="slide" aria-label={t(locale, "imageOf", { n: i + 1, total: count })} aria-hidden={i !== index} className="relative h-full w-full shrink-0 snap-center">
-              <Image src={storefrontImageUrl(storeSlug, img.id)} alt={img.alt || title} fill priority={i === 0} sizes="(min-width: 768px) 58vw, 100vw" className="object-cover" />
-            </div>
-          ))}
+          {images.map((img, i) => {
+            const active = i === index;
+            return (
+              <div
+                key={`${img.id}-${i}`}
+                role="group"
+                aria-roledescription="slide"
+                aria-label={t(locale, "imageOf", { n: i + 1, total: count })}
+                aria-hidden={!active}
+                className={cn("relative h-full w-full shrink-0 snap-center md:absolute md:inset-0 md:transition-opacity md:duration-300 md:ease-out", active ? "md:z-10 md:opacity-100 md:delay-0" : "md:z-0 md:opacity-0 md:delay-300")}
+              >
+                <Image src={storefrontImageUrl(storeSlug, img.id)} alt={img.alt || title} fill priority={i === 0} sizes="(min-width: 768px) 58vw, 100vw" className="object-cover" />
+              </div>
+            );
+          })}
         </div>
         {count > 1 ? (
           <>
-            <button type="button" onClick={() => go(index - 1)} disabled={index === 0} aria-label={t(locale, "previousImage")} className={cn(ARROW, "left-3 disabled:opacity-0")}>
+            <button type="button" onClick={() => go(index - 1)} disabled={index === 0} aria-label={t(locale, "previousImage")} className={cn(ARROW, "left-3 z-20 disabled:opacity-0")}>
               <ChevronLeft aria-hidden className="size-5" />
             </button>
-            <button type="button" onClick={() => go(index + 1)} disabled={index === count - 1} aria-label={t(locale, "nextImage")} className={cn(ARROW, "right-3 disabled:opacity-0")}>
+            <button type="button" onClick={() => go(index + 1)} disabled={index === count - 1} aria-label={t(locale, "nextImage")} className={cn(ARROW, "right-3 z-20 disabled:opacity-0")}>
               <ChevronRight aria-hidden className="size-5" />
             </button>
             <span aria-hidden className="num absolute bottom-3 right-3 rounded-sm bg-paper/90 px-2 py-0.5 text-xs text-ink hairline md:hidden">

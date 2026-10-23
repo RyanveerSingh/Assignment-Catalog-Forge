@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, Truck, Undo2 } from "lucide-react";
+import { cn } from "cn";
 import { BuyBox } from "@/components/storefront/buy-box";
 import { familyOf, leafLabel, segments, titleCase } from "@/components/storefront/categories";
 import { FallbackNotice } from "@/components/storefront/fallback-notice";
@@ -66,6 +67,8 @@ export default async function ProductPage({ params }: { params: Params }) {
   const crumbs = product.category ? segments(product.category) : [];
   const leaf = product.category ? leafLabel(product.category) : null;
   const heading = "font-display text-xl text-ink";
+  const hasFallback = titleFallback || descriptionFallback;
+  const hasLongForm = Boolean(product.descriptionHtml) || details.length > 0 || care !== null || product.tags.length > 0 || hasFallback;
 
   return (
     <article className="mx-auto max-w-6xl px-4 py-6 md:px-6 md:py-10">
@@ -92,12 +95,17 @@ export default async function ProductPage({ params }: { params: Params }) {
         </ol>
       </nav>
 
-      <div className="mt-6 grid gap-8 md:grid-cols-12 md:gap-10 lg:gap-14">
-        <div className="md:col-span-7 lg:sticky lg:top-6 lg:self-start">
+      {/*
+        Gallery and the long-form sections share the left column; the buy column spans both rows and
+        sticks from lg up, so price, options and "Add to bag" stay in view while the description scrolls.
+        On a phone the DOM order still reads gallery, buy, details.
+      */}
+      <div className="mt-6 grid gap-8 md:grid-cols-12 md:gap-x-10 md:gap-y-12 lg:gap-x-14">
+        <div className="md:col-span-7">
           <Gallery images={product.images} storeSlug={slug} title={product.title} locale={locale} />
         </div>
 
-        <div className="space-y-8 md:col-span-5">
+        <div className={cn("space-y-8 md:col-span-5 lg:sticky lg:top-6 lg:self-start", hasLongForm && "md:row-span-2")}>
           <header className="space-y-3">
             {product.category && leaf ? (
               <Link href={categoryHref(slug, product.category)} className="inline-block cursor-pointer text-xs font-medium uppercase tracking-[0.18em] text-ink-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-brand">
@@ -125,60 +133,64 @@ export default async function ProductPage({ params }: { params: Params }) {
               </span>
             </li>
           </ul>
-
-          {product.descriptionHtml ? (
-            <section aria-label="Description" lang={descriptionFallback ? "en" : undefined}>
-              {/* Sanitised with sanitize-html at import and again before publish; this is the published snapshot, never raw supplier HTML. */}
-              <div className="prose-product text-[15px] leading-relaxed text-ink" dangerouslySetInnerHTML={{ __html: product.descriptionHtml }} />
-            </section>
-          ) : null}
-
-          {details.length > 0 ? (
-            <section aria-labelledby="product-details" className="space-y-3">
-              <h2 id="product-details" className={heading}>
-                {t(locale, "details")}
-              </h2>
-              <table className="w-full text-sm">
-                <tbody>
-                  {details.map(([key, value]) => (
-                    <tr key={key} className="border-t border-border">
-                      <th scope="row" className="w-2/5 py-2.5 pr-4 text-left align-top font-medium text-ink-muted">
-                        {attributeLabel(locale, key)}
-                      </th>
-                      <td className="py-2.5 align-top text-ink">{value}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </section>
-          ) : null}
-
-          {care ? (
-            <section aria-labelledby="product-care" className="space-y-2 border-t border-border pt-6">
-              <h2 id="product-care" className={heading}>
-                {t(locale, "care")}
-              </h2>
-              <p className="text-sm leading-relaxed text-ink">{care}</p>
-            </section>
-          ) : null}
-
-          {product.tags.length > 0 ? (
-            <section aria-labelledby="product-tags" className="space-y-2 border-t border-border pt-6">
-              <h2 id="product-tags" className="font-sans text-xs font-medium uppercase tracking-[0.14em] text-ink-muted">
-                {t(locale, "tags")}
-              </h2>
-              <ul className="flex flex-wrap gap-2">
-                {product.tags.map((tag) => (
-                  <li key={tag} className="rounded-full bg-paper-deep px-3 py-1.5 text-xs text-ink">
-                    {tag}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          {titleFallback || descriptionFallback ? <FallbackNotice locale={locale} scope="product" /> : null}
         </div>
+
+        {hasLongForm ? (
+          <div className="space-y-8 md:col-span-7 md:max-w-prose">
+            {product.descriptionHtml ? (
+              <section aria-label="Description" lang={descriptionFallback ? "en" : undefined}>
+                {/* Sanitised with sanitize-html at import and again before publish; this is the published snapshot, never raw supplier HTML. */}
+                <div className="prose-product text-[15px] leading-relaxed text-ink" dangerouslySetInnerHTML={{ __html: product.descriptionHtml }} />
+              </section>
+            ) : null}
+
+            {details.length > 0 ? (
+              <section aria-labelledby="product-details" className="space-y-3">
+                <h2 id="product-details" className={heading}>
+                  {t(locale, "details")}
+                </h2>
+                <table className="w-full text-sm">
+                  <tbody>
+                    {details.map(([key, value]) => (
+                      <tr key={key} className="border-t border-border">
+                        <th scope="row" className="w-2/5 py-2.5 pr-4 text-left align-top font-medium text-ink-muted">
+                          {attributeLabel(locale, key)}
+                        </th>
+                        <td className="py-2.5 align-top text-ink">{value}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+            ) : null}
+
+            {care ? (
+              <section aria-labelledby="product-care" className="space-y-2 border-t border-border pt-6">
+                <h2 id="product-care" className={heading}>
+                  {t(locale, "care")}
+                </h2>
+                <p className="text-sm leading-relaxed text-ink">{care}</p>
+              </section>
+            ) : null}
+
+            {product.tags.length > 0 ? (
+              <section aria-labelledby="product-tags" className="space-y-2 border-t border-border pt-6">
+                <h2 id="product-tags" className="font-sans text-xs font-medium uppercase tracking-[0.14em] text-ink-muted">
+                  {t(locale, "tags")}
+                </h2>
+                <ul className="flex flex-wrap gap-2">
+                  {product.tags.map((tag) => (
+                    <li key={tag} className="rounded-full bg-paper-deep px-3 py-1.5 text-xs text-ink">
+                      {tag}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
+            {hasFallback ? <FallbackNotice locale={locale} scope="product" /> : null}
+          </div>
+        ) : null}
       </div>
 
       {related ? (

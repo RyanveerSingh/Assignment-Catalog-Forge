@@ -5,6 +5,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { flexRender, getCoreRowModel, useReactTable, type RowSelectionState } from "@tanstack/react-table";
 import { cn } from "cn";
 import { ArrowDownIcon, ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, RefreshCwIcon } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { settle } from "@/components/ext/motion";
 import { EmptyState } from "@/components/ext/page-header";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -39,6 +41,7 @@ function skippedSummary(skipped: ReadonlyArray<{ reason: string }>): string {
 }
 
 export function ProductsTable({ storeSlug, initialImportId = "" }: { storeSlug: string; initialImportId?: string }) {
+  const reduce = useReducedMotion();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -182,29 +185,41 @@ export function ProductsTable({ storeSlug, initialImportId = "" }: { storeSlug: 
       <div className="flex flex-col gap-3">
         <ProductsToolbar filters={filters} searchText={searchText} onSearchChange={setSearchText} onChange={setFilters} onReset={() => setFilters({ ...DEFAULT_FILTERS, sort: filters.sort, dir: filters.dir, limit: filters.limit })} categories={categories} />
 
-        <div className="flex min-h-9 flex-wrap items-center gap-2">
-          {selected.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-2 border border-brand/30 bg-brand-soft/50 px-2 py-1 text-xs" role="region" aria-label="Bulk actions">
-              <span className="num font-medium text-ink">{selected.length} selected</span>
-              {selectedNeedsReview > 0 ? (
-                <Label className="flex cursor-pointer items-center gap-1.5 text-xs font-normal text-ink">
-                  <Checkbox checked={includeNeedsReview} onCheckedChange={(c) => setIncludeNeedsReview(c)} className="cursor-pointer" />
-                  Include {selectedNeedsReview} that {selectedNeedsReview === 1 ? "needs" : "need"} review?
-                </Label>
-              ) : null}
-              <Button type="button" size="xs" disabled={bulkBusy !== null} onClick={() => void bulkApprove()} className="cursor-pointer bg-brand text-brand-foreground hover:bg-brand/90">
-                {bulkBusy === "approve" ? "Approving…" : `Approve ${selected.length - (includeNeedsReview ? 0 : selectedNeedsReview)}`}
-              </Button>
-              <BulkRerunPopover count={selected.length} busy={bulkBusy === "rerun"} disabled={bulkBusy !== null} onQueue={bulkRerun} />
-              <Button type="button" variant="ghost" size="xs" disabled={bulkBusy !== null} onClick={() => setRowSelection({})} className="cursor-pointer">
-                Clear
-              </Button>
-            </div>
-          ) : (
-            <span className="text-xs text-ink-muted" aria-live="polite">
-              {loading && items.length === 0 ? "Loading…" : `${formatNumber(total)} ${total === 1 ? "product" : "products"}`}
-            </span>
-          )}
+        <div className="relative flex min-h-9 flex-wrap items-center gap-2">
+          {/* The bar rises into the slot the count occupied; popLayout keeps the one leaving out of the flow so the row never jumps. */}
+          <AnimatePresence initial={false} mode="popLayout">
+            {selected.length > 0 ? (
+              <motion.div
+                key="bulk"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8, transition: settle(reduce, 0.15) }}
+                transition={settle(reduce, 0.22)}
+                className="flex flex-wrap items-center gap-2 border border-brand/30 bg-brand-soft/50 px-2 py-1 text-xs"
+                role="region"
+                aria-label="Bulk actions"
+              >
+                <span className="num font-medium text-ink">{selected.length} selected</span>
+                {selectedNeedsReview > 0 ? (
+                  <Label className="flex cursor-pointer items-center gap-1.5 text-xs font-normal text-ink">
+                    <Checkbox checked={includeNeedsReview} onCheckedChange={(c) => setIncludeNeedsReview(c)} className="cursor-pointer" />
+                    Include {selectedNeedsReview} that {selectedNeedsReview === 1 ? "needs" : "need"} review?
+                  </Label>
+                ) : null}
+                <Button type="button" size="xs" disabled={bulkBusy !== null} onClick={() => void bulkApprove()} className="cursor-pointer bg-brand text-brand-foreground hover:bg-brand/90">
+                  {bulkBusy === "approve" ? "Approving…" : `Approve ${selected.length - (includeNeedsReview ? 0 : selectedNeedsReview)}`}
+                </Button>
+                <BulkRerunPopover count={selected.length} busy={bulkBusy === "rerun"} disabled={bulkBusy !== null} onQueue={bulkRerun} />
+                <Button type="button" variant="ghost" size="xs" disabled={bulkBusy !== null} onClick={() => setRowSelection({})} className="cursor-pointer">
+                  Clear
+                </Button>
+              </motion.div>
+            ) : (
+              <motion.span key="count" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: settle(reduce, 0.1) }} transition={settle(reduce, 0.2, 0.05)} className="text-xs text-ink-muted" aria-live="polite">
+                {loading && items.length === 0 ? "Loading…" : `${formatNumber(total)} ${total === 1 ? "product" : "products"}`}
+              </motion.span>
+            )}
+          </AnimatePresence>
           {bulkNotice ? (
             <span role="status" className="text-xs text-ink">
               {bulkNotice}
@@ -297,7 +312,7 @@ export function ProductsTable({ storeSlug, initialImportId = "" }: { storeSlug: 
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && e.target === e.currentTarget) setOpenId(row.original.id);
                         }}
-                        className={cn("h-9 cursor-pointer border-b border-border/60 transition-colors last:border-0 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand", row.getIsSelected() && "bg-brand-soft/40 ring-1 ring-inset ring-brand", row.original.deletedAt && "text-ink-muted")}
+                        className={cn("h-9 cursor-pointer border-b border-border/60 transition-colors duration-100 last:border-0 hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand", row.getIsSelected() && "bg-brand-soft/40 ring-1 ring-inset ring-brand hover:bg-brand-soft/50", row.original.deletedAt && "text-ink-muted")}
                       >
                         {row.getVisibleCells().map((cell) => {
                           const meta = (cell.column.columnDef.meta ?? {}) as ColumnMeta;

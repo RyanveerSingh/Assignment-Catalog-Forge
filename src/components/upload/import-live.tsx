@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeftIcon, BanIcon, PauseIcon, PlayIcon, RotateCcwIcon, TriangleAlertIcon } from "lucide-react";
+import { AnimatePresence } from "motion/react";
 import type { HygieneReport } from "@/core/metrics/hygiene";
 import type { ImportLogEvent, ImportProgressEvent } from "@/lib/events";
+import { CountUp } from "@/components/ext/count-up";
 import { Kpi } from "@/components/ext/kpi";
 import { StatusBadge } from "@/components/ext/status-badge";
 import { Button } from "@/components/ui/button";
@@ -14,9 +16,10 @@ import { HygienePipeline } from "./hygiene-pipeline";
 import { EventLog, MAX_EVENTS } from "./import-live-events";
 import { SheetCard } from "./import-live-sheet";
 import { Banner, ConnBadge, type Connection, Stamp } from "./import-live-status";
+import { LiveStageStepper } from "./import-live-stepper";
 import type { ImportDto, ImportEventDto } from "./import-live-types";
 import { RowsTable } from "./rows-table";
-import { isImportActive, SIDE_STATES, StageStepper, stepIndexFor } from "./stage-stepper";
+import { isImportActive, SIDE_STATES, stepIndexFor } from "./stage-stepper";
 
 export type { ImportDto, ImportEventDto } from "./import-live-types";
 
@@ -270,44 +273,47 @@ export function ImportLive({ storeSlug, initialImport, initialEvents, initialHyg
         ) : null}
       </header>
 
-      {imp.status === "paused" ? (
-        <Banner tone="warning" icon={PauseIcon} action={canResume ? <Button size="sm" className={brandButton} disabled={busy !== null} onClick={() => void runAction("resume")}>Resume now</Button> : null}>
-          <strong className="font-medium">Paused</strong>
-          {countdown === null ? (imp.pauseReason ? ` — ${imp.pauseReason}` : "") : countdown === "now" ? " — resuming now" : ` — resuming in ${countdown}`}
-          <span className="block text-xs text-ink-muted" suppressHydrationWarning>
-            {countdown === null ? "Waiting for you to resume" : (imp.pauseReason ?? "Resumes automatically")}
-          </span>
-        </Banner>
-      ) : null}
-      {imp.status === "needs_attention" ? (
-        <Banner tone="warning" icon={TriangleAlertIcon}>
-          <strong className="font-medium">Needs attention</strong> — {imp.error ?? "some rows could not be finished; check the event log below, then retry"}
-        </Banner>
-      ) : null}
-      {imp.status === "failed" ? (
-        <Banner tone="danger" icon={TriangleAlertIcon}>
-          <strong className="font-medium">Failed</strong> — {imp.error ?? "the event log below says why"}
-        </Banner>
-      ) : null}
-      {imp.status === "cancelled" ? (
-        <Banner tone="neutral" icon={BanIcon}>
-          <strong className="font-medium">Cancelled</strong>
-          {imp.error ? ` — ${imp.error}` : ""}
-        </Banner>
-      ) : null}
+      {/* A banner that is already there on page load renders settled; one that arrives while watching slides in. */}
+      <AnimatePresence initial={false}>
+        {imp.status === "paused" ? (
+          <Banner key="paused" tone="warning" icon={PauseIcon} action={canResume ? <Button size="sm" className={brandButton} disabled={busy !== null} onClick={() => void runAction("resume")}>Resume now</Button> : null}>
+            <strong className="font-medium">Paused</strong>
+            {countdown === null ? (imp.pauseReason ? ` — ${imp.pauseReason}` : "") : countdown === "now" ? " — resuming now" : ` — resuming in ${countdown}`}
+            <span className="block text-xs text-ink-muted" suppressHydrationWarning>
+              {countdown === null ? "Waiting for you to resume" : (imp.pauseReason ?? "Resumes automatically")}
+            </span>
+          </Banner>
+        ) : null}
+        {imp.status === "needs_attention" ? (
+          <Banner key="attention" tone="warning" icon={TriangleAlertIcon}>
+            <strong className="font-medium">Needs attention</strong> — {imp.error ?? "some rows could not be finished; check the event log below, then retry"}
+          </Banner>
+        ) : null}
+        {imp.status === "failed" ? (
+          <Banner key="failed" tone="danger" icon={TriangleAlertIcon}>
+            <strong className="font-medium">Failed</strong> — {imp.error ?? "the event log below says why"}
+          </Banner>
+        ) : null}
+        {imp.status === "cancelled" ? (
+          <Banner key="cancelled" tone="neutral" icon={BanIcon}>
+            <strong className="font-medium">Cancelled</strong>
+            {imp.error ? ` — ${imp.error}` : ""}
+          </Banner>
+        ) : null}
+      </AnimatePresence>
 
-      <StageStepper status={imp.status} lastStage={lastStage} />
+      <LiveStageStepper status={imp.status} lastStage={lastStage} />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <Kpi label="Total rows" value={formatNumber(totalRows)} />
-        <Kpi label="Done" tone="success" value={formatNumber(counts.done)} />
-        <Kpi label="Needs review" tone="warning" value={formatNumber(counts.needs_review)} />
-        <Kpi label="Failed" tone="danger" value={formatNumber(counts.failed)} />
-        <Kpi label="Products" value={formatNumber(imp.productCount)} />
+        <Kpi label="Total rows" value={<CountUp value={totalRows} format={formatNumber} />} />
+        <Kpi label="Done" tone="success" value={<CountUp value={counts.done} format={formatNumber} />} />
+        <Kpi label="Needs review" tone="warning" value={<CountUp value={counts.needs_review} format={formatNumber} />} />
+        <Kpi label="Failed" tone="danger" value={<CountUp value={counts.failed} format={formatNumber} />} />
+        <Kpi label="Products" value={<CountUp value={imp.productCount} format={formatNumber} />} />
         <Kpi
           label="Cost so far"
           tone="brand"
-          value={formatMicrosUsd(imp.costMicros)}
+          value={<CountUp value={imp.costMicros} format={formatMicrosUsd} />}
           hint={
             <>
               {saved !== null ? (

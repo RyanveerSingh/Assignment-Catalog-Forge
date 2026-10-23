@@ -1,6 +1,8 @@
 "use client";
 
 import { type LucideIcon, XIcon } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
+import { settle } from "@/components/ext/motion";
 
 const MB = 1024 * 1024;
 
@@ -14,6 +16,8 @@ export interface FileRowProps {
   icon: LucideIcon;
   label: string;
   name: string;
+  /** Position in the list, for the entrance stagger. */
+  index: number;
   /** Bytes for a file; a link has none and shows `detail` instead. */
   size?: number;
   detail?: string;
@@ -21,10 +25,22 @@ export interface FileRowProps {
   onRemove: () => void;
 }
 
-/** One line of the "Selected files" list in the upload panel: a sheet, a dump, a photo, a ZIP or a Google Sheets link. */
-export function FileRow({ icon: Icon, label, name, size, detail, disabled, onRemove }: FileRowProps) {
+/**
+ * One line of the "Selected files" list in the upload panel: a sheet, a dump, a photo, a ZIP or a
+ * Google Sheets link. Rows slide in as they are added (a dropped batch arrives as a short cascade)
+ * and the rows below a removed one close the gap with a transform rather than a jump.
+ */
+export function FileRow({ icon: Icon, label, name, index, size, detail, disabled, onRemove }: FileRowProps) {
+  const reduce = useReducedMotion();
   return (
-    <li className="flex items-center gap-3 px-3 py-2">
+    <motion.li
+      layout={reduce ? false : "position"}
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 10, transition: settle(reduce, 0.12) }}
+      transition={settle(reduce, 0.22, Math.min(index, 8) * 0.03)}
+      className="flex items-center gap-3 px-3 py-2"
+    >
       <Icon className="size-4 shrink-0 text-ink-muted" aria-hidden />
       <span className="w-10 shrink-0 text-[10px] uppercase tracking-wide text-ink-muted">{label}</span>
       <span className="min-w-0 flex-1 truncate text-ink" title={name}>
@@ -40,6 +56,6 @@ export function FileRow({ icon: Icon, label, name, size, detail, disabled, onRem
       >
         <XIcon className="size-3.5" aria-hidden />
       </button>
-    </li>
+    </motion.li>
   );
 }
