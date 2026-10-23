@@ -6,7 +6,7 @@ import { CONTAINER } from "./site-chrome";
 
 const CTA = "h-11 cursor-pointer px-5 text-sm";
 
-export function LandingHero() {
+export function LandingHero({ dashboardHref }: { dashboardHref: string | null }) {
   return (
     <section aria-labelledby="hero-heading" className="border-b border-border">
       <div className={cn(CONTAINER, "grid gap-12 py-14 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)] lg:items-center lg:gap-8 lg:py-20")}>
@@ -21,8 +21,8 @@ export function LandingHero() {
             Upload the spreadsheet your supplier sent, with any photos. Prices and SKUs are fixed by code, each listing is written from your rows and translated into German and French, and every claim shows the cell it came from. Review, approve, and it is live in your shop.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/login?demo=1" className={cn(buttonVariants({ size: "lg" }), CTA, "bg-brand text-brand-foreground hover:bg-brand/90")}>
-              Try it with a sample sheet
+            <Link href={dashboardHref ?? "/login?demo=1"} className={cn(buttonVariants({ size: "lg" }), CTA, "bg-brand text-brand-foreground hover:bg-brand/90")}>
+              {dashboardHref ? "Open your dashboard" : "Try it with a sample sheet"}
             </Link>
             <Link href="/store/demo" className={cn(buttonVariants({ variant: "outline", size: "lg" }), CTA)}>
               See the shop it built

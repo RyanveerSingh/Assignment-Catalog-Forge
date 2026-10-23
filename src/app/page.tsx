@@ -9,13 +9,14 @@ export const metadata: Metadata = {
   description: "Upload a supplier spreadsheet with photos; get cleaned prices and SKUs, written and translated listings, and the source cell behind every claim.",
 };
 
-/** Signed-in merchants land in their first store; everyone else sees the landing page. */
+/** Everyone sees the landing page; a signed-in merchant gets a way into their first store from it. */
 export default async function Home() {
   const user = await currentUser();
+  let dashboardHref: string | null = null;
   if (user) {
     const first = (await userStores(user.id))[0];
     if (!first) redirect("/login?error=no-store");
-    redirect(`/app/${first.slug}/upload`);
+    dashboardHref = `/app/${first.slug}/upload`;
   }
-  return <LandingPage />;
+  return <LandingPage dashboardHref={dashboardHref} />;
 }

@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Sign in" };
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; demo?: string }> }) {
   const user = await currentUser();
-  if (user) redirect("/");
+  if (user) redirect("/app");
   const { error, demo } = await searchParams;
   return (
     <div className="flex min-h-dvh flex-col">

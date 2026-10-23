@@ -6,7 +6,7 @@ import { CONTAINER } from "./site-chrome";
 
 const CTA = "h-11 cursor-pointer px-5 text-sm";
 
-export function LandingCta() {
+export function LandingCta({ dashboardHref }: { dashboardHref: string | null }) {
   return (
     <section aria-labelledby="cta-heading" className="border-b border-border">
       <div className={cn(CONTAINER, "py-16 md:py-24")}>
@@ -16,8 +16,8 @@ export function LandingCta() {
           </h2>
           <p className="mt-4 max-w-lg text-base leading-relaxed text-ink-muted">The demo account has sample sheets ready to drop in, from ten clean rows to ten thousand messy ones. Or bring the file your supplier just sent.</p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link href="/login?demo=1" className={cn(buttonVariants({ size: "lg" }), CTA, "bg-brand text-brand-foreground hover:bg-brand/90")}>
-              Open the demo
+            <Link href={dashboardHref ?? "/login?demo=1"} className={cn(buttonVariants({ size: "lg" }), CTA, "bg-brand text-brand-foreground hover:bg-brand/90")}>
+              {dashboardHref ? "Open your dashboard" : "Open the demo"}
             </Link>
             <Link href="/store/demo" className={cn(buttonVariants({ variant: "outline", size: "lg" }), CTA)}>
               Browse the shop

@@ -8,20 +8,25 @@ import { LandingTryIt } from "./landing-try-it";
 import { ScrollPathAnimator } from "./scroll-path";
 import { SiteFooter, SiteHeader } from "./site-chrome";
 
-/** What a signed-out visitor sees at `/`. Every sentence here is true of the product; there is no copy beyond that. */
-export function LandingPage() {
+interface Props {
+  /** Where a signed-in merchant's dashboard is; null for a visitor. */
+  dashboardHref: string | null;
+}
+
+/** What a visitor sees at `/`. Every sentence here is true of the product; there is no copy beyond that. */
+export function LandingPage({ dashboardHref }: Props) {
   return (
     <div className="flex min-h-dvh flex-col">
-      <SiteHeader />
+      <SiteHeader dashboardHref={dashboardHref} />
       <main className="flex-1 overflow-x-clip">
-        <LandingHero />
+        <LandingHero dashboardHref={dashboardHref} />
         <ScrollPathAnimator>
           <LandingSteps />
           <LandingBeforeAfter />
           <LandingTryIt />
           <LandingNumbers />
           <LandingPromises />
-          <LandingCta />
+          <LandingCta dashboardHref={dashboardHref} />
         </ScrollPathAnimator>
       </main>
       <SiteFooter />

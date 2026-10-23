@@ -27,7 +27,7 @@ export function LoginForm({ prefillDemo = false }: { prefillDemo?: boolean }) {
     setError(null);
     try {
       await api("/api/auth/login", { method: "POST", json: creds });
-      router.push("/");
+      router.push("/app");
       router.refresh();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not sign in");
