@@ -55,7 +55,9 @@ describe("mock AI provider", () => {
     expect(p.claims.map((c) => c.text)).toContain("frost-proof");
     expect(p.claims.every((c) => c.source_row === 14 || c.source_row === 15)).toBe(true);
     expect(p.status).toBe("ok");
-    expect(res.costMicros).toBe(0);
+    // Free to run, priced at Haiku list rates so the cost tracking behaves as it would with a key.
+    expect(res.costMicros).toBeGreaterThan(0);
+    expect(res.usage.cacheReadTokens).toBeGreaterThan(0);
   });
 
   it("flags products with no usable title for review", async () => {

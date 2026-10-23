@@ -33,6 +33,22 @@ export async function ensureWorkerStarted(): Promise<WorkerHandle> {
   return handle;
 }
 
+/**
+ * The chaos panel's "crash": the embedded worker drops its jobs mid-flight and a fresh one (new
+ * worker id) starts two seconds later, so the reaper's lease recovery is exercised while the HTTP
+ * server keeps serving (EC-E1, E16). Returns null when this process has no embedded worker.
+ */
+export function crashWorker(restartAfterMs = 2_000): { dropped: number } | null {
+  const handle = globalThis.__catalogforgeWorker;
+  if (!handle) return null;
+  globalThis.__catalogforgeWorker = undefined;
+  const dropped = handle.crash();
+  setTimeout(() => {
+    ensureWorkerStarted().catch((err: unknown) => getLogger({ component: "worker" }).error({ err }, "worker restart after simulated crash failed"));
+  }, restartAfterMs);
+  return { dropped };
+}
+
 /** Graceful shutdown used by both the standalone worker and the embedded one (EC-E14). */
 export async function stopWorker(timeoutMs = 30_000): Promise<void> {
   const handle = globalThis.__catalogforgeWorker;

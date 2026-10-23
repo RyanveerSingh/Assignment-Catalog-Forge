@@ -3,6 +3,7 @@ import type { EnrichInput, EnrichProductInput, TranslateInput } from "@/core/ai/
 import type { AiEnrichBatch, AiProductOutput, AiTranslateBatch } from "@/core/ai/schema";
 import { TAXONOMY, TAXONOMY_FALLBACK } from "@/core/ai/taxonomy";
 import { AiError } from "./errors";
+import { costMicros } from "./pricing";
 import type { AiBatchHandle, AiBatchResult, AiProvider, AiRequest, AiResponse, AiUsage } from "./types";
 
 /**
@@ -33,14 +34,16 @@ export function createMockProvider(): AiProvider {
       throw new AiError("invalid_json", `mock output did not match schema: ${parsed.error.message}`);
     }
     const rawText = JSON.stringify(output);
+    // Token counts approximate the real provider's (4 chars per token, system prompt served from cache)
+    // so the demo's cost figures are realistic estimates rather than zeros.
     const usage: AiUsage = {
-      inputTokens: Math.ceil((req.system.length + req.userText.length) / 4),
+      inputTokens: Math.ceil(req.userText.length / 4),
       outputTokens: Math.ceil(rawText.length / 4),
-      cacheReadTokens: 0,
+      cacheReadTokens: Math.ceil(req.system.length / 4),
       cacheWriteTokens: 0,
     };
     await new Promise((r) => setTimeout(r, 30 + Math.min(200, req.userText.length / 200)));
-    return { output: parsed.data, rawText, usage, model: req.model, latencyMs: Date.now() - started, stopReason: "end_turn", costMicros: 0, batched: false };
+    return { output: parsed.data, rawText, usage, model: req.model, latencyMs: Date.now() - started, stopReason: "end_turn", costMicros: costMicros(req.model, usage), batched: false };
   }
 
   return {

@@ -88,13 +88,13 @@ export function ChaosPanel({ chaos, onApplied }: { chaos: ChaosDto | null; onApp
       <div className="space-y-2 border-t border-border pt-4">
         <p className="text-sm font-medium">Crash the worker</p>
         <p className="text-xs text-ink-muted">
-          Exits the process with a non-zero code. The host restarts it within seconds and the running import resumes from its last checkpoint: no row is lost and none is charged twice.
+          Kills the worker mid-batch: every job in flight loses its lease without reporting back, a fresh worker starts two seconds later, and the reaper hands it the abandoned work. The import resumes from its last checkpoint with no row lost and none charged twice, and the storefront never stops serving.
         </p>
         {crash.kind === "confirm" ? (
           <div role="alertdialog" aria-labelledby="crash-confirm-title" className="flex flex-wrap items-center gap-3 rounded-sm bg-destructive/10 px-3 py-2 text-sm">
             <AlertTriangle aria-hidden className="size-4 shrink-0 text-destructive" />
             <span id="crash-confirm-title" className="text-destructive">
-              Crash the worker now? The dashboard will reconnect on its own.
+              Crash the worker now? Watch the import event log for the reaper reclaiming its jobs.
             </span>
             <div className="ml-auto flex gap-2">
               <Button
@@ -104,7 +104,7 @@ export function ChaosPanel({ chaos, onApplied }: { chaos: ChaosDto | null; onApp
                 onClick={() => {
                   setCrash({ kind: "sending" });
                   api<{ message?: string }>("/api/admin/crash", { method: "POST" })
-                    .then((r) => setCrash({ kind: "sent", message: r.message ?? "Process is exiting; the host restarts it." }))
+                    .then((r) => setCrash({ kind: "sent", message: r.message ?? "Worker crashed; a new one starts in 2 s." }))
                     .catch((err: unknown) => setCrash({ kind: "error", message: err instanceof ApiError ? err.message : "Could not reach the server" }));
                 }}
               >

@@ -45,6 +45,11 @@ const DEFAULT_IDLE: IdlePolicy = { minMs: 250, maxMs: 5_000, sleepAfterMs: 60_00
 
 export interface WorkerHandle {
   stop(timeoutMs?: number): Promise<void>;
+  /**
+   * Simulate a process crash without one: abort every handler mid-flight and write nothing back, so
+   * the jobs keep their leases until the reaper reclaims them (EC-E1, E16). Returns the jobs dropped.
+   */
+  crash(): number;
   wake(): void;
   inFlight(): number;
   isSleeping(): boolean;
@@ -65,6 +70,7 @@ export function startWorker(opts: WorkerOptions): WorkerHandle {
   const bus = getBus();
 
   let stopping = false;
+  let crashed = false;
   let sleeping = false;
   let inFlight = 0;
   let lastWorkAt = Date.now();
@@ -129,10 +135,13 @@ export function startWorker(opts: WorkerOptions): WorkerHandle {
     const started = Date.now();
     try {
       await handler({ job, db: opts.db, log: jobLog, signal: leaseController.signal });
+      // A crashed process never gets to report; leave the lease to expire exactly as a real crash would.
+      if (crashed) return;
       const ok = await complete(opts.db, job.id, workerId);
       if (!ok) jobLog.warn("job finished but the lease was already lost; result may be re-applied by another worker (idempotent)");
       else jobLog.info({ ms: Date.now() - started, attempt: job.attempts }, "job completed");
     } catch (err) {
+      if (crashed) return;
       const message = errorMessage(err);
       if (isJobError(err) && err.pauseQueue) {
         const until = new Date(Date.now() + err.pauseQueue.untilMs);
@@ -227,6 +236,18 @@ export function startWorker(opts: WorkerOptions): WorkerHandle {
     wake,
     inFlight: () => inFlight,
     isSleeping: () => sleeping,
+    crash(): number {
+      if (stopping) return 0;
+      const dropped = inFlight;
+      crashed = true;
+      stopping = true;
+      clearInterval(ticker);
+      bus.off("queue:wake", wake);
+      log.error({ dropped }, "simulated crash: aborting handlers and abandoning their leases");
+      stopController.abort();
+      wake();
+      return dropped;
+    },
     async stop(timeoutMs = 30_000): Promise<void> {
       if (stopping) return;
       stopping = true;

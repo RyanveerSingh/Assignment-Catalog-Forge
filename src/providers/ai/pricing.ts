@@ -16,16 +16,14 @@ const pricing: Record<string, ModelPricing> = {
   "claude-haiku-5-5": { input: 0.1, output: 0.5, cacheRead: 0.01, cacheWrite: 0.125 },
   "claude-sonnet-5-5": { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 },
   "claude-opus-5-5": { input: 4, output: 20, cacheRead: 0.2, cacheWrite: 5 },
-  "mock-cheap": { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-  "mock-strong": { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+  // The demo provider is free to run, but it is priced at the real tiers' list rates so the cost
+  // tracking, the savings meter and the budget cap behave exactly as they would with a key.
+  "mock-cheap": { input: 0.1, output: 0.5, cacheRead: 0.01, cacheWrite: 0.125 },
+  "mock-strong": { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 },
 };
 
 export function getPricing(model: string): ModelPricing {
   return pricing[model] ?? pricing["claude-sonnet-5-5"]!;
-}
-
-export function setPricing(model: string, p: ModelPricing): void {
-  pricing[model] = p;
 }
 
 /** Cost in micro-dollars (1e-6 USD) so sums stay integers. */
@@ -47,11 +45,4 @@ export function naiveCostMicros(usage: AiUsage, strongModel = "claude-sonnet-5-5
   const usd =
     ((usage.inputTokens + usage.cacheReadTokens + usage.cacheWriteTokens) * p.input + usage.outputTokens * p.output) / 1_000_000;
   return Math.round(usd * 1_000_000);
-}
-
-export function formatUsd(micros: number): string {
-  const usd = micros / 1_000_000;
-  if (usd === 0) return "$0.00";
-  if (usd < 0.01) return `$${usd.toFixed(4)}`;
-  return `$${usd.toFixed(2)}`;
 }
