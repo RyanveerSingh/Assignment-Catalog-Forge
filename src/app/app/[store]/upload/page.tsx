@@ -18,6 +18,8 @@ const SAMPLES: ReadonlyArray<{ name: string; what: string }> = [
   { name: "messy-120.csv", what: "Every mess at once: EN/DE headers, BOM, EU prices, scattered variants, duplicates, SKU conflicts." },
   { name: "messy-120.xlsx", what: "Same data as a workbook: two title rows above the header and an extra empty sheet." },
   { name: "photos-messy.zip", what: "56 photos for messy-120: SKU names, stems, fuzzy names, junk files and traversal paths." },
+  { name: "new-12.csv", what: "12 products seen in no other sample, 26 rows: German and French rows, £8 / EUR 24 / 1.299,00 € / n/a prices, lbs and inches, a script tag, a SKU conflict, a row with no SKU." },
+  { name: "photos-new-12.zip", what: "18 photos for new-12: 13 by SKU, two by stem, one known only from the Image column, one camera name with the SKU inside it, one orphan." },
   { name: "dump-mysql.sql", what: "A mysqldump of a product table: DROP and CREATE statements, two tables, escaped quotes, a NULL price. Parsed in memory, never executed." },
   { name: "semicolon-eu.csv", what: "German ;-export: 12,50 and 1.299,00 € prices, kg weights, German colours, no parent column." },
   { name: "broken-latin1.csv", what: "windows-1252 bytes: umlauts, ß and € that must be re-decoded." },

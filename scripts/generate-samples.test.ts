@@ -10,7 +10,7 @@ import type { GroundTruthFile } from "@/core/types";
 import { generateSamples } from "./generate-samples";
 
 const SEED = 42;
-const GROUND_TRUTHS = ["tiny-10", "messy-120", "semicolon-eu", "bulk-1000", "bulk-10000"] as const;
+const GROUND_TRUTHS = ["tiny-10", "messy-120", "new-12", "semicolon-eu", "bulk-1000", "bulk-10000"] as const;
 
 let dir: string;
 

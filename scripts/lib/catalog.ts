@@ -1300,6 +1300,268 @@ export const CATALOG: ProductTemplate[] = [
   },
 ];
 
+// =============================================================================
+// new-12: twelve templates that appear only in samples/new-12.csv. They live outside CATALOG on
+// purpose: messy-120 and the bulk files draw from CATALOG through the seeded PRNG, so adding to
+// that array would reshuffle every committed sample.
+// =============================================================================
+export const NEW_12_CATALOG: ProductTemplate[] = [
+  // ------------------------------------------------------------------ kitchen
+  {
+    stem: "EN-SP",
+    titleEn: "Enamel Stock Pot",
+    descriptionEn:
+      "Stock pot in enamelled steel with a tempered glass lid and two riveted handles. The enamel coating is non-reactive, so tomato sauces and stocks keep their flavour, and the flat base is induction compatible. Oven-safe to 200 °C without the lid and dishwasher-safe.",
+    categoryPrefix: "Home & Garden > Kitchen & Dining > Cookware > Pots & Pans",
+    brand: "Ferro & Co",
+    material: "enamelled steel",
+    care: "Let the pot cool before washing; a wooden spoon protects the enamel.",
+    notes: "Size = diameter; 20 cm holds 4.5 l, 24 cm holds 7 l.",
+    sizes: cm(["20 cm", "24 cm"], [1, 1.35]),
+    basePriceCents: 5900,
+    weightGrams: 1814,
+    dimsCm: [20, 20, 16],
+    allowedClaims: ["enamelled steel", "non-reactive", "induction compatible", "oven-safe", "dishwasher-safe"],
+    negatedClaims: [],
+    tags: ["stock pot", "enamel", "cookware"],
+    keywords: ["pot"],
+  },
+  {
+    stem: "SS-SP",
+    titleEn: "Stainless Steel Saucepan",
+    descriptionEn:
+      "Saucepan in 18/10 stainless steel with an encapsulated aluminium base that spreads heat evenly and works on induction. The rim is rolled for drip-free pouring and the lid is in matching stainless steel. Dishwasher-safe and made in Italy; 16 cm holds 1.5 l, 18 cm holds 2.2 l.",
+    categoryPrefix: "Home & Garden > Kitchen & Dining > Cookware > Pots & Pans",
+    brand: "Ferro & Co",
+    material: "stainless steel",
+    care: "Dishwasher-safe; water spots come off with a little vinegar.",
+    notes: "Size = diameter. Suitable for all hobs including induction.",
+    sizes: cm(["16 cm", "18 cm"], [1, 1.2]),
+    basePriceCents: 4500,
+    weightGrams: 900,
+    dimsCm: [16, 16, 9],
+    allowedClaims: ["stainless steel", "induction", "dishwasher-safe", "made in italy"],
+    negatedClaims: [],
+    tags: ["saucepan", "stainless steel", "cookware"],
+    keywords: ["saucepan"],
+    fr: {
+      title: "Casserole en acier inoxydable",
+      description:
+        "Casserole en acier inoxydable 18/10 avec fond encapsulé en aluminium qui répartit la chaleur uniformément et convient à l'induction. Le bord roulé permet de verser sans goutte et le couvercle est en inox assorti. Compatible lave-vaisselle. Fabriqué en Italie ; le 16 cm contient 1,5 l, le 18 cm 2,2 l.",
+      category: "Maison & Jardin > Cuisine & Salle à manger > Ustensiles de cuisson > Casseroles",
+      care: "Compatible lave-vaisselle ; les traces d'eau partent avec un peu de vinaigre.",
+      notes: "Taille = diamètre. Convient à tous les feux, induction comprise.",
+    },
+  },
+  {
+    stem: "GL-FC",
+    titleEn: "Glass Food Container",
+    descriptionEn:
+      "Food container in borosilicate glass with a bamboo lid and a silicone seal that keeps leftovers airtight. The glass is oven-safe to 300 °C, freezer-safe and microwave-safe with the lid off, and dishwasher-safe; the bamboo lid is hand wash only. BPA-free and sized to stack in the fridge door.",
+    categoryPrefix: "Home & Garden > Kitchen & Dining > Food Storage > Food Containers",
+    brand: "Oliva",
+    material: "borosilicate glass",
+    care: "Glass: dishwasher-safe. Lid: hand wash and dry flat.",
+    notes: "Lid off for oven, freezer and microwave.",
+    sizes: [
+      { label: "500 ml", code: "05", factor: 1 },
+      { label: "1 l", code: "10", factor: 1.3 },
+      { label: "1.5 l", code: "15", factor: 1.6 },
+    ],
+    basePriceCents: 1250,
+    weightGrams: 480,
+    dimsCm: [15, 11, 7],
+    allowedClaims: ["borosilicate glass", "bamboo lid", "airtight", "oven-safe", "freezer-safe", "bpa-free"],
+    negatedClaims: [],
+    tags: ["food container", "glass", "storage"],
+    keywords: ["container"],
+  },
+  {
+    stem: "BW-FW",
+    titleEn: "Beeswax Food Wraps",
+    descriptionEn:
+      "Set of three reusable food wraps (small, medium, large) in GOTS-certified organic cotton coated with beeswax, jojoba oil and tree resin. The warmth of your hands moulds them around a bowl or a cut lemon, and they last about a year with daily use. Compostable at the end of their life.",
+    categoryPrefix: "Home & Garden > Kitchen & Dining > Food Storage",
+    brand: "Hive & Wick",
+    material: "organic cotton, beeswax",
+    care: "Hand wash in cool water with mild soap and air dry; never use hot water.",
+    notes: "Three sizes in one pack: 20, 26 and 33 cm squares.",
+    basePriceCents: 800,
+    weightGrams: 60,
+    dimsCm: [33, 33, 0.5],
+    allowedClaims: ["set of three", "reusable", "gots-certified organic cotton", "beeswax", "compostable"],
+    negatedClaims: [],
+    tags: ["food wraps", "beeswax", "zero waste"],
+    keywords: ["wraps"],
+  },
+  {
+    stem: "LN-AP",
+    titleEn: "Linen Apron",
+    descriptionEn:
+      "Cross-back apron in 100% European linen, OEKO-TEX certified and pre-washed so it will not shrink further. No neck strap to pull: the straps cross behind and loop into the sides. Two patch pockets at the front and a towel loop at the hip; machine washable at 40 °C.",
+    categoryPrefix: "Home & Garden > Linens & Bedding > Kitchen Linens > Aprons",
+    brand: "Hinterland",
+    material: "linen",
+    care: "Machine washable at 40 °C; tumble dry low or line dry. Softens with every wash.",
+    notes: "One size; 85 cm long from the chest.",
+    basePriceCents: 4200,
+    weightGrams: 300,
+    dimsCm: [85, 70, 1],
+    allowedClaims: ["cross-back", "100% european linen", "oeko-tex certified", "two patch pockets", "machine washable"],
+    negatedClaims: [],
+    tags: ["apron", "linen", "kitchen"],
+    keywords: ["apron"],
+  },
+  // -------------------------------------------------------------- home & garden
+  {
+    stem: "SG-BK",
+    titleEn: "Seagrass Storage Basket",
+    descriptionEn:
+      "Storage basket hand-woven from natural seagrass over a steel wire frame, with two cotton rope handles stitched through the weave. Holds its shape when empty and nests inside the next size up. Made in Vietnam by a cooperative that works with us directly.",
+    categoryPrefix: "Home & Garden > Decor > Baskets",
+    brand: "Nordhaus",
+    material: "seagrass",
+    care: "Dust with a dry cloth; keep away from standing water.",
+    notes: "Indoor use only. Natural fibre, so shade and weave vary from piece to piece.",
+    sizes: sml([1, 1.4, 1.9]),
+    basePriceCents: 1900,
+    weightGrams: 450,
+    dimsCm: [30, 30, 22],
+    allowedClaims: ["hand-woven", "natural seagrass", "cotton rope handles", "made in vietnam"],
+    negatedClaims: [],
+    tags: ["basket", "seagrass", "storage"],
+    keywords: ["basket"],
+    de: {
+      title: "Seegras-Korb mit Griffen",
+      description:
+        "Aufbewahrungskorb aus natürlichem Seegras, handgefertigt und über ein Drahtgestell geflochten, mit zwei durch das Geflecht genähten Griffen aus Baumwollkordel. Behält auch leer seine Form und lässt sich in die nächstgrößere Größe stapeln. Hergestellt in Vietnam von einer Kooperative, mit der wir direkt zusammenarbeiten.",
+      category: "Haus & Garten > Dekoration > Körbe",
+      care: "Mit einem trockenen Tuch abstauben; nicht in stehendem Wasser lagern.",
+      notes: "Nur für den Innenbereich. Naturfaser, daher variieren Farbton und Flechtung von Stück zu Stück.",
+    },
+  },
+  {
+    stem: "ST-VS",
+    titleEn: "Stoneware Vase",
+    descriptionEn:
+      "Bottle-shaped vase in hand-thrown stoneware with a reactive glaze that breaks darker over the ridges. Glazed inside as well, so it is watertight and takes fresh flowers without a liner. 22 cm tall with a 4 cm neck for single stems or a loose bunch.",
+    categoryPrefix: "Home & Garden > Decor > Vases",
+    brand: "Casa Tierra",
+    material: "stoneware",
+    care: "Rinse and dry; do not leave water standing for weeks.",
+    notes: "Each vase is glazed by hand, so the pooling differs from the photo.",
+    colours: col(["white", "WH"], ["sage green", "SG"], ["ochre", "OC"], ["dark blue", "DB"]),
+    basePriceCents: 2400,
+    weightGrams: 650,
+    dimsCm: [10, 10, 22],
+    allowedClaims: ["hand-thrown", "stoneware", "reactive glaze", "watertight"],
+    negatedClaims: [],
+    tags: ["vase", "stoneware", "decor"],
+    keywords: ["vase"],
+    de: {
+      title: "Steinzeug-Vase",
+      description:
+        "Flaschenförmige Vase aus Steinzeug, handgedreht, mit reaktiver Glasur, die über den Rillen dunkler aufbricht. Auch innen glasiert und daher wasserdicht; frische Blumen brauchen keinen Einsatz. 22 cm hoch, mit 4 cm Hals für einzelne Stiele oder einen lockeren Strauß.",
+      category: "Haus & Garten > Dekoration > Vasen",
+      care: "Ausspülen und trocknen; Wasser nicht wochenlang stehen lassen.",
+      notes: "Jede Vase wird von Hand glasiert, daher weicht das Verlaufen der Glasur vom Foto ab.",
+    },
+  },
+  {
+    stem: "OK-WC",
+    titleEn: "Oak Wall Clock",
+    descriptionEn:
+      "30 cm wall clock with a face cut from a single piece of FSC-certified oak and brass hands. The quartz movement is a silent sweep, so there is no ticking in a bedroom or study. Runs on one AA battery, not included; hangs from a keyhole slot on the back.",
+    categoryPrefix: "Home & Garden > Decor > Clocks",
+    brand: "Nordhaus",
+    material: "oak",
+    care: "Dust with a dry cloth; keep out of direct sunlight to stop the oak yellowing.",
+    notes: "Battery not included.",
+    basePriceCents: 6900,
+    weightGrams: 900,
+    dimsCm: [30, 30, 4],
+    allowedClaims: ["fsc-certified oak", "brass hands", "silent sweep", "battery not included"],
+    negatedClaims: [],
+    tags: ["wall clock", "oak", "decor"],
+    keywords: ["clock"],
+  },
+  {
+    stem: "TK-GB",
+    titleEn: "Teak Garden Bench",
+    descriptionEn:
+      "Three-seater garden bench in FSC-certified teak with mortise-and-tenon joints and stainless steel fixings that will not streak the timber. Suitable for outdoor use all year; left untreated it weathers to a silver-grey, or oil it twice a year to keep the honey tone. 150 cm wide, delivered assembled on a pallet.",
+    categoryPrefix: "Furniture > Outdoor Furniture",
+    brand: "Hinterland",
+    material: "teak",
+    care: "Oil twice a year to keep the colour, or leave to weather.",
+    notes: "Delivered assembled; kerbside delivery only.",
+    basePriceCents: 129900,
+    weightGrams: 24000,
+    dimsCm: [150, 60, 90],
+    allowedClaims: ["fsc-certified teak", "stainless steel fixings", "suitable for outdoor use", "delivered assembled"],
+    negatedClaims: [],
+    tags: ["garden bench", "teak", "outdoor"],
+    keywords: ["bench"],
+  },
+  // -------------------------------------------------------------------- office
+  {
+    stem: "WN-PH",
+    titleEn: "Walnut Pen Holder",
+    descriptionEn:
+      "Pen holder turned from a single block of American black walnut and finished with food-safe hardwax oil, so the grain shows through. The 8 cm cup takes a dozen pens or a pair of reading glasses, and a cork pad on the base keeps it from marking the desk. Each piece is made to order in our Lisbon workshop.",
+    categoryPrefix: "Office Supplies > Desk Accessories > Pen Holders",
+    brand: "Folio",
+    material: "walnut",
+    care: "Wipe with a dry cloth; re-oil once a year.",
+    basePriceCents: 2850,
+    weightGrams: 220,
+    dimsCm: [8, 8, 10],
+    allowedClaims: ["black walnut", "hardwax oil", "cork pad", "made to order"],
+    negatedClaims: [],
+    tags: ["pen holder", "walnut", "desk"],
+    keywords: ["pen", "holder"],
+  },
+  // ----------------------------------------------------------------------- pets
+  {
+    stem: "WX-DC",
+    titleEn: "Waxed Cotton Dog Coat",
+    descriptionEn:
+      "Dog coat in British waxed cotton with a warm fleece lining, reflective piping along the back seam and an adjustable belly strap with a quick-release buckle. Cut high at the chest and clear of the legs so it does not restrict a running dog. Water-resistant for a wet walk; re-wax once a season to keep the finish.",
+    categoryPrefix: "Animals & Pet Supplies > Pet Supplies > Dog Supplies",
+    brand: "Pawfolk",
+    material: "waxed cotton",
+    care: "Brush off dry mud and sponge clean with cold water.",
+    notes: "Water-resistant, not waterproof; re-wax once a season.",
+    sizes: sml([1, 1.2, 1.45]),
+    basePriceCents: 3400,
+    weightGrams: 280,
+    dimsCm: [40, 30, 2],
+    allowedClaims: ["waxed cotton", "fleece lining", "reflective piping", "adjustable belly strap", "water-resistant"],
+    negatedClaims: ["waterproof"],
+    tags: ["dog coat", "waxed cotton", "dog"],
+    keywords: ["dog", "coat"],
+  },
+  {
+    stem: "FC-CV",
+    titleEn: "Felt Cat Cave",
+    descriptionEn:
+      "Cat cave hand-felted from 100% merino wool in Nepal, thick enough to hold its dome shape without a frame. The wool breathes, so it stays cool in summer and warm in winter, and the 40 cm opening suits cats up to about 6 kg. Fair-trade certified through the workshop that makes them.",
+    categoryPrefix: "Animals & Pet Supplies > Pet Supplies > Pet Beds",
+    brand: "Pawfolk",
+    material: "merino wool felt",
+    care: "Spot clean with a damp cloth; air in the sun to freshen. Reshape by hand while damp.",
+    notes: "Wool felt, so expect some shedding in the first weeks.",
+    colours: col(["grey", "GR"], ["mustard", "MU"]),
+    basePriceCents: 4900,
+    weightGrams: 700,
+    dimsCm: [45, 45, 30],
+    allowedClaims: ["hand-felted", "100% merino wool", "fair-trade certified"],
+    negatedClaims: [],
+    tags: ["cat cave", "wool", "cat bed"],
+    keywords: ["cat"],
+  },
+];
+
 /** Hex colour per canonical colour label, used for the photo backgrounds. */
 export const COLOUR_HEX: Record<string, string> = {
   terracotta: "#c8683f",
@@ -1346,6 +1608,13 @@ export const MATERIAL_HEX: Record<string, string> = {
   plywood: "#dcc39a",
   "beech wood": "#e2c9a0",
   concrete: "#9a9a9a",
+  // new-12 materials; appended so the lookups above keep their first match.
+  "enamelled steel": "#3b5f7a",
+  seagrass: "#c2b280",
+  teak: "#a0714f",
+  walnut: "#5c3a21",
+  "borosilicate glass": "#cfe3e8",
+  "waxed cotton": "#5b5a3c",
 };
 
 /** True when `prefix` is a TAXONOMY path or a strict ancestor of one ("Home & Garden > Decor"). */
@@ -1356,7 +1625,7 @@ export function isTaxonomyPrefix(prefix: string): boolean {
 /** Throws when a template's claims are not actually present in its own text. */
 export function validateCatalog(): void {
   const stems = new Set<string>();
-  for (const t of CATALOG) {
+  for (const t of [...CATALOG, ...NEW_12_CATALOG]) {
     if (stems.has(t.stem)) throw new Error(`catalog: duplicate stem ${t.stem}`);
     stems.add(t.stem);
     const corpus = `${t.descriptionEn} ${t.notes ?? ""} ${t.care ?? ""}`.toLowerCase();
@@ -1382,7 +1651,7 @@ export function validateCatalog(): void {
 }
 
 export function templateByStem(stem: string): ProductTemplate {
-  const t = CATALOG.find((x) => x.stem === stem);
+  const t = CATALOG.find((x) => x.stem === stem) ?? NEW_12_CATALOG.find((x) => x.stem === stem);
   if (!t) throw new Error(`catalog: unknown stem ${stem}`);
   return t;
 }

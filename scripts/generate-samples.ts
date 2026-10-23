@@ -17,6 +17,7 @@ import { createPrng } from "./lib/prng";
 import { rowsToMatrix } from "./lib/rows";
 import { buildBulk } from "./lib/sample-bulk";
 import { buildMessy, type PhotoPlanEntry } from "./lib/sample-messy";
+import { buildNew12 } from "./lib/sample-new";
 import { buildLatin1, buildSemicolon, buildTiny, FAKE_HTML, SEMICOLON_HEADER_LINE } from "./lib/sample-small";
 import { groundTruthJson, toCsv, toXlsx } from "./lib/writers";
 
@@ -84,6 +85,19 @@ export async function generateSamples(opts: GenerateOptions): Promise<GeneratedF
   write("ground-truth/messy-120.json", groundTruthJson(messy.groundTruth, false), `${messy.groundTruth.products.length} products, ${messy.groundTruth.unmatchedPhotos.length} unmatched photos`);
   const zipEntries = await renderPhotoZip(messy.photoPlan);
   write("photos-messy.zip", await buildZip(zipEntries), `${zipEntries.length} entries`);
+
+  // --- new-12 (CSV + photos)
+  const fresh = buildNew12(root, seed);
+  if (opts.verbose) for (const line of fresh.log) console.log(`new-12 ${line}`);
+  const freshTruth = fresh.groundTruth;
+  write(
+    "new-12.csv",
+    toCsv(headersOf(fresh.columns), rowsToMatrix(fresh.rows, fresh.columns)),
+    `${fresh.rows.length} rows, ${freshTruth.products.length} new products, ${freshTruth.duplicateRows.length} duplicate, ${freshTruth.products.filter((p) => p.language !== "en").length} non-English`,
+  );
+  write("ground-truth/new-12.json", groundTruthJson(freshTruth, false), `${freshTruth.products.length} products, ${freshTruth.unmatchedPhotos.length} unmatched photos`);
+  const freshZip = await renderPhotoZip(fresh.photoPlan);
+  write("photos-new-12.zip", await buildZip(freshZip), `${freshZip.length} entries`);
 
   // --- semicolon-eu
   const semi = buildSemicolon(seed);

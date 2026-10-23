@@ -1,0 +1,553 @@
+{
+  "duplicateRows": [
+    {
+      "of": 14,
+      "row": 23
+    }
+  ],
+  "generatedAt": "seed-42",
+  "products": [
+    {
+      "allowedClaims": [
+        "stainless steel",
+        "induction",
+        "dishwasher-safe",
+        "made in italy"
+      ],
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Cookware > Pots & Pans",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "fr",
+      "negatedClaims": [],
+      "photos": [
+        "SS-SP-16.jpg",
+        "SS-SP-18.jpg"
+      ],
+      "productKey": "SS-SP",
+      "sourceRows": [
+        1,
+        2
+      ],
+      "titleKeywords": [
+        "saucepan"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "16 cm"
+          },
+          "priceCents": 4500,
+          "sku": "SS-SP-16",
+          "weightGrams": 900
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "18 cm"
+          },
+          "priceCents": 5400,
+          "sku": "SS-SP-18",
+          "weightGrams": 1080
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "hand-felted",
+        "100% merino wool",
+        "fair-trade certified"
+      ],
+      "categoryPrefix": "Animals & Pet Supplies > Pet Supplies > Pet Beds",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [
+        "FC-CV-GR.jpg"
+      ],
+      "productKey": "FC-CV",
+      "sourceRows": [
+        3,
+        4
+      ],
+      "titleKeywords": [
+        "cat"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "grey"
+          },
+          "priceCents": 4900,
+          "sku": "FC-CV-GR",
+          "weightGrams": 700
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "mustard"
+          },
+          "priceCents": 4900,
+          "sku": "FC-CV-MU",
+          "weightGrams": 700
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "waxed cotton",
+        "fleece lining",
+        "reflective piping",
+        "adjustable belly strap",
+        "water-resistant"
+      ],
+      "categoryPrefix": "Animals & Pet Supplies > Pet Supplies > Dog Supplies",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [
+        "waterproof"
+      ],
+      "photos": [
+        "WX-DC-M.jpg",
+        "IMG_2031_WX-DC-L.jpg"
+      ],
+      "productKey": "WX-DC",
+      "sourceRows": [
+        5,
+        6,
+        7
+      ],
+      "titleKeywords": [
+        "dog",
+        "coat"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "S"
+          },
+          "priceCents": 3400,
+          "sku": "WX-DC-S",
+          "weightGrams": 280
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "M"
+          },
+          "priceCents": 4080,
+          "sku": "WX-DC-M",
+          "weightGrams": 336
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "L"
+          },
+          "priceCents": 4930,
+          "sku": "WX-DC-L",
+          "weightGrams": 406
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "hand-thrown",
+        "stoneware",
+        "reactive glaze",
+        "watertight"
+      ],
+      "categoryPrefix": "Home & Garden > Decor > Vases",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "de",
+      "negatedClaims": [],
+      "photos": [
+        "ST-VS-WH.jpg",
+        "ST-VS-SG.jpg"
+      ],
+      "productKey": "ST-VS",
+      "sourceRows": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "titleKeywords": [
+        "vase"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "white"
+          },
+          "priceCents": 2400,
+          "sku": "ST-VS-WH",
+          "weightGrams": 650
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "sage green"
+          },
+          "priceCents": 2400,
+          "sku": "ST-VS-SG",
+          "weightGrams": 650
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "ochre"
+          },
+          "priceCents": 2400,
+          "sku": "ST-VS-OC",
+          "weightGrams": 650
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "color": "dark blue"
+          },
+          "priceCents": 2400,
+          "sku": "ST-VS-DB",
+          "weightGrams": 650
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "borosilicate glass",
+        "bamboo lid",
+        "airtight",
+        "oven-safe",
+        "freezer-safe",
+        "bpa-free"
+      ],
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Food Storage > Food Containers",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [
+        "GL-FC-10.jpg"
+      ],
+      "productKey": "GL-FC",
+      "sourceRows": [
+        12,
+        13,
+        14
+      ],
+      "titleKeywords": [
+        "container"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "500 ml"
+          },
+          "priceCents": 1250,
+          "sku": "GL-FC-05",
+          "weightGrams": 480
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "1 l"
+          },
+          "priceCents": 1625,
+          "sku": "GL-FC-10",
+          "weightGrams": 624
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "1.5 l"
+          },
+          "priceCents": 2000,
+          "sku": "GL-FC-15",
+          "weightGrams": 768
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "set of three",
+        "reusable",
+        "gots-certified organic cotton",
+        "beeswax",
+        "compostable"
+      ],
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Food Storage",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [
+        "BW-FW-01.png"
+      ],
+      "productKey": "BW-FW-01",
+      "sourceRows": [
+        15
+      ],
+      "titleKeywords": [
+        "wraps"
+      ],
+      "variants": [
+        {
+          "currency": "GBP",
+          "options": {},
+          "priceCents": 800,
+          "sku": "BW-FW-01",
+          "weightGrams": 60
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "fsc-certified oak",
+        "brass hands",
+        "silent sweep",
+        "battery not included"
+      ],
+      "categoryPrefix": "Home & Garden > Decor > Clocks",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [
+        "OK-WC-01.jpg"
+      ],
+      "productKey": "OK-WC-01",
+      "sourceRows": [
+        16
+      ],
+      "titleKeywords": [
+        "clock"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {},
+          "priceCents": 6900,
+          "sku": "OK-WC-01",
+          "weightGrams": 900
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "enamelled steel",
+        "non-reactive",
+        "induction compatible",
+        "oven-safe",
+        "dishwasher-safe"
+      ],
+      "categoryPrefix": "Home & Garden > Kitchen & Dining > Cookware > Pots & Pans",
+      "expectedReviewReasons": [
+        "sku_conflict"
+      ],
+      "expectedStatus": "needs_review",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [
+        "EN-SP-20.jpg",
+        "EN-SP-24.png"
+      ],
+      "productKey": "EN-SP",
+      "sourceRows": [
+        17,
+        18,
+        22
+      ],
+      "titleKeywords": [
+        "pot"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "20 cm"
+          },
+          "priceCents": 5900,
+          "sku": "EN-SP-20",
+          "weightGrams": 1814
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "24 cm"
+          },
+          "priceCents": 7965,
+          "sku": "EN-SP-24",
+          "weightGrams": 2449
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "fsc-certified teak",
+        "stainless steel fixings",
+        "suitable for outdoor use",
+        "delivered assembled"
+      ],
+      "categoryPrefix": "Furniture > Outdoor Furniture",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [
+        "TK-GB-01.jpg"
+      ],
+      "productKey": "TK-GB-01",
+      "sourceRows": [
+        19
+      ],
+      "titleKeywords": [
+        "bench"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {},
+          "priceCents": 129900,
+          "sku": "TK-GB-01",
+          "weightGrams": 24000
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "hand-woven",
+        "natural seagrass",
+        "cotton rope handles",
+        "made in vietnam"
+      ],
+      "categoryPrefix": "Home & Garden > Decor > Baskets",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "de",
+      "negatedClaims": [],
+      "photos": [
+        "SG-BK-front.png",
+        "SG-BK-2.png"
+      ],
+      "productKey": "SG-BK",
+      "sourceRows": [
+        20,
+        21,
+        24
+      ],
+      "titleKeywords": [
+        "basket"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "S"
+          },
+          "priceCents": 1900,
+          "sku": "SG-BK-S",
+          "weightGrams": 450
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "M"
+          },
+          "priceCents": 2660,
+          "sku": "SG-BK-M",
+          "weightGrams": 630
+        },
+        {
+          "currency": "EUR",
+          "options": {
+            "size": "L"
+          },
+          "priceCents": 3610,
+          "sku": "SG-BK-L",
+          "weightGrams": 855
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "cross-back",
+        "100% european linen",
+        "oeko-tex certified",
+        "two patch pockets",
+        "machine washable"
+      ],
+      "categoryPrefix": "Home & Garden > Linens & Bedding > Kitchen Linens > Aprons",
+      "expectedReviewReasons": [
+        "no_price"
+      ],
+      "expectedStatus": "needs_review",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [
+        "LN-AP-01.jpg"
+      ],
+      "productKey": "LN-AP-01",
+      "sourceRows": [
+        25
+      ],
+      "titleKeywords": [
+        "apron"
+      ],
+      "variants": [
+        {
+          "currency": null,
+          "options": {},
+          "priceCents": null,
+          "sku": "LN-AP-01",
+          "weightGrams": 300
+        }
+      ]
+    },
+    {
+      "allowedClaims": [
+        "black walnut",
+        "hardwax oil",
+        "cork pad",
+        "made to order"
+      ],
+      "categoryPrefix": "Office Supplies > Desk Accessories > Pen Holders",
+      "expectedReviewReasons": [],
+      "expectedStatus": "done",
+      "language": "en",
+      "negatedClaims": [],
+      "photos": [
+        "desk_walnut_holder_studio.jpg"
+      ],
+      "productKey": "walnut-pen-holder",
+      "sourceRows": [
+        26
+      ],
+      "titleKeywords": [
+        "pen",
+        "holder"
+      ],
+      "variants": [
+        {
+          "currency": "EUR",
+          "options": {},
+          "priceCents": 2850,
+          "sku": "",
+          "weightGrams": 220
+        }
+      ]
+    }
+  ],
+  "sample": "new-12",
+  "seed": 42,
+  "unmatchedPhotos": [
+    "DSC_0417.jpg"
+  ]
+}

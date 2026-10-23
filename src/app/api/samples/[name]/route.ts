@@ -8,6 +8,8 @@ const ALLOWED: Record<string, string> = {
   "messy-120.csv": "text/csv",
   "messy-120.xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "photos-messy.zip": "application/zip",
+  "new-12.csv": "text/csv",
+  "photos-new-12.zip": "application/zip",
   "dump-mysql.sql": "application/sql",
   "semicolon-eu.csv": "text/csv",
   "broken-latin1.csv": "text/csv",
