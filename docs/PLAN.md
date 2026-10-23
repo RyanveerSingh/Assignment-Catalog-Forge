@@ -426,7 +426,7 @@ Cut order if we fall behind (last cut first): Shopify CSV → public API → web
 4. Upload `dump-mysql.sql` (a mysqldump with a `DROP TABLE` in it) and show it parses to the same rows; paste a public Google Sheets link and show it imports.
 5. Upload `bulk-10000.csv` → live progress → open the storefront in another tab, switch country to DE/FR, mobile view → run autocannon in a terminal while importing.
 6. Settings → "Crash worker now" mid-import: the event log shows the reaper reclaiming the abandoned jobs, the import resumes with counts unchanged, the storefront tab never stopped responding.
-7. Chaos: 429 at 50% → "Paused — resuming in X" → auto-resume; invalid JSON injection → retry visible in the event log.
+7. Chaos: 429 at 50% → "Paused — resuming in X" → auto-resume; invalid JSON injection → retry visible in the event log; "invented claim" at 100% → re-run a product and watch the Guardrail badge block "frost-proof" against "not frost-proof".
 8. Metrics: throughput, the cost-strategies table (Sonnet everywhere vs routed vs actual vs Batch), savings meter, translation coverage and outdated count; Products: edit a translation, change the English, see Out of date.
 
 ---

@@ -12,7 +12,7 @@ Status legend
 | ❌ | Not handled: with the reason and what it would take |
 | ⬜ | Planned: not built yet |
 
-Counts (148 entries, last pass 2026-10-23 12:30 IST): ✅ 87 · 🟡 54 · ❌ 7 · ⬜ 0
+Counts (154 entries, last pass 2026-10-23 15:30 IST): ✅ 93 · 🟡 55 · ❌ 6 · ⬜ 0
 
 Tests reference these IDs by name (for example `EC-B5: parses "1.299,00 €" as 129900 EUR`), so a status is flipped to ✅ only when such a test exists. Run `npx vitest run` and grep for `EC-` to see them all.
 
@@ -110,7 +110,7 @@ Tests reference these IDs by name (for example `EC-B5: parses "1.299,00 €" as 
 | ID | What happens | What CatalogForge does (and why) | Status |
 |---|---|---|---|
 | D1 | The model returns invalid JSON or violates the schema | Structured outputs + Zod validation; the second attempt escalates to the strong model; the third splits the batch into single products; then Failed with the error as the reason. | 🟡 chaos injection exists; escalation path untested |
-| D2 | The model invents a claim ("organic", "handmade") | The grounding validator checks every marketing/regulatory term against the product's source text; unsupported terms are removed from claims and text and the product is flagged "Listing says X but the source does not". Every removal is persisted on the product as `guardrails` and shown in the review drawer as a Guardrail badge pointing at the source cell. Marketing adjectives (natural, premium, bestseller, award-winning, limited edition) are removed without a review; facts, certifications and safety statements always get one. Origin phrases count only when a place name follows ("Made in Portugal"), so "hand-made in natural jute" is not an origin claim; "solid wood" is backed by "solid oak", "Eiche massiv" or "chêne massif". | ✅ |
+| D2 | The model invents a claim ("organic", "handmade") | The grounding validator checks every marketing/regulatory term against the product's source text; unsupported terms are removed from claims and text and the product is flagged "Listing says X but the source does not". Every removal is persisted on the product as `guardrails` and shown in the review drawer as a Guardrail badge pointing at the source cell. Marketing adjectives (natural, premium, bestseller, award-winning, limited edition) are removed without a review; facts, certifications and safety statements always get one. Origin phrases count only when a place name follows ("Made in Portugal"), so "hand-made in natural jute" is not an origin claim; "solid wood" is backed by "solid oak", "Eiche massiv" or "chêne massif". The chaos panel's "invented claim" knob slips a claim the supplier negated into any answer, demo provider or real model, so the block can be watched live; the demo provider itself writes carefully. | ✅ |
 | D3 | The model outputs a category outside the taxonomy | Nearest taxonomy path by trigram similarity, otherwise fallback + review. A valid leaf the model itself doubts (confidence below 60, "Pencils" for a sharpener) is filed under its parent node instead: vague beats wrong and needs no reviewer. The demo provider snaps a supplier's own category column, German or French included, the same way. | ✅ |
 | D4 | The model changes a number (20 cm becomes 25 cm) | Number audit against the source, including unit conversions; unsupported numbers are flagged, two or more send the product to review. | ✅ |
 | D5 | The model "corrects" a SKU or price | Impossible by construction: the output schema has no money or identity fields. | 🟡 by construction |
@@ -130,6 +130,7 @@ Tests reference these IDs by name (for example `EC-B5: parses "1.299,00 €" as 
 | D19 | A bug causes runaway spend | Per-import budget cap (default $5) pauses the import with "budget reached". The running total is an atomic `cost_micros + x` increment: the first read-add-write version lost charges under six concurrent batches (the counter visibly went backwards during the real 1,000-row run), which could have let an import overrun its cap. Finalize recomputes the exact total from `ai_requests`. | 🟡 |
 | D20 | The same product content was processed before (re-upload, re-run with same settings) | Served from the content-addressed `ai_requests` cache: no API call, a zero-cost row for the import. | ✅ pipeline test |
 | D21 | The model answers in German because the source was German | Not checked: an output-language check was not built. The prompt demands English. | ❌ |
+| D22 | The merchant wants to A/B a prompt without disturbing the validator | Prompts are a registry (`PROMPT_VERSIONS`): every version shares the eight hard rules verbatim and differs only in style guidance (v1 standard, v2 concise). A version is an id: the response cache, products, ai_requests and eval_runs record the id, so a new wording is always a new id; an unregistered id is rejected at the API, in the eval CLI and as a programmer error in `buildEnrichSystemPrompt`. | ✅ `prompts.test.ts` |
 
 ## E. Queue, scale and restart
 
@@ -168,6 +169,7 @@ Tests reference these IDs by name (for example `EC-B5: parses "1.299,00 €" as 
 | F7 | Two browser tabs edit the same product | Optimistic `version` check; the second save gets 409 and is told to reload. | 🟡 |
 | F8 | The reviewer wants to see which source words a claim rests on, and what was blocked | Every verified claim is a chip ("frost-resistant · Row 14 · Notes"); hovering or pinning it marks the exact quoted substring in the source cell. Everything the validator removed is persisted as `guardrails` and shown as Guardrail badges ("Blocked 'frost-proof' — source says 'not frost-proof' (Row 14 · Notes)") that mark the negation as the supplier wrote it. | ✅ `quote.test.ts`, grounding tests |
 | F9 | The reviewer wants to know what the cleaner changed before the AI saw the row | "Show cleaning" in the drawer lists, per source row, only the fields the deterministic cleaner changed or flagged: raw price cell → cents + currency, weight → g, lengths → cm, HTML → text with the count of unsafe tags removed, mojibake raw → repaired, colour fuzzy matches, size and SKU normalisation, detected language. | ✅ `xray.test.ts` (B1, B2, B5, B7, B9–B14, B18, C6, A4) |
+| F10 | The merchant re-runs AI on a selection with another model tier or prompt version | One job per selected product from the bulk bar, each audited like the single re-run; results go to the draft only. Products without source rows, deleted, or still pending from an earlier run are skipped and counted in the notice ("Queued 2 re-runs (1 skipped: no source rows)"), never failed. | 🟡 exercised by hand on real4 (Haiku and Sonnet) |
 
 ## G. Translation
 
@@ -205,9 +207,13 @@ Tests reference these IDs by name (for example `EC-B5: parses "1.299,00 €" as 
 | I1 | A user guesses another store's IDs | Every repository call is scoped by the session's store; IDs are UUIDs; the same product key in two stores yields two independent products. | ✅ |
 | I2 | An API key ends up in logs | Keys are hashed at rest, shown masked, and redacted by the logger. | ✅ mask/hash tests |
 | I3 | Supplier HTML tries to execute in the dashboard | Sanitised at ingest and again before storage; rendered only from sanitised HTML. | 🟡 |
-| I4 | An image URL or webhook target points at an internal address | Neither feature is built (see C14); nothing fetches merchant-supplied URLs. | ❌ by omission |
+| I4 | A webhook target points at an internal address (metadata IP, 10/8, loopback, `.internal`, or a public name that resolves to a private IP) | Refused on save and again at send time: https only, no credentials, hostname not local, every resolved A/AAAA address outside the private, loopback, link-local, CGNAT, multicast and metadata ranges, so DNS rebinding is caught too. http is allowed for localhost only outside production. Image URLs in sheets are still not fetched (C14). | ✅ `lib/public-url.test.ts` |
 | I5 | The public API is hammered | Bearer keys are required; per-key rate limiting was not built. | ❌ |
 | I6 | An exported cell starts with `=`, `+`, `-` or `@` | Escaped to prevent CSV injection; a UTF-8 BOM is written so Excel shows umlauts. | ✅ |
+| I7 | A receiver must prove a delivery came from CatalogForge | `X-CatalogForge-Signature: sha256=HMAC-SHA256(secret, "<timestamp>.<body>")`; the timestamp is inside the signed string so a capture cannot be replayed; verification is constant-time and never throws. The secret is shown once and stored AES-GCM encrypted. | ✅ `core/webhooks/signature.test.ts` |
+| I8 | A webhook body leaks a draft listing or an internal column | The payload is built from an explicit field list (event, id, createdAt, store, import summary); dates are ISO, money stays in micros, nothing the model wrote is included. | ✅ `core/webhooks/payload.test.ts` |
+| I9 | The receiver is down, slow or answers 5xx | 2xx delivered; 5xx, 408, 429, a 10 s timeout or a connection error are retried with the queue's 2s·2ⁿ backoff up to 5 attempts; other 4xx and any 3xx fail at once (redirects are never followed); the delivery log keeps the code, attempt count and a ≤500-char excerpt; a dead job marks the delivery Failed. | ✅ `core/webhooks/delivery.test.ts` (classification); retries exercised by hand |
+| I10 | Finalize runs twice, or the worker crashes after queuing | The event id is `<event>:<importId>` and `(webhook_id, event_id)` is unique with `ON CONFLICT DO NOTHING`, so a receiver is never notified twice; a delivery already marked delivered is never resent. | ✅ `core/webhooks/payload.test.ts` (id determinism); DB uniqueness exercised by hand (3 queued, then 0) |
 
 ## J. Operations
 
@@ -228,7 +234,6 @@ Tests reference these IDs by name (for example `EC-B5: parses "1.299,00 €" as 
 
 None of these is in the required feature list; each was cut by the plan's cut order (`docs/PLAN.md` §12) to protect the four non-negotiables: resume after restart, never duplicate, never invent, storefront stays fast.
 
-- **Webhook on import completion.** The `webhooks` and `webhook_deliveries` tables exist and the finalize job has the hook point. Delivery (HMAC-SHA256 signature, three retries with backoff, delivery log, a Settings panel) is about two hours of work and was the first "beyond" item cut.
 - **Image URL download (C14, I4).** Fetching merchant-supplied URLs from the worker needs an SSRF allow-list (block private ranges and DNS rebinding), per-host timeouts, size caps, content sniffing and retries. Half-built, it is a security hole; left out rather than shipped unsafe. URL references are kept as "missing photo" so nothing is lost. (The Google Sheets link import, A23, is different: the host is fixed to docs.google.com, so there is no arbitrary URL to abuse.)
 - **Output-language check (D21).** The prompt demands English and both real-model eval runs produced English for every German and French source product (title keyword rate 100%); a `franc` check on the output would be a guard against a regression, not a fix for an observed problem.
 - **Translation chunking and locale back-fill (G5, G7).** A field that exceeds the output limit fails verification and falls back to English with a visible flag. Adding a locale later needs a back-fill pass (clear `translated_at` for approved products so the existing translate job picks them up); not wired to the Settings save.
