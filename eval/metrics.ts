@@ -6,7 +6,9 @@
  * Every rate is a fraction 0–1, or null when there was nothing to score. `negatedViolations` is a
  * count and the one hard rule (EC-B15): a listing may never assert what the source negates.
  */
-import { foldForMatch } from "@/core/clean/text";
+import { assertsNegated, countAsserted, foldClaim, sameClaim } from "./claims";
+
+export { countAsserted, quoteFoundInRows } from "./claims";
 import type { DuplicateRow, GroundTruthProduct, GroundTruthStatus } from "@/core/types";
 
 // ---------------------------------------------------------------------------
@@ -26,6 +28,10 @@ export interface DerivedProduct {
   productKey: string;
   /** What the grounding validator removed, as "kind: text — reason", so a review flag explains itself in the report. */
   blocked: string[];
+  /** Claims whose cited quote the eval itself found in the raw source rows (independent of the validator's own verdict). */
+  claimsGrounded: number;
+  /** The claims it could not find, as `text ← "quote"`, so a grounding miss explains itself in the report. */
+  ungroundedClaims: string[];
   /** Variant SKUs as the grouper produced them; a synthetic `GEN-…` SKU never matches a truth SKU (EC-C6). */
   skus: string[];
   variants: DerivedVariant[];
@@ -107,56 +113,6 @@ export function matchProducts<D extends Matchable>(derived: D[], truth: GroundTr
 }
 
 // ---------------------------------------------------------------------------
-// Claims and negation
-// ---------------------------------------------------------------------------
-
-/** Lower-case, accent-free, punctuation → space: "Dishwasher-Safe" and "dishwasher safe" compare equal. */
-export function foldClaim(text: string): string {
-  return foldForMatch(text);
-}
-
-function tokens(folded: string): string[] {
-  return folded.split(" ").filter(Boolean);
-}
-
-function subset(a: string[], b: string[]): boolean {
-  const set = new Set(b);
-  return a.length > 0 && a.every((t) => set.has(t));
-}
-
-/** Same claim when the words of one all appear in the other ("organic" ⊂ "100% organic cotton"). */
-export function sameClaim(a: string, b: string): boolean {
-  const ta = tokens(a);
-  const tb = tokens(b);
-  return a === b || subset(ta, tb) || subset(tb, ta);
-}
-
-/** A claim asserts a negated claim when it is the negated phrase, a part of it, or its joined spelling ("frostproof"). */
-export function assertsNegated(claim: string, negated: string): boolean {
-  return claim === negated || subset(tokens(claim), tokens(negated)) || claim === negated.replace(/ /g, "");
-}
-
-const NEGATIONS: ReadonlySet<string> = new Set(["not", "no", "non", "never", "without", "nicht", "kein", "keine", "ohne", "pas", "sans", "aucun", "aucune", "jamais"]);
-const NEGATION_WINDOW = 3;
-
-/** Occurrences of `phrase` in folded `text` that are not negated within three tokens before ("not frost-proof" does not count). */
-export function countAsserted(text: string, phrase: string): number {
-  const words = tokens(text);
-  const forms = [tokens(phrase)];
-  if (forms[0].length > 1) forms.push([forms[0].join("")]);
-  let count = 0;
-  for (const needle of forms) {
-    if (needle.length === 0) continue;
-    for (let i = 0; i + needle.length <= words.length; i++) {
-      if (!needle.every((t, j) => words[i + j] === t)) continue;
-      const before = words.slice(Math.max(0, i - NEGATION_WINDOW), i);
-      if (!before.some((t) => NEGATIONS.has(t))) count += 1;
-    }
-  }
-  return count;
-}
-
-// ---------------------------------------------------------------------------
 // Per-product score
 // ---------------------------------------------------------------------------
 
@@ -184,17 +140,21 @@ export interface PairScore {
   titleKeywordHit: number | null;
   missingKeywords: string[];
   categoryPrefixMatch: boolean;
-  claimPrecision: number | null;
-  claimHits: number;
+  /** Share of the listing's claims whose cited quote exists in the raw rows: the "no invented claims" measure. */
+  claimGrounding: number | null;
+  claimsGrounded: number;
   claimCount: number;
-  disallowedClaims: string[];
-  claimRecall: number | null;
+  ungroundedClaims: string[];
+  /** Share of the generator's planted facts the listing mentions. Informational: a listing may omit a true fact. */
+  allowedClaimCoverage: number | null;
   allowedHits: number;
   allowedCount: number;
   missingClaims: string[];
   negatedViolations: number;
   violations: string[];
   statusCorrect: boolean;
+  /** Flagged because the validator blocked a claim the model asserted against the source: a correct flag the truth could not foresee. */
+  justifiedFlag: boolean;
   reviewReasonHit: boolean | null;
   titleConfidence: number | null;
   error: string | null;
@@ -250,7 +210,6 @@ export function scorePair(derived: DerivedProduct, truth: GroundTruthProduct): P
 
   const allowed = [...new Set(truth.allowedClaims.map(foldClaim).filter(Boolean))];
   const claims = [...new Set(derived.claims.map(foldClaim).filter(Boolean))];
-  const disallowedClaims = claims.filter((c) => !allowed.some((a) => sameClaim(a, c)));
   const missingClaims = allowed.filter((a) => !claims.some((c) => sameClaim(a, c)));
 
   const violations: string[] = [];
@@ -270,7 +229,11 @@ export function scorePair(derived: DerivedProduct, truth: GroundTruthProduct): P
   }
 
   const expectsReview = truth.expectedStatus === "needs_review";
-  const statusCorrect = derived.status !== "failed" && (derived.status === "needs_review") === expectsReview;
+  // The truth describes the data, not the model. A flag raised because the validator blocked a claim
+  // the model asserted against the source is the guardrail working, so it counts as a correct flag;
+  // such flags are also reported on their own so a careless model cannot hide behind them.
+  const justifiedFlag = derived.status === "needs_review" && derived.blocked.some((b) => b.startsWith("negated:") || b.startsWith("contradicted:"));
+  const statusCorrect = derived.status !== "failed" && ((derived.status === "needs_review") === expectsReview || justifiedFlag);
   const reviewReasonHit = expectsReview && truth.expectedReviewReasons.length > 0 ? truth.expectedReviewReasons.some((cls) => reasonReflected(cls, derived.reviewReasons)) : null;
   const titleConfidence = typeof derived.confidence.title === "number" ? derived.confidence.title : null;
 
@@ -298,17 +261,18 @@ export function scorePair(derived: DerivedProduct, truth: GroundTruthProduct): P
     titleKeywordHit: ratio(truth.titleKeywords.length - missingKeywords.length, truth.titleKeywords.length),
     missingKeywords,
     categoryPrefixMatch: derived.category.toLowerCase().startsWith(truth.categoryPrefix.toLowerCase()),
-    claimPrecision: ratio(claims.length - disallowedClaims.length, claims.length),
-    claimHits: claims.length - disallowedClaims.length,
-    claimCount: claims.length,
-    disallowedClaims,
-    claimRecall: ratio(allowed.length - missingClaims.length, allowed.length),
+    claimGrounding: ratio(derived.claimsGrounded, derived.claims.length),
+    claimsGrounded: derived.claimsGrounded,
+    claimCount: derived.claims.length,
+    ungroundedClaims: derived.ungroundedClaims,
+    allowedClaimCoverage: ratio(allowed.length - missingClaims.length, allowed.length),
     allowedHits: allowed.length - missingClaims.length,
     allowedCount: allowed.length,
     missingClaims,
     negatedViolations,
     violations,
     statusCorrect,
+    justifiedFlag,
     reviewReasonHit,
     titleConfidence,
     error: derived.error ?? null,
@@ -359,11 +323,13 @@ export interface EvalMetrics {
   priceExactness: number | null;
   titleKeywordRate: number | null;
   categoryAccuracy: number | null;
-  claimPrecision: number | null;
-  claimRecall: number | null;
+  claimGrounding: number | null;
+  allowedClaimCoverage: number | null;
   negatedViolations: number;
   reviewPrecision: number | null;
   reviewRecall: number | null;
+  /** Products flagged only because the validator blocked a claim the model asserted against the source. */
+  modelErrorFlags: number;
   reviewReasonRate: number | null;
   statusAccuracy: number | null;
   duplicatePrecision: number | null;
@@ -380,7 +346,8 @@ export function aggregate(scored: PairScore[], unmatched: { truth: GroundTruthPr
 
   const flagged = scored.filter((s) => s.status === "needs_review");
   const expectedReview = scored.filter((s) => s.expectedStatus === "needs_review");
-  const truePositives = flagged.filter((s) => s.expectedStatus === "needs_review").length;
+  const truePositives = flagged.filter((s) => s.expectedStatus === "needs_review" || s.justifiedFlag).length;
+  const modelErrorFlags = flagged.filter((s) => s.expectedStatus !== "needs_review" && s.justifiedFlag).length;
   const reasonScored = scored.filter((s) => s.reviewReasonHit !== null);
 
   const titled = scored.filter((s) => s.titleKeywordHit !== null);
@@ -402,11 +369,12 @@ export function aggregate(scored: PairScore[], unmatched: { truth: GroundTruthPr
     priceExactness: ratio(sum((s) => s.priceHits), truthVariants),
     titleKeywordRate: mean(titled.map((s) => s.titleKeywordHit ?? 0)),
     categoryAccuracy: ratio(scored.filter((s) => s.categoryPrefixMatch).length, scored.length),
-    claimPrecision: ratio(sum((s) => s.claimHits), sum((s) => s.claimCount)),
-    claimRecall: ratio(sum((s) => s.allowedHits), sum((s) => s.allowedCount)),
+    claimGrounding: ratio(sum((s) => s.claimsGrounded), sum((s) => s.claimCount)),
+    allowedClaimCoverage: ratio(sum((s) => s.allowedHits), sum((s) => s.allowedCount)),
     negatedViolations: sum((s) => s.negatedViolations),
     reviewPrecision: ratio(truePositives, flagged.length),
-    reviewRecall: ratio(truePositives, expectedReview.length),
+    reviewRecall: ratio(flagged.filter((s) => s.expectedStatus === "needs_review").length, expectedReview.length),
+    modelErrorFlags,
     reviewReasonRate: ratio(reasonScored.filter((s) => s.reviewReasonHit === true).length, reasonScored.length),
     statusAccuracy: ratio(scored.filter((s) => s.statusCorrect).length, scored.length),
     duplicatePrecision: duplicates.precision,
@@ -443,8 +411,7 @@ export function failingChecks(s: PairScore): string[] {
     out.push(`variants: ${parts.join("; ")}`);
   }
   if (s.priceHits < s.truthVariants) out.push(`price: ${s.priceHits}/${s.truthVariants} exact (${s.priceMisses.slice(0, 2).join("; ")})`);
-  if (s.disallowedClaims.length > 0) out.push(`claims not allowed: ${s.disallowedClaims.join(", ")}`);
-  if (s.missingClaims.length > 0) out.push(`claims missed: ${s.missingClaims.join(", ")}`);
+  if (s.claimsGrounded < s.claimCount) out.push(`claims: only ${s.claimsGrounded}/${s.claimCount} cited quotes found in the source rows (${s.ungroundedClaims.join("; ")})`);
   if (!s.statusCorrect) out.push(`status: ${s.status} (expected ${s.expectedStatus})${s.blocked.length > 0 ? `; blocked ${s.blocked.join(" | ")}` : ""}`);
   if (s.reviewReasonHit === false) out.push(`review reason: none of [${s.expectedReviewReasons.join(", ")}] reflected in [${s.reviewReasons.join(" | ")}]`);
   return out;

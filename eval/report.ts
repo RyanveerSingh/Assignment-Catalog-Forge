@@ -55,8 +55,7 @@ export function formatReport(r: EvalRunResult): string {
   lines.push(row("price exactness", pct(m.priceExactness), "truth variants with identical cents and currency"));
   lines.push(row("title keyword rate", pct(m.titleKeywordRate), "mean share of title keywords present"));
   lines.push(row("category accuracy", pct(m.categoryAccuracy), "category under the expected prefix"));
-  lines.push(row("claim precision", pct(m.claimPrecision), "output claims inside allowedClaims"));
-  lines.push(row("claim recall", pct(m.claimRecall), "allowedClaims covered by output claims"));
+  lines.push(row("claim grounding", pct(m.claimGrounding), "cited quotes the eval itself found in the raw rows"));
   lines.push(row("negated violations", String(m.negatedViolations), m.negatedViolations === 0 ? "hard rule: must be 0" : "HARD RULE BROKEN (exit code 1)"));
   lines.push(row("review precision", pct(m.reviewPrecision), "needs_review flags that were expected"));
   lines.push(row("review recall", pct(m.reviewRecall), "expected needs_review products that were flagged"));
@@ -66,6 +65,9 @@ export function formatReport(r: EvalRunResult): string {
   lines.push(row("duplicate recall", pct(m.duplicateRecall), "real duplicate rows detected"));
   lines.push(row("confidence when correct", pct(cal.meanConfidenceWhenCorrect), `mean title confidence over ${cal.correct} product(s) with keyword hit >= 0.5`));
   lines.push(row("confidence when wrong", pct(cal.meanConfidenceWhenWrong), `mean title confidence over ${cal.wrong} product(s) below 0.5`));
+  lines.push("");
+  lines.push(row("allowed-claim coverage", pct(m.allowedClaimCoverage), "informational: planted facts the listing chose to mention; omitting a true fact is not an error"));
+  lines.push(row("flags from model errors", String(m.modelErrorFlags), "informational: products sent to review only because the validator blocked a claim the model asserted against the source"));
 
   lines.push("");
   lines.push(`Worst ${WORST_COUNT} products (negated violations desc, title keyword hit asc)`);

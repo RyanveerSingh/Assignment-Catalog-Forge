@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DuplicateRow, GroundTruthProduct, GroundTruthVariant } from "@/core/types";
-import { aggregate, countAsserted, failingChecks, matchProducts, scoreDuplicates, scorePair, worstProducts, type DerivedProduct, type DerivedVariant } from "./metrics";
+import { aggregate, countAsserted, failingChecks, matchProducts, quoteFoundInRows, scoreDuplicates, scorePair, worstProducts, type DerivedProduct, type DerivedVariant } from "./metrics";
 
 function tv(sku: string, priceCents: number | null = 1250, currency: string | null = priceCents === null ? null : "EUR"): GroundTruthVariant {
   return { sku, options: {}, priceCents, currency, weightGrams: null };
@@ -42,6 +42,8 @@ function derived(overrides: Partial<DerivedProduct> = {}): DerivedProduct {
     status: "draft",
     reviewReasons: [],
     blocked: [],
+    claimsGrounded: overrides.claimsGrounded ?? (overrides.claims ?? ["hand-thrown", "frost-resistant"]).length,
+    ungroundedClaims: [],
     confidence: { title: 95 },
     ...overrides,
   };
@@ -144,15 +146,28 @@ describe("scorePair: title and category", () => {
 });
 
 describe("scorePair: claims", () => {
-  it("EC-D2: claimPrecision drops for claims outside allowedClaims, after hyphen/space folding", () => {
-    const s = scorePair(derived({ claims: ["Dishwasher safe", "organic"] }), truth({ allowedClaims: ["dishwasher-safe"], negatedClaims: [] }));
-    expect(s.claimPrecision).toBe(0.5);
-    expect(s.disallowedClaims).toEqual(["organic"]);
+  it("EC-D2: claim grounding is the share of claims whose quote the eval found in the raw rows", () => {
+    const s = scorePair(derived({ claims: ["Dishwasher safe", "organic"], claimsGrounded: 1 }), truth({ allowedClaims: ["dishwasher-safe"], negatedClaims: [] }));
+    expect(s.claimGrounding).toBe(0.5);
+    expect(s.claimsGrounded).toBe(1);
+    expect(s.claimCount).toBe(2);
   });
 
-  it("EC-D2: claimRecall counts allowed claims covered by output claims, sub-phrases included", () => {
+  it("EC-D2: quoteFoundInRows matches verbatim, at 90% of tokens, through mojibake, and single whole words of 4+ letters", () => {
+    const rows = [{ cells: { Description: "Hand-thrown planter with drainage hole.", Notes: "Innen und auÃŸen pulverbeschichtet" } }];
+    expect(quoteFoundInRows(rows, "planter with drainage hole")).toBe(true);
+    expect(quoteFoundInRows(rows, "Innen und außen pulverbeschichtet")).toBe(true);
+    expect(quoteFoundInRows(rows, "hand thrown planter with drainage holes and saucer")).toBe(false);
+    expect(quoteFoundInRows(rows, "planter")).toBe(true);
+    expect(quoteFoundInRows(rows, "plant")).toBe(false);
+    expect(quoteFoundInRows(rows, "und")).toBe(false);
+    expect(quoteFoundInRows([{ cells: { Notes: "FSC-certified timber" } }], "FSC")).toBe(true);
+    expect(quoteFoundInRows(rows, "made in Portugal")).toBe(false);
+  });
+
+  it("allowed-claim coverage counts allowed claims covered by output claims, sub-phrases included", () => {
     const s = scorePair(derived({ claims: ["organic", "machine-washable"] }), truth({ allowedClaims: ["100% organic cotton", "machine washable", "non-slip backing"], negatedClaims: [] }));
-    expect(s.claimRecall).toBeCloseTo(2 / 3);
+    expect(s.allowedClaimCoverage).toBeCloseTo(2 / 3);
     expect(s.missingClaims).toEqual(["non slip backing"]);
   });
 
@@ -260,12 +275,24 @@ describe("aggregate", () => {
     expect(invented.variantRecall).toBe(1);
   });
 
-  it("micro-averages claim precision and recall across products", () => {
-    const a = scorePair(derived({ productKey: "A", claims: ["frost-resistant", "organic"] }), truth({ productKey: "A" }));
-    const b = scorePair(derived({ productKey: "B", claims: ["handmade"] }), truth({ productKey: "B" }));
+  it("EC-B15: a flag raised by a blocked negated claim counts as a correct flag and is reported on its own", () => {
+    const caught = scorePair(derived({ productKey: "A", status: "needs_review", reviewReasons: ['Listing says "frost-proof" but the source negates it'], blocked: ['negated: "frost-proof" — the source explicitly negates it'] }), truth({ productKey: "A", expectedStatus: "done" }));
+    expect(caught.statusCorrect).toBe(true);
+    expect(caught.justifiedFlag).toBe(true);
+    const needless = scorePair(derived({ productKey: "B", status: "needs_review", reviewReasons: ["Low confidence in the title"] }), truth({ productKey: "B", expectedStatus: "done" }));
+    expect(needless.statusCorrect).toBe(false);
+    const m = aggregate([caught, needless], noUnmatched, noDuplicates);
+    expect(m.reviewPrecision).toBe(0.5);
+    expect(m.modelErrorFlags).toBe(1);
+    expect(m.statusAccuracy).toBe(0.5);
+  });
+
+  it("micro-averages claim grounding and allowed-claim coverage across products", () => {
+    const a = scorePair(derived({ productKey: "A", claims: ["frost-resistant", "organic"], claimsGrounded: 1 }), truth({ productKey: "A" }));
+    const b = scorePair(derived({ productKey: "B", claims: ["handmade"], claimsGrounded: 1 }), truth({ productKey: "B" }));
     const m = aggregate([a, b], noUnmatched, noDuplicates);
-    expect(m.claimPrecision).toBeCloseTo(2 / 3);
-    expect(m.claimRecall).toBeCloseTo(2 / 6);
+    expect(m.claimGrounding).toBeCloseTo(2 / 3);
+    expect(m.allowedClaimCoverage).toBeCloseTo(2 / 6);
   });
 
   it("splits confidence calibration on a title keyword hit of at least 0.5", () => {
@@ -278,7 +305,7 @@ describe("aggregate", () => {
   it("returns null rates and zero counts when there is nothing to score", () => {
     const m = aggregate([], noUnmatched, noDuplicates);
     expect(m.productRecall).toBeNull();
-    expect(m.claimPrecision).toBeNull();
+    expect(m.claimGrounding).toBeNull();
     expect(m.duplicatePrecision).toBeNull();
     expect(m.titleKeywordRate).toBeNull();
     expect(m.negatedViolations).toBe(0);
