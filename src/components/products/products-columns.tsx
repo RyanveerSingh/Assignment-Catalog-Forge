@@ -8,7 +8,7 @@ import { ConfidenceChip } from "@/components/ext/confidence-chip";
 import { StatusBadge } from "@/components/ext/status-badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { formatCents, formatMicrosUsd, formatRelative } from "@/lib/format";
+import { formatCents, formatMicrosUsd, formatRelative, modelLabel, tierLabel } from "@/lib/format";
 import { imageUrl, type ProductListItem, type ProductSortKey } from "./types";
 
 export interface ColumnMeta {
@@ -116,7 +116,7 @@ export function buildColumns(storeSlug: string): ColumnDef<ProductListItem, unkn
     {
       id: "confidence",
       meta: { sortKey: "confidence" } satisfies ColumnMeta,
-      header: "Conf.",
+      header: "Confidence",
       cell: ({ row }) => {
         const p = row.original;
         const entries = CONFIDENCE_FIELDS.map(([k, label]) => [label, p.confidence[k]] as const).filter((e): e is readonly [string, number] => typeof e[1] === "number");
@@ -146,7 +146,7 @@ export function buildColumns(storeSlug: string): ColumnDef<ProductListItem, unkn
     {
       id: "variants",
       meta: { align: "right" } satisfies ColumnMeta,
-      header: "Var.",
+      header: "Variants",
       cell: ({ row }) => <span className="num">{row.original.variantCount}</span>,
     },
     {
@@ -157,18 +157,24 @@ export function buildColumns(storeSlug: string): ColumnDef<ProductListItem, unkn
     },
     {
       id: "translations",
-      header: "Transl.",
+      header: "Translations",
       cell: ({ row }) => <TranslationChips t={row.original.translations} />,
     },
     {
       id: "ai",
-      header: "AI",
-      cell: ({ row }) => (
-        <span className="text-[11px] text-ink-muted">
-          {row.original.aiTier ?? "—"}
-          {row.original.aiModel ? <span className="block max-w-[140px] truncate num text-[10px]">{row.original.aiModel}</span> : null}
-        </span>
-      ),
+      header: "Written by",
+      cell: ({ row }) => {
+        const { aiModel, aiTier } = row.original;
+        if (!aiModel && !aiTier) return <span className="text-ink-muted">—</span>;
+        // The raw model id stays one hover away for anyone comparing runs.
+        const raw = [aiModel, aiTier ? `${aiTier} tier` : null].filter((s) => s !== null).join(" · ");
+        return (
+          <span className="flex flex-col leading-tight" title={raw}>
+            <span className="text-[12px] text-ink">{aiModel ? modelLabel(aiModel) : "—"}</span>
+            {aiTier ? <span className="text-[10px] text-ink-muted">{tierLabel(aiTier)}</span> : null}
+          </span>
+        );
+      },
     },
     {
       id: "cost",

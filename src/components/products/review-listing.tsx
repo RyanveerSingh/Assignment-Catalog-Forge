@@ -53,7 +53,7 @@ function FieldHead({ htmlFor, label, score, edited, extra }: { htmlFor: string; 
       </Label>
       <div className="flex items-center gap-2">
         {extra}
-        <ConfidenceChip score={score} label="conf" />
+        <ConfidenceChip score={score} label="confidence" />
       </div>
     </div>
   );

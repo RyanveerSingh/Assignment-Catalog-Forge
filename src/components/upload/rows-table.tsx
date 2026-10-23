@@ -178,7 +178,7 @@ export function RowsTable({ storeSlug, importId, counts, totalRows }: { storeSlu
                     <TableHead className="text-[11px] font-medium uppercase tracking-wider text-ink-muted">Status</TableHead>
                     <TableHead className="text-[11px] font-medium uppercase tracking-wider text-ink-muted">Product key</TableHead>
                     <TableHead className="text-[11px] font-medium uppercase tracking-wider text-ink-muted">Issues</TableHead>
-                    <TableHead className="text-[11px] font-medium uppercase tracking-wider text-ink-muted">Failure reason</TableHead>
+                    <TableHead className="text-[11px] font-medium uppercase tracking-wider text-ink-muted">Why it failed</TableHead>
                     <TableHead className="text-[11px] font-medium uppercase tracking-wider text-ink-muted">Duplicate of</TableHead>
                     <TableHead className="w-10">
                       <span className="sr-only">Raw cells</span>
@@ -275,7 +275,11 @@ function IssuesCell({ issues: unsorted }: { issues: Issue[] }) {
             <li key={`${i.code}-${idx}`}>
               <span className="uppercase tracking-wide opacity-70">{i.severity}</span> {i.message}
               {i.field ? <span className="opacity-70"> · {i.field}</span> : null}
-              {i.ec ? <span className="opacity-70"> · EC-{i.ec}</span> : null}
+              {/* The code and edge-case id are the engineer's handle on the issue; muted mono inside the tooltip only. */}
+              <span className="num block text-[10px] opacity-60">
+                {i.code}
+                {i.ec ? ` · EC-${i.ec}` : ""}
+              </span>
             </li>
           ))}
         </ul>
@@ -290,7 +294,7 @@ function RawCells({ row }: { row: RowDto }) {
     <div className="flex flex-col gap-2 text-xs">
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-ink-muted">
         <span>
-          Stage: <span className="text-ink">{row.stage}</span>
+          Stage: <span className="text-ink">{statusLabel(row.stage)}</span>
         </span>
         {row.productId ? (
           <span>

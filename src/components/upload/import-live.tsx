@@ -9,7 +9,7 @@ import { Kpi } from "@/components/ext/kpi";
 import { StatusBadge } from "@/components/ext/status-badge";
 import { Button } from "@/components/ui/button";
 import { api, ApiError, storeApi } from "@/lib/client/api";
-import { formatCountdown, formatDuration, formatMicrosUsd, formatNumber, formatPercent, statusLabel } from "@/lib/format";
+import { formatCountdown, formatDuration, formatMicrosUsd, formatNumber, formatPercent, modeLabel, statusLabel } from "@/lib/format";
 import { HygienePipeline } from "./hygiene-pipeline";
 import { EventLog, MAX_EVENTS } from "./import-live-events";
 import { SheetCard } from "./import-live-sheet";
@@ -185,6 +185,7 @@ export function ImportLive({ storeSlug, initialImport, initialEvents, initialHyg
   const canResume = imp.status === "paused";
   const canRetry = imp.status === "failed" || imp.status === "needs_attention";
   const brandButton = "cursor-pointer bg-brand text-brand-foreground hover:bg-brand/90";
+  const mode = modeLabel(imp.mode);
 
   return (
     <div className="flex flex-col gap-6">
@@ -201,7 +202,9 @@ export function ImportLive({ storeSlug, initialImport, initialEvents, initialHyg
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-display max-w-full min-w-0 truncate text-2xl leading-tight text-ink md:text-3xl">{imp.name}</h1>
               <StatusBadge status={imp.status} />
-              <span className="rounded-sm bg-muted px-1.5 py-0.5 text-[11px] uppercase tracking-wide text-ink-muted">{imp.mode === "economy" ? "Economy · batch" : "Fast · realtime"}</span>
+              <span className="rounded-sm bg-muted px-1.5 py-0.5 text-[11px] uppercase tracking-wide text-ink-muted" title={mode.detail}>
+                {mode.label}
+              </span>
             </div>
             <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
               <span>
@@ -278,12 +281,12 @@ export function ImportLive({ storeSlug, initialImport, initialEvents, initialHyg
       ) : null}
       {imp.status === "needs_attention" ? (
         <Banner tone="warning" icon={TriangleAlertIcon}>
-          <strong className="font-medium">Needs attention</strong> — {imp.error ?? "some rows could not be finished; review the log and retry"}
+          <strong className="font-medium">Needs attention</strong> — {imp.error ?? "some rows could not be finished; check the event log below, then retry"}
         </Banner>
       ) : null}
       {imp.status === "failed" ? (
         <Banner tone="danger" icon={TriangleAlertIcon}>
-          <strong className="font-medium">Failed</strong> — {imp.error ?? "see the event log for the cause"}
+          <strong className="font-medium">Failed</strong> — {imp.error ?? "the event log below says why"}
         </Banner>
       ) : null}
       {imp.status === "cancelled" ? (
@@ -307,7 +310,11 @@ export function ImportLive({ storeSlug, initialImport, initialEvents, initialHyg
           value={formatMicrosUsd(imp.costMicros)}
           hint={
             <>
-              {saved !== null ? <span className="text-success">saved {formatMicrosUsd(saved)} vs naive · </span> : null}
+              {saved !== null ? (
+                <span className="text-success" title="Compared with paying list price for every call: no caching, batching or cheaper models">
+                  saved {formatMicrosUsd(saved)} vs list price ·{" "}
+                </span>
+              ) : null}
               budget ${(imp.budgetCents / 100).toFixed(2)}
             </>
           }

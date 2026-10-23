@@ -264,7 +264,7 @@ export function ProductsTable({ storeSlug, initialImportId = "" }: { storeSlug: 
                       return (
                         <th key={h.id} scope="col" aria-sort={sorted ? (sorted === "asc" ? "ascending" : "descending") : undefined} style={{ width: h.column.columnDef.size !== 150 ? h.column.columnDef.size : undefined }} className={cn("h-9 px-2 text-left text-[11px] font-medium uppercase tracking-wide whitespace-nowrap text-ink-muted", meta.align === "right" && "text-right", meta.className)}>
                           {meta.sortKey ? (
-                            <button type="button" onClick={() => toggleSort(meta.sortKey as ProductFilters["sort"])} className={cn("inline-flex cursor-pointer items-center gap-1 rounded-sm hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand", sorted && "text-ink")}>
+                            <button type="button" onClick={() => toggleSort(meta.sortKey as ProductFilters["sort"])} className={cn("inline-flex cursor-pointer items-center gap-1 rounded-sm uppercase hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand", sorted && "text-ink")}>
                               {content}
                               {sorted === "asc" ? <ArrowUpIcon className="size-3" /> : sorted === "desc" ? <ArrowDownIcon className="size-3" /> : null}
                             </button>

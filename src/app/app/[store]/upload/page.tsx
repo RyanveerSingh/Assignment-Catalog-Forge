@@ -25,10 +25,10 @@ const SAMPLES: ReadonlyArray<{ name: string; what: string }> = [
   { name: "broken-latin1.csv", what: "windows-1252 bytes: umlauts, ß and € that must be re-decoded." },
   { name: "no-header.csv", what: "Data rows with no header row at all." },
   { name: "header-only.csv", what: "A header and nothing else." },
-  { name: "empty.csv", what: "0 bytes. Refused before anything is uploaded (A1)." },
-  { name: "fake.csv", what: "An HTML login page saved as .csv. Sniffed and rejected (A2)." },
+  { name: "empty.csv", what: "0 bytes. Refused before anything is uploaded." },
+  { name: "fake.csv", what: "An HTML login page saved as .csv. Recognised by its bytes and rejected." },
   { name: "bulk-1000.csv", what: "1,000 rows, 477 products: 16% messy, 30 duplicates, SKU conflicts, scattered variants." },
-  { name: "bulk-10000.csv", what: "10,000 rows, 2.75 MB: the row cap and the queue under load (A14)." },
+  { name: "bulk-10000.csv", what: "10,000 rows, 2.75 MB: the row cap and the queue under load." },
 ];
 
 function SamplesCard() {

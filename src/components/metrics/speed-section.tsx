@@ -16,9 +16,12 @@ function ImportLink({ storeSlug, imp }: { storeSlug: string; imp: { id: string; 
 export function SpeedSection({ speed, storeSlug }: { speed: StoreMetrics["speed"]; storeSlug: string }) {
   return (
     <section aria-labelledby="speed-heading" className="space-y-3">
-      <h2 id="speed-heading" className="font-display text-xl text-ink">
-        Speed
-      </h2>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id="speed-heading" className="font-display text-xl text-ink">
+          Speed
+        </h2>
+        <p className="text-xs text-ink-muted">How fast imports run from first row to last, and how long each AI answer takes</p>
+      </div>
       <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <MiniStat label="Avg rows per minute" value={speed.avgRowsPerMinute === null ? "—" : formatNumber(speed.avgRowsPerMinute)} hint="across completed imports" />
         <MiniStat
@@ -31,7 +34,7 @@ export function SpeedSection({ speed, storeSlug }: { speed: StoreMetrics["speed"
           value={speed.slowestImport ? `${formatNumber(speed.slowestImport.rowsPerMinute)} rows/min` : "—"}
           hint={speed.slowestImport ? <ImportLink storeSlug={storeSlug} imp={speed.slowestImport} /> : "no completed imports"}
         />
-        <MiniStat label="AI latency" value={speed.avgAiLatencyMs === null ? "—" : formatDuration(speed.avgAiLatencyMs)} hint={speed.p95AiLatencyMs === null ? "average per call" : `average · p95 ${formatDuration(speed.p95AiLatencyMs)}`} />
+        <MiniStat label="AI answer time" value={speed.avgAiLatencyMs === null ? "—" : formatDuration(speed.avgAiLatencyMs)} hint={speed.p95AiLatencyMs === null ? "average per call" : `average · slowest 5% take ${formatDuration(speed.p95AiLatencyMs)} or more (p95)`} />
       </dl>
     </section>
   );

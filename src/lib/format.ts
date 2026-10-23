@@ -17,6 +17,15 @@ export function formatMicrosUsd(micros: number | null | undefined, digits = 2): 
   return `$${usd.toFixed(digits)}`;
 }
 
+/** Prose-friendly dollars ("$0.002", "$1.40"); the exact figure stays in the tables. */
+export function formatMicrosUsdApprox(micros: number | null | undefined): string {
+  if (!micros || micros <= 0) return "$0.00";
+  const usd = micros / 1_000_000;
+  if (usd < 0.001) return "under $0.001";
+  if (usd < 0.01) return `$${usd.toFixed(3)}`;
+  return `$${usd.toFixed(2)}`;
+}
+
 export function formatNumber(n: number | null | undefined, locale = "en-GB"): string {
   if (n === null || n === undefined) return "—";
   return new Intl.NumberFormat(locale).format(n);
@@ -78,7 +87,7 @@ export const STATUS_LABELS: Record<string, string> = {
   processing: "Processing",
   done: "Done",
   needs_review: "Needs review",
-  pending_ai: "Awaiting AI",
+  pending_ai: "Being written",
   draft: "Draft",
   approved: "Approved",
   rejected: "Rejected",
@@ -86,5 +95,51 @@ export const STATUS_LABELS: Record<string, string> = {
 };
 
 export function statusLabel(status: string): string {
-  return STATUS_LABELS[status] ?? status.replace(/_/g, " ");
+  const known = STATUS_LABELS[status];
+  if (known) return known;
+  const words = status.replace(/_/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+const MODEL_LABELS: Record<string, string> = {
+  "claude-haiku-5-5": "Haiku 5.5",
+  "claude-sonnet-5-5": "Sonnet 5.5",
+  "claude-opus-5-5": "Opus 5.5",
+  "mock-cheap": "Demo writer",
+  "mock-strong": "Demo writer",
+};
+
+/** "claude-haiku-5-5" → "Haiku 5.5"; the raw id belongs in a title attribute next to it. Unknown ids pass through. */
+export function modelLabel(model: string | null | undefined): string {
+  if (!model) return "—";
+  const known = MODEL_LABELS[model];
+  if (known) return known;
+  const m = /^claude-(haiku|sonnet|opus)-(\d+)-(\d+)/.exec(model);
+  if (m) {
+    const [, family = "", major = "", minor = ""] = m;
+    return `${family.charAt(0).toUpperCase()}${family.slice(1)} ${major}.${minor}`;
+  }
+  if (model.startsWith("mock-")) return "Demo writer";
+  return model;
+}
+
+const TIER_LABELS: Record<string, string> = {
+  cheap: "Cheap model",
+  strong: "Strong model",
+  vision: "Vision model",
+  escalation: "Escalated",
+};
+
+export function tierLabel(tier: string | null | undefined): string {
+  if (!tier) return "—";
+  return TIER_LABELS[tier] ?? statusLabel(tier);
+}
+
+const MODE_LABELS: Record<string, { label: string; detail: string }> = {
+  fast: { label: "Fast mode", detail: "Realtime API: results in minutes" },
+  economy: { label: "Economy mode", detail: "Batch API: about half the price, can take hours" },
+};
+
+export function modeLabel(mode: string): { label: string; detail: string } {
+  return MODE_LABELS[mode] ?? { label: statusLabel(mode), detail: mode };
 }

@@ -2,7 +2,7 @@
 
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { StoreMetrics } from "@/db/repositories/metrics";
-import { formatMicrosUsd, formatNumber, formatPercent } from "@/lib/format";
+import { formatMicrosUsd, formatNumber, formatPercent, modelLabel, tierLabel } from "@/lib/format";
 
 /*
  * Chart tokens: --chart-1 amber for every single-series chart (nominal categories share one hue),
@@ -65,10 +65,6 @@ function dayLabel(day: string): string {
 
 function compact(n: number): string {
   return new Intl.NumberFormat("en-GB", { notation: "compact", maximumFractionDigits: 1 }).format(n);
-}
-
-function shortModel(model: string): string {
-  return model.replace(/^claude-/, "").replace(/-\d{8}$/, "");
 }
 
 type CostPoint = StoreMetrics["costOverTime"][number];
@@ -142,7 +138,7 @@ export function ModelUsageChart({ models }: { models: StoreMetrics["models"] }) 
       <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 16, left: 4, bottom: 4 }} barCategoryGap={10}>
         <CartesianGrid horizontal={false} stroke={GRID} />
         <XAxis type="number" tickFormatter={(v: number) => formatMicrosUsd(v)} tick={TICK} tickLine={false} axisLine={false} />
-        <YAxis type="category" dataKey="model" tickFormatter={shortModel} width={140} tick={TICK} tickLine={false} axisLine={false} />
+        <YAxis type="category" dataKey="model" tickFormatter={modelLabel} width={110} tick={TICK} tickLine={false} axisLine={false} />
         <Tooltip
           cursor={BAR_CURSOR}
           isAnimationActive={false}
@@ -151,13 +147,13 @@ export function ModelUsageChart({ models }: { models: StoreMetrics["models"] }) 
             if (!row) return null;
             return (
               <ChartTip
-                title={row.model}
+                title={`${modelLabel(row.model)} · ${row.model}`}
                 rows={[
                   { label: "Cost", value: formatMicrosUsd(row.costMicros, 4), color: "var(--chart-1)" },
                   { label: "Calls", value: formatNumber(row.calls) },
-                  { label: "Input tokens", value: compact(row.inputTokens) },
-                  { label: "Output tokens", value: compact(row.outputTokens) },
-                  { label: "Cache reads", value: compact(row.cacheReadTokens) },
+                  { label: "Tokens in", value: compact(row.inputTokens) },
+                  { label: "Tokens out", value: compact(row.outputTokens) },
+                  { label: "Reused (cache reads)", value: compact(row.cacheReadTokens) },
                 ]}
               />
             );
@@ -179,7 +175,7 @@ export function RoutingChart({ routing }: { routing: RoutingRow[] }) {
       <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 16, left: 4, bottom: 4 }} barCategoryGap={10}>
         <CartesianGrid horizontal={false} stroke={GRID} />
         <XAxis type="number" tickFormatter={(v: number) => compact(v)} allowDecimals={false} tick={TICK} tickLine={false} axisLine={false} />
-        <YAxis type="category" dataKey="tier" width={90} tick={TICK} tickLine={false} axisLine={false} />
+        <YAxis type="category" dataKey="tier" tickFormatter={tierLabel} width={100} tick={TICK} tickLine={false} axisLine={false} />
         <Tooltip
           cursor={BAR_CURSOR}
           isAnimationActive={false}
@@ -188,7 +184,7 @@ export function RoutingChart({ routing }: { routing: RoutingRow[] }) {
             if (!row) return null;
             return (
               <ChartTip
-                title={row.tier}
+                title={`${tierLabel(row.tier)} (${row.tier})`}
                 rows={[
                   { label: "Products", value: formatNumber(row.products), color: "var(--chart-1)" },
                   { label: "AI cost", value: formatMicrosUsd(row.costMicros, 4) },

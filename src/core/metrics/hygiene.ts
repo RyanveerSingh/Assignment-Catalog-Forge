@@ -105,7 +105,7 @@ function ingestStage(c: HygieneCounts): HygieneStage {
   const unique = Math.max(0, parsed - duplicates);
   return {
     key: "ingest",
-    label: "Raw ingest",
+    label: "Reading the sheet",
     headline: { value: parsed, unit: "rows parsed" },
     bar: segments(parsed, [
       { key: "unique", label: "Unique rows", value: unique, tone: "good" },
@@ -200,7 +200,7 @@ function routingStage(c: HygieneCounts): HygieneStage {
   const total = routed + count(byTier, "unrouted");
   return {
     key: "routing",
-    label: "AI routing",
+    label: "Choosing a model",
     headline: { value: routed, unit: "products routed" },
     bar: segments(total, tiers.map((t) => ({ key: t.key, label: t.label, value: t.value, tone: t.tone }))),
     items: [
@@ -224,17 +224,17 @@ function groundingStage(c: HygieneCounts): HygieneStage {
     item("review", "Needs review", review, { tone: "notice" }),
     item("failed", "Failed", failed, { tone: "bad" }),
   ];
-  if (pending > 0) items.push(item("pending", "Awaiting the model", pending, { tone: "muted" }));
+  if (pending > 0) items.push(item("pending", "Being written", pending, { tone: "muted" }));
   items.push(item("claims", "Claims verified against the source", c.products.claims), item("blocked", "Claims blocked", c.claimsBlocked));
   return {
     key: "grounding",
-    label: "Grounding gate",
+    label: "Fact check",
     headline: { value: c.products.claims, unit: "claims verified" },
     bar: segments(total, [
       { key: "passed", label: "Passed as draft", value: passed, tone: "good" },
       { key: "review", label: "Needs review", value: review, tone: "notice" },
       { key: "failed", label: "Failed", value: failed, tone: "bad" },
-      { key: "pending", label: "Awaiting the model", value: pending, tone: "muted" },
+      { key: "pending", label: "Being written", value: pending, tone: "muted" },
     ]),
     items,
     empty: "No claims verified yet",

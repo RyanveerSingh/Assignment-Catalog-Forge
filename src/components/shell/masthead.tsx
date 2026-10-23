@@ -17,7 +17,7 @@ export function Masthead({ user, store, stores, demoMode }: { user: SessionUser;
         </div>
         <div className="flex items-center gap-3">
           {demoMode ? (
-            <span className="hidden items-center gap-1.5 rounded-sm bg-paper/10 px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-paper/80 sm:inline-flex" title="No AI API key configured: a deterministic stand-in writes the listings">
+            <span className="hidden items-center gap-1.5 rounded-sm bg-paper/10 px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-paper/80 sm:inline-flex" title="No AI key is set, so a built-in demo writer drafts the listings. Add a key under Settings to use the real models.">
               <span aria-hidden className="size-1.5 rounded-full bg-brand" />
               Demo mode
             </span>

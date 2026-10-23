@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/ext/page-header";
 import { StatusBadge } from "@/components/ext/status-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api, ApiError, storeApi } from "@/lib/client/api";
-import { formatCountdown, formatDuration, formatMicrosUsd, formatNumber, formatRelative } from "@/lib/format";
+import { formatCountdown, formatDuration, formatMicrosUsd, formatNumber, formatRelative, modeLabel } from "@/lib/format";
 import type { ImportDto } from "./import-live";
 import { isImportActive } from "./stage-stepper";
 
@@ -117,7 +117,9 @@ export function ImportsTable({ storeSlug, initialImports }: { storeSlug: string;
                       <Link href={href} className="block truncate rounded-sm font-medium text-ink underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none">
                         {imp.name}
                       </Link>
-                      <span className="text-[11px] uppercase tracking-wide text-ink-muted">{imp.mode}</span>
+                      <span className="text-[11px] uppercase tracking-wide text-ink-muted" title={modeLabel(imp.mode).detail}>
+                        {modeLabel(imp.mode).label}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <StatusBadge status={imp.status} />

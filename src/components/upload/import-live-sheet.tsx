@@ -103,9 +103,8 @@ function IssueList({ issues }: { issues: Issue[] }) {
         {issues.map((i, idx) => (
           <li key={`${i.code}-${idx}`} className="flex gap-2">
             <span className={cn("w-10 shrink-0 uppercase tracking-wide", SEVERITY_TEXT[i.severity])}>{i.severity}</span>
-            <span className="min-w-0 break-words text-ink">
+            <span className="min-w-0 break-words text-ink" title={i.ec ? `${i.code} · EC-${i.ec}` : i.code}>
               {i.message}
-              {i.ec ? <span className="text-ink-muted"> · EC-{i.ec}</span> : null}
             </span>
           </li>
         ))}

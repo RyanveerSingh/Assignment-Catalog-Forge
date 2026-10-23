@@ -2,7 +2,7 @@
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { StoreMetrics } from "@/db/repositories/metrics";
-import { formatDuration, formatMicrosUsd, formatNumber, formatRelative } from "@/lib/format";
+import { formatDuration, formatMicrosUsd, formatNumber, formatRelative, modelLabel } from "@/lib/format";
 import { COVERAGE_SERIES } from "./charts";
 
 const MAX_EVAL_METRICS = 6;
@@ -38,7 +38,7 @@ const NUM = "num text-right";
 
 export function ModelTable({ models }: { models: StoreMetrics["models"] }) {
   return (
-    <Section id="models-heading" title="Per model" hint="Succeeded calls only">
+    <Section id="models-heading" title="Per model" hint="Every successful call grouped by model and job; token counts in thousands (K) or millions (M)">
       {models.length === 0 ? (
         <TableEmpty>No AI calls yet.</TableEmpty>
       ) : (
@@ -47,20 +47,32 @@ export function ModelTable({ models }: { models: StoreMetrics["models"] }) {
             <TableHeader>
               <TableRow>
                 <TableHead>Model</TableHead>
-                <TableHead>Purpose</TableHead>
+                <TableHead>Job</TableHead>
                 <TableHead className="text-right">Calls</TableHead>
-                <TableHead className="text-right">Input</TableHead>
-                <TableHead className="text-right">Output</TableHead>
-                <TableHead className="text-right">Cache reads</TableHead>
+                <TableHead className="text-right" title="Input tokens">
+                  Tokens in
+                </TableHead>
+                <TableHead className="text-right" title="Output tokens">
+                  Tokens out
+                </TableHead>
+                <TableHead className="text-right" title="Prompt-cache read tokens">
+                  Reused
+                </TableHead>
                 <TableHead className="text-right">Cost</TableHead>
-                <TableHead className="text-right">Avg</TableHead>
-                <TableHead className="text-right">p95</TableHead>
+                <TableHead className="text-right" title="Average latency">
+                  Typical
+                </TableHead>
+                <TableHead className="text-right" title="95th-percentile latency">
+                  Slowest 5%
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {models.map((m) => (
                 <TableRow key={`${m.model}:${m.purpose}`}>
-                  <TableCell className="font-medium">{m.model}</TableCell>
+                  <TableCell className="font-medium" title={m.model}>
+                    {modelLabel(m.model)}
+                  </TableCell>
                   <TableCell className="text-ink-muted">{m.purpose}</TableCell>
                   <TableCell className={NUM}>{formatNumber(m.calls)}</TableCell>
                   <TableCell className={NUM}>{compact(m.inputTokens)}</TableCell>
@@ -87,7 +99,7 @@ export function TranslationTable({ translations }: { translations: StoreMetrics[
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Locale</TableHead>
+            <TableHead>Language</TableHead>
             {COVERAGE_SERIES.map((s) => (
               <TableHead key={s.key} className="text-right">
                 {s.label}
@@ -116,7 +128,7 @@ export function TranslationTable({ translations }: { translations: StoreMetrics[
 
 export function EvalTable({ evals }: { evals: StoreMetrics["evals"] }) {
   return (
-    <Section id="evals-heading" title="Eval runs" hint="Latest 20 · prompt versions scored against the ground truth">
+    <Section id="evals-heading" title="Quality checks" hint="The latest 20 eval runs: a prompt version's output scored against hand-checked answers">
       {evals.length === 0 ? (
         <TableEmpty>No eval runs yet. Run `npm run eval` to score a prompt version.</TableEmpty>
       ) : (
@@ -141,7 +153,9 @@ export function EvalTable({ evals }: { evals: StoreMetrics["evals"] }) {
                   <TableRow key={e.id}>
                     <TableCell className="font-medium">{e.name}</TableCell>
                     <TableCell className="num">{e.promptVersion}</TableCell>
-                    <TableCell className="text-ink-muted">{e.model}</TableCell>
+                    <TableCell className="text-ink-muted" title={e.model}>
+                      {modelLabel(e.model)}
+                    </TableCell>
                     <TableCell className="text-ink-muted">{e.sample}</TableCell>
                     <TableCell className="text-ink-muted">{formatRelative(e.createdAt)}</TableCell>
                     <TableCell className="whitespace-normal">

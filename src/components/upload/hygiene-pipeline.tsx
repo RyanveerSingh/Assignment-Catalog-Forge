@@ -74,10 +74,10 @@ export function HygienePipeline({ storeSlug, importId, status, active, initial }
     <section aria-labelledby="hygiene-heading" className="bg-card hairline">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-border px-4 py-2.5">
         <h2 id="hygiene-heading" className="font-display text-lg text-ink">
-          Data hygiene
+          What we fixed in your sheet
         </h2>
-        <p className="text-[11px] text-ink-muted">
-          What the deterministic stages did before any model saw a row, counted from the tables of record
+        <p className="text-[11px] text-ink-muted" title="Counted from the stored rows after each deterministic stage, before any model saw them">
+          What was already clean, what we repaired or assumed, and what we flagged, counted before any AI saw a row
           {active ? " · refreshes every 10 s" : ""}
           {failed ? <span className="text-warning"> · last refresh failed; showing the previous counts</span> : null}
         </p>
@@ -90,7 +90,7 @@ export function HygienePipeline({ storeSlug, importId, status, active, initial }
 function StageFlow({ stages, current }: { stages: HygieneStage[]; current: HygieneStageKey | null }) {
   return (
     <ol
-      aria-label="Hygiene stages"
+      aria-label="Cleaning stages"
       className={cn(
         "grid grid-cols-1 divide-y divide-border",
         "sm:grid-cols-2 sm:divide-y-0 sm:[&>li:nth-child(even)]:border-l sm:[&>li:nth-child(n+3)]:border-t",

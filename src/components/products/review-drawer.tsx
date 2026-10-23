@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, ApiError, storeApi } from "@/lib/client/api";
-import { formatDuration, formatMicrosUsd } from "@/lib/format";
+import { formatDuration, formatMicrosUsdApprox, modelLabel, tierLabel } from "@/lib/format";
 import { PhotoGrid } from "./photo-grid";
 import { ReviewFooter, type FooterNotice } from "./review-footer";
 import { ReviewListing } from "./review-listing";
@@ -27,6 +27,26 @@ const ACTION_DONE: Record<ProductAction["action"], string> = {
   restore: "Restored.",
   translate: "Translation saved as a manual fix.",
 };
+
+/** "Written by Haiku 5.5 in 36 s for $0.002 from messy-120.csv": the merchant's sentence; the ids sit in the line below it. */
+function WrittenBy({ product, importName }: { product: ProductDetail["product"]; importName: string | null }) {
+  const from = importName ? ` from ${importName}` : "";
+  if (!product.aiModel) {
+    return (
+      <span className="text-xs text-ink">
+        Not written yet{from}
+      </span>
+    );
+  }
+  const took = product.aiLatencyMs !== null ? ` in ${formatDuration(product.aiLatencyMs)}` : "";
+  return (
+    <span className="text-xs text-ink">
+      Written by <span title={product.aiModel}>{modelLabel(product.aiModel)}</span>
+      {took} for {formatMicrosUsdApprox(product.aiCostMicros)}
+      {from}
+    </span>
+  );
+}
 
 function Section({ title, count, extra, children }: { title: string; count?: number; extra?: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -144,15 +164,15 @@ export function ReviewDrawer({ storeSlug, productId, onClose, onChanged }: { sto
             {product?.sourceChangedAt ? <span className="bg-warning-soft px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-warning">source changed</span> : null}
             {product?.missingFromImportId ? <span className="bg-destructive/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-destructive">missing from latest upload</span> : null}
           </div>
-          <SheetDescription className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-muted">
+          <SheetDescription className="flex flex-col gap-0.5 text-[11px] text-ink-muted">
             {product ? (
               <>
-                <span className="num">{product.productKey}</span>
-                <span>{detail?.importName ? `from ${detail.importName}` : "no import"}</span>
-                <span className="num">
-                  {product.aiTier ?? "—"} · {product.aiModel ?? "no model"} · {formatMicrosUsd(product.aiCostMicros)} · {formatDuration(product.aiLatencyMs)}
+                <WrittenBy product={product} importName={detail?.importName ?? null} />
+                <span className="flex flex-wrap items-center gap-x-2">
+                  <span className="num">{product.productKey}</span>
+                  {product.promptVersion ? <span className="num">· prompt {product.promptVersion}</span> : null}
+                  {product.aiTier ? <span>· {tierLabel(product.aiTier).toLowerCase()}</span> : null}
                 </span>
-                {product.promptVersion ? <span className="num">prompt {product.promptVersion}</span> : null}
               </>
             ) : (
               "Source rows on the left, the AI listing on the right."
@@ -168,7 +188,7 @@ export function ReviewDrawer({ storeSlug, productId, onClose, onChanged }: { sto
               ))}
             </ul>
           ) : null}
-          {product?.status === "failed" && product.failureReason ? <p className="border-l-2 border-destructive bg-destructive/5 px-2 py-1 text-xs text-destructive">AI stage failed: {product.failureReason}</p> : null}
+          {product?.status === "failed" && product.failureReason ? <p className="border-l-2 border-destructive bg-destructive/5 px-2 py-1 text-xs text-destructive">Writing failed: {product.failureReason}</p> : null}
         </header>
 
         {error ? (
@@ -198,8 +218,8 @@ export function ReviewDrawer({ storeSlug, productId, onClose, onChanged }: { sto
               <div className="flex items-baseline justify-between gap-2">
                 <h2 className="font-display text-base text-ink">Source</h2>
                 {group ? (
-                  <span className="num text-[11px] text-ink-muted">
-                    key via {group.keySource.replace(/_/g, " ")} · {group.language.lang} · complexity {group.complexity}
+                  <span className="num text-[11px] text-ink-muted" title="How the rows were grouped into this product, the language detected in them, and the complexity score that picked the model">
+                    grouped by {group.keySource.replace(/_/g, " ")} · {group.language.lang} · complexity {group.complexity}
                   </span>
                 ) : null}
               </div>

@@ -133,13 +133,21 @@ export function MetricsDashboard({ storeSlug }: { storeSlug: string }) {
         </p>
       ) : null}
 
-      <section aria-label="Overview" className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <Kpi label="Products processed" value={formatNumber(p.total)} hint={`${formatNumber(p.byStatus.pending_ai ?? 0)} awaiting AI`} />
+      <section aria-labelledby="overview-heading" className="space-y-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="overview-heading" className="font-display text-xl text-ink">
+            Overview
+          </h2>
+          <p className="text-xs text-ink-muted">How many products came through, how many were written cleanly and how many needed a person</p>
+        </div>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <Kpi label="Products processed" value={formatNumber(p.total)} hint={`${formatNumber(p.byStatus.pending_ai ?? 0)} being written`} />
         <Kpi label="Success rate" value={formatPercent(p.successRate, 1)} tone="success" hint={`${formatNumber((p.byStatus.draft ?? 0) + (p.byStatus.approved ?? 0))} of ${formatNumber(decided)} decided`} />
         <Kpi label="Review rate" value={formatPercent(p.reviewRate, 1)} tone="warning" hint={`${formatNumber(p.byStatus.needs_review ?? 0)} need review`} />
         <Kpi label="Failure rate" value={formatPercent(p.failureRate, 1)} tone="danger" hint={`${formatNumber(p.byStatus.failed ?? 0)} failed`} />
         <Kpi label="Imports completed" value={formatNumber(i.completed)} hint={`${formatNumber(i.active)} active · ${formatNumber(i.needsAttention)} need attention`} />
         <Kpi label="Rows processed" value={formatNumber(i.rowsProcessed)} hint="in completed imports" />
+        </div>
       </section>
 
       <CostSection cost={data.cost} />
@@ -147,16 +155,16 @@ export function MetricsDashboard({ storeSlug }: { storeSlug: string }) {
       <CostStrategies strategies={data.strategies} />
 
       <section aria-label="Charts" className="grid gap-4 lg:grid-cols-2">
-        <ChartCard title="AI cost over time" subtitle="Last 30 days, succeeded calls">
+        <ChartCard title="AI cost over time" subtitle="What the last 30 days of writing and translating cost, per day">
           <CostOverTimeChart data={data.costOverTime} />
         </ChartCard>
-        <ChartCard title="Model usage" subtitle="Cost by model · hover for tokens">
+        <ChartCard title="Which models did the work" subtitle="Cost by model; hover a bar for the token counts">
           <ModelUsageChart models={data.models} />
         </ChartCard>
-        <ChartCard title="Routing" subtitle="Products per model tier">
+        <ChartCard title="Who wrote what" subtitle="Products per model tier: cheaper models where the rows are simple, stronger ones where they are not">
           <RoutingChart routing={data.routing} />
         </ChartCard>
-        <ChartCard title="Translation coverage" subtitle="Title translations per locale" legend={<CoverageLegend />}>
+        <ChartCard title="Translation coverage" subtitle="How many product titles exist in each language" legend={<CoverageLegend />}>
           <TranslationCoverageChart translations={data.translations} />
         </ChartCard>
       </section>

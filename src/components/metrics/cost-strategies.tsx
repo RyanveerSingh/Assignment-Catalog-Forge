@@ -7,26 +7,26 @@ import { formatMicrosUsd, formatNumber, formatPercent } from "@/lib/format";
 
 const COPY: Record<StrategyKey, { label: string; describe: (d: CostStrategiesData) => string }> = {
   naive: {
-    label: "Sonnet everywhere",
-    describe: () => "Every call on the strong model in realtime, with cache reads and writes billed as fresh input: the baseline the savings meter uses.",
+    label: "Strong model for everything",
+    describe: () => "Every call on the strong model (Sonnet) in realtime, with nothing reused between prompts: the list-price figure the savings meter compares against.",
   },
   routed: {
-    label: "Routed, no prompt cache",
-    describe: () => "The models the router actually chose, in realtime, with every cached token still billed as fresh input.",
+    label: "Cheaper models, no reuse",
+    describe: () => "The models actually chosen for each product, in realtime, but with every repeated prompt paid for in full.",
   },
   actual: {
-    label: "Actual",
+    label: "What it actually cost",
     describe: (d) => {
-      const cached = d.cachedCalls > 0 ? `, with ${formatNumber(d.cachedCalls)} answer${d.cachedCalls === 1 ? "" : "s"} served from the response cache at no cost` : "";
-      return `Routing, the prompt cache and the response cache together: ${d.demo ? "what the recorded tokens would cost" : "the recorded spend"}${cached}.`;
+      const cached = d.cachedCalls > 0 ? `, with ${formatNumber(d.cachedCalls)} answer${d.cachedCalls === 1 ? "" : "s"} reused from an earlier identical call at no cost` : "";
+      return `Cheaper models where safe, plus prompt reuse: ${d.demo ? "what the recorded tokens would cost" : "the recorded spend"}${cached}.`;
     },
   },
   economy: {
-    label: "Actual, Economy mode",
+    label: "The same, in Economy mode",
     describe: (d) =>
       d.batchedCalls > 0
-        ? `The same calls through the Batch API at half price; the ${formatNumber(d.batchedCalls)} already batched are not halved twice.`
-        : "The same calls through the Batch API, which halves each one in exchange for waiting up to an hour.",
+        ? `The same calls sent in batches at half price; the ${formatNumber(d.batchedCalls)} already batched are not halved twice.`
+        : "The same calls sent in batches, which halves each one in exchange for waiting up to an hour.",
   },
 };
 
@@ -39,10 +39,10 @@ export function CostStrategies({ strategies }: { strategies: CostStrategiesData 
     <section aria-labelledby="strategies-heading" className="space-y-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 id="strategies-heading" className="font-display text-xl text-ink">
-          Cost strategies
+          What the same work would have cost
         </h2>
         <p className="text-xs text-ink-muted">
-          {formatNumber(strategies.totalCalls)} succeeded call{strategies.totalCalls === 1 ? "" : "s"} priced four ways · per 1,000 of the {formatNumber(strategies.productsThroughAi)} products that went through the AI
+          The {formatNumber(strategies.totalCalls)} successful AI call{strategies.totalCalls === 1 ? "" : "s"} priced four ways; per-1,000 figures use the {formatNumber(strategies.productsThroughAi)} products the AI wrote
         </p>
       </div>
       {strategies.totalCalls === 0 ? (
@@ -52,7 +52,7 @@ export function CostStrategies({ strategies }: { strategies: CostStrategiesData 
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Strategy</TableHead>
+                <TableHead>Approach</TableHead>
                 <TableHead className="text-right">Calls</TableHead>
                 <TableHead className="text-right">Cost</TableHead>
                 <TableHead className="text-right">Per 1,000 products</TableHead>
@@ -67,7 +67,7 @@ export function CostStrategies({ strategies }: { strategies: CostStrategiesData 
           </Table>
         </div>
       )}
-      {strategies.demo ? <p className="text-xs text-ink-muted">Demo provider: costs are estimated at Haiku and Sonnet list rates.</p> : null}
+      {strategies.demo ? <p className="text-xs text-ink-muted">Demo writer in use: costs are estimated at Haiku and Sonnet list rates.</p> : null}
     </section>
   );
 }
@@ -95,7 +95,7 @@ function StrategyRow({ row, data, baseline }: { row: CostStrategyRow; data: Cost
       <TableCell className={cn(NUM, "align-top")}>{row.per1000Micros === null ? <span className="text-ink-muted">—</span> : formatMicrosUsd(row.per1000Micros)}</TableCell>
       <TableCell className={cn(NUM, "align-top")}>
         {row.key === "naive" ? (
-          <span className="text-ink-muted">baseline</span>
+          <span className="text-ink-muted">list price</span>
         ) : (
           <>
             <span className={cn(row.savedMicros > 0 ? "text-success" : "text-ink-muted")}>{formatMicrosUsd(row.savedMicros)}</span>

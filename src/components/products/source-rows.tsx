@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { cn } from "cn";
 import { locateQuote } from "@/core/ai/quote";
 import type { Issue } from "@/core/types";
+import { statusLabel } from "@/lib/format";
 import { CleaningXray } from "./cleaning-xray";
 import type { SourceHighlight, SourceRow } from "./types";
 
@@ -73,7 +74,7 @@ export function SourceRows({ rows, highlight, showCleaning }: { rows: SourceRow[
             <header className="flex flex-wrap items-center gap-2 border-b border-border bg-paper-deep/50 px-2 py-1">
               <span className="num text-[11px] font-medium text-ink">row {row.rowNumber}</span>
               {row.duplicateOfRow !== null ? <span className="text-[11px] text-ink-muted">duplicate of {row.duplicateOfRow}</span> : null}
-              {row.status === "failed" || row.status === "needs_review" ? <span className="text-[11px] uppercase tracking-wide text-warning">{row.status.replace("_", " ")}</span> : null}
+              {row.status === "failed" || row.status === "needs_review" ? <span className="text-[11px] uppercase tracking-wide text-warning">{statusLabel(row.status)}</span> : null}
             </header>
             {cells.length === 0 ? (
               <p className="px-2 py-1.5 text-xs text-ink-muted">Empty row.</p>
@@ -110,6 +111,11 @@ const SEVERITY_CLASS: Record<Issue["severity"], string> = {
   info: "bg-info-soft text-info ring-info/25",
 };
 
+/** "price.ambiguous · EC-B5": the machine code and edge-case id, kept for the hover rather than the line. */
+export function issueCodeTitle(it: Issue): string {
+  return it.ec ? `${it.code} · EC-${it.ec}` : it.code;
+}
+
 /** Conflicts and issues from the deterministic grouping stage; the severity word is always printed. */
 export function IssueList({ issues, emptyText = "None" }: { issues: Issue[]; emptyText?: string }) {
   if (issues.length === 0) return <p className="text-xs text-ink-muted">{emptyText}</p>;
@@ -118,12 +124,10 @@ export function IssueList({ issues, emptyText = "None" }: { issues: Issue[]; emp
       {issues.map((it, i) => (
         <li key={`${it.code}-${it.row ?? ""}-${i}`} className="flex flex-wrap items-start gap-1.5 text-xs">
           <span className={cn("inline-flex h-4 shrink-0 items-center px-1 text-[10px] font-medium uppercase tracking-wide ring-1 ring-inset", SEVERITY_CLASS[it.severity])}>{it.severity}</span>
-          <span className="text-ink">{it.message}</span>
-          <span className="num text-[11px] text-ink-muted">
-            {it.code}
-            {it.row !== undefined ? ` · row ${it.row}` : ""}
-            {it.ec ? ` · EC-${it.ec}` : ""}
+          <span className="text-ink" title={issueCodeTitle(it)}>
+            {it.message}
           </span>
+          {it.row !== undefined ? <span className="num text-[11px] text-ink-muted">row {it.row}</span> : null}
         </li>
       ))}
     </ul>
