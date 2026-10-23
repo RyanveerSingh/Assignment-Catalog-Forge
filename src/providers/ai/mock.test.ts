@@ -60,6 +60,13 @@ describe("mock AI provider", () => {
     expect(res.usage.cacheReadTokens).toBeGreaterThan(0);
   });
 
+  it("EC-D3: snaps a German supplier category to the taxonomy when no keyword matches", async () => {
+    const provider = createMockProvider();
+    const input: EnrichInput = { products: [{ ...planter.products[0]!, product_key: "K", source_title: "Stumpenkerze", material: "Bienenwachs", color: null, category_hint: "Haus & Garten > Dekoration > Kerzen", source_description: "Handgegossen, brennt langsam.", rows: [] }] };
+    const res = await provider.complete({ purpose: "enrich", model: "mock-cheap", system: "", userText: renderEnrichUserText(input), input, schema: aiEnrichBatchSchema, maxTokens: 1000 });
+    expect(res.output.products[0]!.category).toBe("Home & Garden > Decor > Candles");
+  });
+
   it("flags products with no usable title for review", async () => {
     const provider = createMockProvider();
     const input: EnrichInput = { products: [{ ...planter.products[0]!, product_key: "X", source_title: null, material: null, color: null, category_hint: null, source_description: null, rows: [] }] };

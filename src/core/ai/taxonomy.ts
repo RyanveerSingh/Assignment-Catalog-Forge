@@ -1,3 +1,101 @@
+import { foldForMatch } from "@/core/clean/text";
+
+/** Nearest taxonomy path by trigram similarity, else a unique leaf-name match ("Planters"), else null (EC-D3). */
+export function nearestTaxonomyPath(category: string): string | null {
+  const target = foldForMatch(category);
+  let best: { path: string; score: number } | null = null;
+  for (const path of TAXONOMY) {
+    const score = jaccardTrigrams(target, foldForMatch(path));
+    if (!best || score > best.score) best = { path, score };
+  }
+  if (best && best.score >= 0.5) return best.path;
+  const leaf = foldForMatch(category.split(">").pop() ?? category);
+  const leafMatches = TAXONOMY.filter((p) => foldForMatch(p.split(" > ").pop() ?? "") === leaf);
+  return leafMatches.length === 1 ? (leafMatches[0] ?? null) : null;
+}
+
+function jaccardTrigrams(a: string, b: string): number {
+  const ta = trigrams(a);
+  const tb = trigrams(b);
+  if (ta.size === 0 || tb.size === 0) return 0;
+  let inter = 0;
+  for (const t of ta) if (tb.has(t)) inter += 1;
+  return inter / (ta.size + tb.size - inter);
+}
+
+function trigrams(s: string): Set<string> {
+  const padded = `  ${s} `;
+  const out = new Set<string>();
+  for (let i = 0; i + 3 <= padded.length; i++) out.add(padded.slice(i, i + 3));
+  return out;
+}
+
+/** German and French words for the taxonomy's own node names, so a supplier's category column can be snapped. */
+const CATEGORY_WORDS: ReadonlyArray<[RegExp, string]> = [
+  [/\b(haus|maison)\b/g, "home"],
+  [/\b(garten|jardin|jardinage)\b/g, "garden"],
+  [/\b(kuche|cuisine)\b/g, "kitchen"],
+  [/\b(essen|salle a manger|esszimmer)\b/g, "dining"],
+  [/\b(dekoration|deko|decoration)\b/g, "decor"],
+  [/\b(beleuchtung|eclairage|luminaires)\b/g, "lighting"],
+  [/\b(lampen|lampe|lampes)\b/g, "lamps"],
+  [/\b(mobel|meubles|meuble)\b/g, "furniture"],
+  [/\b(buro|bureau|burobedarf|fournitures de bureau)\b/g, "office supplies"],
+  [/\b(spielzeug|spielwaren|jouets|jouet)\b/g, "toys"],
+  [/\b(spiele|jeux)\b/g, "games"],
+  [/\b(tiere|haustiere|haustier|animaux|animalerie)\b/g, "pet supplies"],
+  [/\b(bad|badezimmer|salle de bain|salle de bains)\b/g, "bathroom accessories"],
+  [/\b(kerzen|kerze|bougies|bougie)\b/g, "candles"],
+  [/\b(teppiche|teppich|tapis)\b/g, "rugs"],
+  [/\b(vaisselle|geschirr|arts de la table)\b/g, "tableware"],
+  [/\b(kochgeschirr|ustensiles de cuisine)\b/g, "cookware"],
+  [/\b(bettwasche|linge de lit|literie)\b/g, "bedding"],
+  [/\b(handtucher|serviettes)\b/g, "towels"],
+  [/\b(kissen|coussins|coussin)\b/g, "throw pillows"],
+  [/\b(pflanzgefasse|blumentopfe|ubertopfe|jardinieres|pots de fleurs)\b/g, "planters"],
+  [/\b(gartengerate|outils de jardin)\b/g, "gardening tools"],
+  [/\b(giesskannen|arrosoirs)\b/g, "watering cans"],
+  [/\b(schreibwaren|papeterie)\b/g, "paper"],
+  [/\b(fournitures generales|allgemeiner burobedarf)\b/g, "general office supplies"],
+  [/\b(carnets|carnet|notizbucher|notizbuch|notizblocke)\b/g, "notebooks notepads"],
+  [/\b(stifte|stylos|schreibgerate|instruments d ecriture)\b/g, "writing instruments"],
+  [/\b(regale|etageres)\b/g, "shelving"],
+  [/\b(tische|tables)\b/g, "tables"],
+  [/\b(stuhle|chaises)\b/g, "chairs"],
+];
+
+/** "Haus & Garten > Dekoration > Kerzen" → "home garden decor candles": a hint the snapper can score. */
+export function anglicizeCategoryHint(hint: string): string {
+  let text = foldForMatch(hint);
+  for (const [re, en] of CATEGORY_WORDS) text = text.replace(re, en);
+  return text;
+}
+
+/**
+ * The supplier's category cell as a taxonomy node: the exact path, a parent node ("Furniture > Tables"),
+ * or the nearest path cut back to the cell's own depth (a French three-level cell never claims a leaf
+ * it did not name). Null when the cell is junk the snapper cannot place.
+ */
+export function resolveSourceCategory(raw: string): string | null {
+  const text = raw
+    .replace(/\s*[>/»|]+\s*/g, " > ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!text) return null;
+  const lower = text.toLowerCase();
+  const exact = TAXONOMY.find((p) => p.toLowerCase() === lower);
+  if (exact) return exact;
+  const parent = TAXONOMY.find((p) => p.toLowerCase().startsWith(`${lower} > `));
+  if (parent) return parent.slice(0, text.length);
+  const nearest = nearestTaxonomyPath(anglicizeCategoryHint(text));
+  if (!nearest) return null;
+  const segments = text.split(" > ");
+  const leaf = nearest.split(" > ").pop() ?? "";
+  // The cell's last segment names the leaf itself ("Gießkannen" → "Watering Cans"): keep the whole path.
+  if (anglicizeCategoryHint(segments[segments.length - 1] ?? "") === foldForMatch(leaf)) return nearest;
+  return nearest.split(" > ").slice(0, segments.length).join(" > ");
+}
+
 /**
  * A trimmed, Google-Product-Taxonomy-style category tree for physical goods.
  * The model must pick a path from this list; anything else is snapped to the nearest path or sent

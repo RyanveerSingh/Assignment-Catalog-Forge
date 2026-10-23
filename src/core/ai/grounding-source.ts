@@ -60,7 +60,8 @@ export function verifyCitation(c: AiClaim, rows: SourceRowCells[], variants: str
   const cell = column === undefined ? undefined : row.cells[column];
   if (column === undefined || cell === undefined) return null;
   const padded = ` ${cell.folded} `;
-  const quote = foldForMatch(c.quote);
+  // The model may quote the mojibake row verbatim ("TÃ¼lle"); repair it the same way the cells are.
+  const quote = foldForMatch(repairMojibake(c.quote).text);
   const quoteOk = quote.length > 0 && (padded.includes(quote) || tokenContainment(quote, padded) >= 0.9);
   const termOk = variants.some((v) => padded.includes(` ${v} `));
   if (!quoteOk && !termOk) return null;
@@ -81,7 +82,7 @@ export function findTermInRows(rows: SourceRowCells[], variants: string[]): Foun
 
 /** The model's quote, looked for in every cell of the product's rows. One-word quotes prove nothing and are ignored. */
 export function findQuoteInRows(rows: SourceRowCells[], quoteRaw: string): Found | null {
-  const quote = foldForMatch(quoteRaw);
+  const quote = foldForMatch(repairMojibake(quoteRaw).text);
   if (quote.split(" ").filter(Boolean).length < 2) return null;
   for (const r of rows) {
     for (const [column, cell] of Object.entries(r.cells)) {

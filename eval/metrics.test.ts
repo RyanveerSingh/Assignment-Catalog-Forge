@@ -41,6 +41,7 @@ function derived(overrides: Partial<DerivedProduct> = {}): DerivedProduct {
     attributes: {},
     status: "draft",
     reviewReasons: [],
+    blocked: [],
     confidence: { title: 95 },
     ...overrides,
   };
@@ -81,12 +82,22 @@ describe("matchProducts", () => {
 });
 
 describe("scorePair: variants and prices", () => {
-  it("EC-C6: a synthetic GEN- SKU is a miss against a truth SKU of \"\"", () => {
+  it("EC-C6: a synthetic GEN- variant pairs with a SKU-less truth variant and its price is compared", () => {
     const s = scorePair(derived({ variants: [dv("GEN-1A2B", 2400)] }), truth({ variants: [tv("", 2400)] }));
+    expect(s.variantPrecision).toBe(1);
+    expect(s.variantRecall).toBe(1);
+    expect(s.priceExact).toBe(1);
+    expect(s.missingSkus).toEqual([]);
+    const wrongPrice = scorePair(derived({ variants: [dv("GEN-1A2B", 2500)] }), truth({ variants: [tv("", 2400)] }));
+    expect(wrongPrice.priceExact).toBe(0);
+  });
+
+  it("EC-C6: a synthetic GEN- variant never matches a real truth SKU", () => {
+    const s = scorePair(derived({ variants: [dv("GEN-1A2B", 2400)] }), truth({ variants: [tv("TC-PL-20", 2400)] }));
     expect(s.variantPrecision).toBe(0);
     expect(s.variantRecall).toBe(0);
-    expect(s.priceExact).toBe(0);
-    expect(s.missingSkus).toEqual([""]);
+    expect(s.missingSkus).toEqual(["TC-PL-20"]);
+    expect(s.extraSkus).toEqual(["GEN-1A2B"]);
   });
 
   it("EC-B14: compares upper-cased, trimmed SKUs for precision and recall", () => {

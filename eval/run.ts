@@ -65,7 +65,7 @@ function toDerived(c: Candidate, answer: ModelAnswer | undefined): DerivedProduc
     skus: c.group.variants.map((v) => v.sku),
     variants: c.group.variants.map((v) => ({ sku: v.sku, synthetic: v.synthetic, priceCents: v.priceCents, currency: v.currency })),
   };
-  const failed = (error: string): DerivedProduct => ({ ...base, title: "", category: "", claims: [], descriptionText: "", tags: [], attributes: {}, status: "failed", reviewReasons: [], confidence: {}, error });
+  const failed = (error: string): DerivedProduct => ({ ...base, blocked: [], title: "", category: "", claims: [], descriptionText: "", tags: [], attributes: {}, status: "failed", reviewReasons: [], confidence: {}, error });
   if (!answer) return failed("no model answer");
   if ("error" in answer) return failed(answer.error);
   try {
@@ -75,6 +75,7 @@ function toDerived(c: Candidate, answer: ModelAnswer | undefined): DerivedProduc
       title: g.content.title,
       category: g.content.category,
       claims: g.claims.map((claim) => claim.text),
+      blocked: g.blocked.map((b) => `${b.kind}: "${b.text}" — ${b.reason}${b.quote ? ` (source: "${b.quote}")` : ""}`),
       descriptionText: g.content.descriptionHtml ? htmlToText(g.content.descriptionHtml) : "",
       tags: g.content.tags,
       attributes: g.content.attributes,

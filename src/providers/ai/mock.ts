@@ -1,7 +1,7 @@
 import { CLAIM_LEXICON } from "@/core/ai/lexicon";
 import type { EnrichInput, EnrichProductInput, TranslateInput } from "@/core/ai/prompts";
 import type { AiEnrichBatch, AiProductOutput, AiTranslateBatch } from "@/core/ai/schema";
-import { TAXONOMY, TAXONOMY_FALLBACK } from "@/core/ai/taxonomy";
+import { resolveSourceCategory, TAXONOMY, TAXONOMY_FALLBACK } from "@/core/ai/taxonomy";
 import { AiError } from "./errors";
 import { costMicros } from "./pricing";
 import type { AiBatchHandle, AiBatchResult, AiProvider, AiRequest, AiResponse, AiUsage } from "./types";
@@ -149,7 +149,7 @@ const CATEGORY_KEYWORDS: Array<[RegExp, string]> = [
   [/\b(plush|stuffed|kuscheltier|peluche|doll|puppe|poupée)\b/i, "Toys & Games > Toys > Dolls & Stuffed Animals"],
   [/\b(building blocks|bauklötze|blocs de construction)\b/i, "Toys & Games > Toys > Building Toys"],
   [/\b(toy|spielzeug|jouet)\b/i, "Toys & Games > Toys > Educational Toys"],
-  [/\b(notebook|notizbuch|cahier|notepad)\b/i, "Office Supplies > General Office Supplies > Paper > Notebooks & Notepads"],
+  [/\b(notebook|notizbuch|cahier|carnet|notepad)\b/i, "Office Supplies > General Office Supplies > Paper > Notebooks & Notepads"],
   [/\b(pen|kugelschreiber|stylo)\b/i, "Office Supplies > Writing Instruments > Pens"],
   [/\b(pencil|bleistift|crayon)\b/i, "Office Supplies > Writing Instruments > Pencils"],
   [/\b(pen holder|stiftehalter|pot à crayons)\b/i, "Office Supplies > Desk Accessories > Pen Holders"],
@@ -209,6 +209,9 @@ function deriveTitle(p: EnrichProductInput): { title: string; confidence: number
 }
 
 function deriveCategory(p: EnrichProductInput, title: string): { category: string; confidence: number; reason: string | null } {
+  // The supplier's own category column, when it maps to the taxonomy, beats any keyword guess.
+  const fromSource = p.category_hint ? resolveSourceCategory(p.category_hint) : null;
+  if (fromSource) return { category: fromSource, confidence: 80, reason: null };
   // The title names the product; the description only disambiguates, so it is searched second.
   const titleHay = `${title} ${p.category_hint ?? ""}`.toLowerCase();
   for (const [re, path] of CATEGORY_KEYWORDS) {

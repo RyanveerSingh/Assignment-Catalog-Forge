@@ -24,6 +24,8 @@ export type DerivedStatus = "draft" | "needs_review" | "failed";
 
 export interface DerivedProduct {
   productKey: string;
+  /** What the grounding validator removed, as "kind: text — reason", so a review flag explains itself in the report. */
+  blocked: string[];
   /** Variant SKUs as the grouper produced them; a synthetic `GEN-…` SKU never matches a truth SKU (EC-C6). */
   skus: string[];
   variants: DerivedVariant[];
@@ -167,6 +169,7 @@ export interface PairScore {
   status: DerivedStatus;
   expectedStatus: GroundTruthStatus;
   reviewReasons: string[];
+  blocked: string[];
   expectedReviewReasons: string[];
   variantPrecision: number | null;
   variantRecall: number | null;
@@ -222,15 +225,22 @@ function formatMoney(priceCents: number | null, currency: string | null): string
 }
 
 export function scorePair(derived: DerivedProduct, truth: GroundTruthProduct): PairScore {
-  const truthSet = new Set(truth.variants.map((v) => normalizeSku(v.sku)));
-  const derivedSet = new Set(derived.variants.map((v) => normalizeSku(v.sku)));
-  const variantHits = [...derivedSet].filter((s) => truthSet.has(s)).length;
+  // Real SKUs must match exactly. A truth variant without a SKU (the sheet had none) can only ever
+  // meet a synthetic GEN- variant, so those pair up in order instead of by SKU (EC-C6).
+  const truthSet = new Set(truth.variants.map((v) => normalizeSku(v.sku)).filter((s) => s !== ""));
+  const derivedSet = new Set(derived.variants.filter((v) => !v.synthetic).map((v) => normalizeSku(v.sku)));
+  const skulessTruth = truth.variants.filter((v) => normalizeSku(v.sku) === "");
+  const synthetic = derived.variants.filter((v) => v.synthetic);
+  const pairedSynthetic = new Map(skulessTruth.slice(0, synthetic.length).map((tv, i) => [tv, synthetic[i]] as const));
+  const variantHits = [...derivedSet].filter((s) => truthSet.has(s)).length + pairedSynthetic.size;
+  const derivedCount = derivedSet.size + synthetic.length;
+  const truthCount = truthSet.size + skulessTruth.length;
 
-  const bySku = new Map(derived.variants.map((v) => [normalizeSku(v.sku), v] as const));
+  const bySku = new Map(derived.variants.filter((v) => !v.synthetic).map((v) => [normalizeSku(v.sku), v] as const));
   let priceHits = 0;
   const priceMisses: string[] = [];
   for (const tv of truth.variants) {
-    const dv = bySku.get(normalizeSku(tv.sku));
+    const dv = normalizeSku(tv.sku) === "" ? pairedSynthetic.get(tv) : bySku.get(normalizeSku(tv.sku));
     if (dv && dv.priceCents === tv.priceCents && dv.currency === tv.currency) priceHits += 1;
     else priceMisses.push(`${tv.sku || '""'}: expected ${formatMoney(tv.priceCents, tv.currency)}, got ${dv ? formatMoney(dv.priceCents, dv.currency) : "no variant"}`);
   }
@@ -273,14 +283,15 @@ export function scorePair(derived: DerivedProduct, truth: GroundTruthProduct): P
     status: derived.status,
     expectedStatus: truth.expectedStatus,
     reviewReasons: derived.reviewReasons,
+    blocked: derived.blocked,
     expectedReviewReasons: truth.expectedReviewReasons,
-    variantPrecision: ratio(variantHits, derivedSet.size),
-    variantRecall: ratio(variantHits, truthSet.size),
+    variantPrecision: ratio(variantHits, derivedCount),
+    variantRecall: ratio(variantHits, truthCount),
     variantHits,
-    derivedVariants: derivedSet.size,
-    truthVariants: truthSet.size,
-    missingSkus: [...truthSet].filter((s) => !derivedSet.has(s)),
-    extraSkus: [...derivedSet].filter((s) => !truthSet.has(s)),
+    derivedVariants: derivedCount,
+    truthVariants: truthCount,
+    missingSkus: [...[...truthSet].filter((s) => !derivedSet.has(s)), ...skulessTruth.slice(synthetic.length).map(() => '""')],
+    extraSkus: [...[...derivedSet].filter((s) => !truthSet.has(s)), ...synthetic.slice(skulessTruth.length).map((v) => v.sku)],
     priceExact: ratio(priceHits, truth.variants.length),
     priceHits,
     priceMisses,
@@ -434,7 +445,7 @@ export function failingChecks(s: PairScore): string[] {
   if (s.priceHits < s.truthVariants) out.push(`price: ${s.priceHits}/${s.truthVariants} exact (${s.priceMisses.slice(0, 2).join("; ")})`);
   if (s.disallowedClaims.length > 0) out.push(`claims not allowed: ${s.disallowedClaims.join(", ")}`);
   if (s.missingClaims.length > 0) out.push(`claims missed: ${s.missingClaims.join(", ")}`);
-  if (!s.statusCorrect) out.push(`status: ${s.status} (expected ${s.expectedStatus})`);
+  if (!s.statusCorrect) out.push(`status: ${s.status} (expected ${s.expectedStatus})${s.blocked.length > 0 ? `; blocked ${s.blocked.join(" | ")}` : ""}`);
   if (s.reviewReasonHit === false) out.push(`review reason: none of [${s.expectedReviewReasons.join(", ")}] reflected in [${s.reviewReasons.join(" | ")}]`);
   return out;
 }

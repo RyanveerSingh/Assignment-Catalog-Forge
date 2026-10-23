@@ -4,10 +4,10 @@ import { parseLength, parseWeight } from "@/core/clean/units";
 import type { Issue, ProductGroup } from "@/core/types";
 import { issue } from "@/core/types";
 import { findNegationInRows, findQuoteInRows, findTermInRows, prepareSourceRows, verifyCitation, type Found } from "./grounding-source";
-import { CLAIM_LEXICON } from "./lexicon";
+import { CLAIM_LEXICON, evidenceFor, PLACE_AFTER_RE } from "./lexicon";
 import { claimPolarity, isNegated, tokenizeClauses } from "./negation";
 import { clampConfidence, type AiProductOutput } from "./schema";
-import { TAXONOMY, TAXONOMY_FALLBACK } from "./taxonomy";
+import { nearestTaxonomyPath, resolveSourceCategory, TAXONOMY, TAXONOMY_FALLBACK } from "./taxonomy";
 
 export { claimPolarity, isNegated, tokenizeClauses };
 
@@ -99,9 +99,10 @@ export function groundProductOutput(input: GroundingInput): GroundingResult {
     const polarity = claimPolarity(c.text);
     const term = canonicalTerm(polarity.core);
     const variants = variantsFor(term);
-    const citation = verifyCitation(c, sourceRows, variants);
+    const evidence = evidenceVariantsFor(term);
+    const citation = verifyCitation(c, sourceRows, evidence);
     // A quote that lives in a sibling row of the same product is still a citation (models slip on row numbers).
-    const found = citation ?? findTermInRows(sourceRows, variants) ?? findQuoteInRows(sourceRows, c.quote);
+    const found = citation ?? findTermInRows(sourceRows, evidence) ?? findQuoteInRows(sourceRows, c.quote);
     if (!found) {
       blocked.push({ text: c.text, kind: "unsupported", reason: "not found in the source cells" });
       issues.push(issue("claim.unsupported", "warn", `Claim "${c.text}" is not supported by the source`, { field: "claims", value: c.text, ec: "D2" }));
@@ -142,12 +143,15 @@ export function groundProductOutput(input: GroundingInput): GroundingResult {
     const text = ` ${foldForMatch(listingText)} `;
     const hit = entry.variants.find((v) => text.includes(` ${v} `));
     if (!hit) continue;
-    const inSource = entry.variants.some((v) => corpus.includes(` ${v} `));
+    if (entry.placeAfter && !PLACE_AFTER_RE.test(listingText)) continue;
+    // Supporting evidence ("solid oak") proves presence; only the term's own spellings decide negation.
+    const evidence = evidenceFor(entry);
+    const inSource = evidence.some((v) => corpus.includes(` ${v} `));
     const sourceNegated = inSource && isNegated(corpusTokens, entry.variants);
     if (isNegated(tokenizeClauses(listingText), entry.variants)) {
       // The listing itself denies the term. Fine when the source denies it too; otherwise it is invented.
       if (sourceNegated) continue;
-      blocked.push(inSource ? block(`not ${entry.term}`, "contradicted", entry.term, findTermInRows(sourceRows, entry.variants)) : { text: `not ${entry.term}`, kind: "unsupported", reason: "the source never mentions it", term: entry.term });
+      blocked.push(inSource ? block(`not ${entry.term}`, "contradicted", entry.term, findTermInRows(sourceRows, evidence)) : { text: `not ${entry.term}`, kind: "unsupported", reason: "the source never mentions it", term: entry.term });
       issues.push(issue("claim.unsupported", "warn", inSource ? `Listing says "not ${entry.term}" but the source says "${entry.term}"` : `Listing says "not ${entry.term}" but the source never mentions it`, { value: entry.term, ec: "D2" }));
       reviewReasons.push(inSource ? `Listing says "not ${entry.term}" but the source says it is` : `Listing says "not ${entry.term}" but the source does not mention it`);
       stripTermFromText(entry.variants, true);
@@ -156,9 +160,14 @@ export function groundProductOutput(input: GroundingInput): GroundingResult {
     }
     if (!inSource) {
       blocked.push({ text: entry.term, kind: "unsupported", reason: "not found in the source cells", term: entry.term });
+      stripTermFromText(entry.variants);
+      if (entry.soft) {
+        // A marketing adjective the source does not back is simply removed; no reviewer needs to see it.
+        issues.push(issue("claim.unsupported", "info", `"${entry.term}" appears in the listing but not in the source; removed`, { value: entry.term, ec: "D2" }));
+        continue;
+      }
       issues.push(issue("claim.unsupported", "warn", `"${entry.term}" appears in the listing but not in the source`, { value: entry.term, ec: "D2" }));
       reviewReasons.push(`Listing says "${entry.term}" but the source does not`);
-      stripTermFromText(entry.variants);
       strippedClaims += 1;
     } else if (sourceNegated) {
       blocked.push(block(entry.term, "negated", entry.term, findNegationInRows(sourceRows, entry.variants)));
@@ -168,7 +177,7 @@ export function groundProductOutput(input: GroundingInput): GroundingResult {
       strippedClaims += 1;
     } else {
       // Supported but not cited: keep it, record where it comes from.
-      const found = findTermInRows(sourceRows, entry.variants);
+      const found = findTermInRows(sourceRows, evidence);
       if (found) claims.push({ text: entry.term, source: `row ${found.row}, column ${found.column}`, row: found.row, column: found.column, quote: found.quote, verified: true });
     }
   }
@@ -188,6 +197,10 @@ export function groundProductOutput(input: GroundingInput): GroundingResult {
   let category = output.category.trim();
   let categorySnapped = false;
   let categoryFallback = false;
+  let categoryModelConfidence = output.confidence.category;
+  // The supplier's own category column is source data; when it maps to a taxonomy node it outranks
+  // the model's opinion, exactly as prices and SKUs do (EC-D3).
+  const sourceCategory = group.category ? resolveSourceCategory(group.category) : null;
   const isParentNode = !TAXONOMY.includes(category) && TAXONOMY.some((p) => p.startsWith(`${category} > `));
   if (isParentNode) {
     // A parent node ("Home & Garden > Decor") is a legitimate, deliberately vague answer: keep it, cap confidence.
@@ -199,12 +212,32 @@ export function groundProductOutput(input: GroundingInput): GroundingResult {
       issues.push(issue("category.snapped", "info", `Category "${category}" mapped to "${nearest}"`, { field: "category", ec: "D3" }));
       category = nearest;
       categorySnapped = true;
+    } else if (sourceCategory) {
+      issues.push(issue("category.snapped", "info", `Category "${category}" is not in the taxonomy; the supplier's category "${sourceCategory}" is used`, { field: "category", ec: "D3" }));
+      category = sourceCategory;
+      categorySnapped = true;
+      categoryModelConfidence = Math.max(categoryModelConfidence, 75);
     } else {
       issues.push(issue("category.unknown", "warn", `Category "${category}" is not in the taxonomy`, { field: "category", ec: "D3" }));
       reviewReasons.push(`Category "${category}" is not in the taxonomy`);
       category = TAXONOMY_FALLBACK;
       categoryFallback = true;
     }
+  }
+  if (sourceCategory && !categoryFallback && !category.toLowerCase().startsWith(sourceCategory.toLowerCase())) {
+    issues.push(issue("category.source", "info", `Model chose "${category}"; the supplier's category "${sourceCategory}" is used`, { field: "category", ec: "D3" }));
+    category = sourceCategory;
+    categorySnapped = !TAXONOMY.includes(sourceCategory);
+    categoryModelConfidence = Math.max(categoryModelConfidence, 85);
+  }
+  // A leaf the model itself doubts ("Pencils" for a sharpener at 55) becomes its parent node: vague
+  // beats wrong, the storefront still files it sensibly, and no reviewer is needed for it (EC-D3).
+  if (!categoryFallback && categoryModelConfidence < 60 && category.includes(" > ")) {
+    const parent = category.slice(0, category.lastIndexOf(" > "));
+    issues.push(issue("category.generic", "info", `Low confidence in "${category}"; filed under its parent "${parent}"`, { field: "category", ec: "D3" }));
+    category = parent;
+    categorySnapped = true;
+    categoryModelConfidence = Math.max(categoryModelConfidence, 70);
   }
 
   // --- 6. mix-up check: the title must come from this product's rows (EC-D7) ------------
@@ -257,7 +290,7 @@ export function groundProductOutput(input: GroundingInput): GroundingResult {
   const confidence: Record<string, number> = {
     title: clampConfidence(Math.min(output.confidence.title, heuristic.title)),
     description: clampConfidence(Math.min(output.confidence.description, heuristic.description)),
-    category: clampConfidence(Math.min(output.confidence.category, heuristic.category)),
+    category: clampConfidence(Math.min(categoryModelConfidence, heuristic.category)),
     tags: clampConfidence(Math.min(output.confidence.tags, heuristic.tags)),
     attributes: clampConfidence(Math.min(output.confidence.attributes, heuristic.attributes)),
   };
@@ -333,6 +366,12 @@ function variantsFor(term: string): string[] {
   return entry ? [...new Set([...base, ...entry.variants])] : base;
 }
 
+/** The term's spellings plus its supporting evidence, for proving presence (never for deciding negation). */
+function evidenceVariantsFor(term: string): string[] {
+  const entry = CLAIM_LEXICON.find((e) => e.term === term);
+  return entry ? [...new Set([...variantsFor(term), ...evidenceFor(entry)])] : variantsFor(term);
+}
+
 const NUMBER_RE = /\d+(?:[.,]\d+)?/g;
 
 function normalizeNumber(raw: string): string {
@@ -371,36 +410,6 @@ export function collectSourceNumbers(group: ProductGroup): Set<string> {
     }
     if (v.dimensions) for (const d of Object.values(v.dimensions)) if (typeof d === "number") out.add(normalizeNumber(String(d)));
   }
-  return out;
-}
-
-function nearestTaxonomyPath(category: string): string | null {
-  const target = foldForMatch(category);
-  let best: { path: string; score: number } | null = null;
-  for (const path of TAXONOMY) {
-    const score = jaccardTrigrams(target, foldForMatch(path));
-    if (!best || score > best.score) best = { path, score };
-  }
-  if (best && best.score >= 0.5) return best.path;
-  // Leaf-name match: "Planters" → the single path ending in Planters.
-  const leaf = foldForMatch(category.split(">").pop() ?? category);
-  const leafMatches = TAXONOMY.filter((p) => foldForMatch(p.split(" > ").pop() ?? "") === leaf);
-  return leafMatches.length === 1 ? (leafMatches[0] ?? null) : null;
-}
-
-function jaccardTrigrams(a: string, b: string): number {
-  const ta = trigrams(a);
-  const tb = trigrams(b);
-  if (ta.size === 0 || tb.size === 0) return 0;
-  let inter = 0;
-  for (const t of ta) if (tb.has(t)) inter += 1;
-  return inter / (ta.size + tb.size - inter);
-}
-
-function trigrams(s: string): Set<string> {
-  const padded = `  ${s} `;
-  const out = new Set<string>();
-  for (let i = 0; i + 3 <= padded.length; i++) out.add(padded.slice(i, i + 3));
   return out;
 }
 

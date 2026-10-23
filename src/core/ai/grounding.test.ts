@@ -240,6 +240,76 @@ describe("groundProductOutput", () => {
     expect(r.reviewReasons.filter((x) => x.includes("source"))).toEqual([]);
   });
 
+  it("EC-D3: a leaf the model doubts is filed under its parent node without review", () => {
+    const r = groundProductOutput({
+      output: output({ category: "Office Supplies > Writing Instruments > Pencils", confidence: { title: 97, description: 90, category: 55, tags: 80, attributes: 85 } }),
+      group,
+      rows,
+    });
+    expect(r.content.category).toBe("Office Supplies > Writing Instruments");
+    expect(r.confidence.category).toBe(70);
+    expect(r.reviewReasons).toEqual(["No price for 30 cm"]);
+    expect(r.issues.some((i) => i.code === "category.generic" && i.ec === "D3")).toBe(true);
+  });
+
+  it("EC-D2: an unsupported marketing adjective is removed from the text without a review reason", () => {
+    const r = groundProductOutput({
+      output: output({ description_html: "<p>Premium hand-thrown terracotta planter with drainage hole. Frost-resistant; bring indoors below 0 °C.</p>" }),
+      group,
+      rows,
+    });
+    expect(r.content.descriptionHtml).not.toMatch(/premium/i);
+    expect(r.blocked).toEqual([expect.objectContaining({ text: "premium", kind: "unsupported" })]);
+    expect(r.reviewReasons).toEqual(["No price for 30 cm"]);
+    expect(r.confidence.description).toBe(90);
+  });
+
+  it("EC-D3: the supplier's own category outranks the model's sibling choice", () => {
+    const sourced: ProductGroup = { ...group, category: "Animals & Pet Supplies > Pet Supplies > Pet Toys" };
+    const r = groundProductOutput({ output: output({ category: "Animals & Pet Supplies > Pet Supplies > Dog Supplies" }), group: sourced, rows });
+    expect(r.content.category).toBe("Animals & Pet Supplies > Pet Supplies > Pet Toys");
+    expect(r.confidence.category).toBe(88);
+    expect(r.issues.some((i) => i.code === "category.source")).toBe(true);
+    expect(r.reviewReasons).toEqual(["No price for 30 cm"]);
+  });
+
+  it("EC-D3: a French supplier category resolves to its taxonomy parent and a leaf beneath it stands", () => {
+    const sourced: ProductGroup = { ...group, category: "Maison & Jardin > Cuisine & Salle à manger > Vaisselle" };
+    const r = groundProductOutput({ output: output({ category: "Home & Garden > Kitchen & Dining > Tableware > Coffee & Tea Sets" }), group: sourced, rows });
+    expect(r.content.category).toBe("Home & Garden > Kitchen & Dining > Tableware > Coffee & Tea Sets");
+    expect(r.issues.some((i) => i.code === "category.source")).toBe(false);
+  });
+
+  it("EC-D2: 'hand-made in natural jute' is not an origin claim, 'Made in Portugal' without a source is", () => {
+    const fine = groundProductOutput({ output: output({ description_html: "<p>Hand-made in natural jute, hand-thrown look.</p>" }), group, rows });
+    expect(fine.reviewReasons.some((x) => x.includes("made in"))).toBe(false);
+    const invented = groundProductOutput({ output: output({ description_html: "<p>Hand-thrown terracotta planter. Made in Portugal.</p>" }), group, rows });
+    expect(invented.reviewReasons).toContain('Listing says "made in" but the source does not');
+    expect(invented.content.descriptionHtml).not.toMatch(/made in/i);
+  });
+
+  it("EC-B15: a named species supports 'solid wood' but never outvotes an explicit 'not solid wood'", () => {
+    const tableRows = [{ row: 9, cells: { Title: "Bedside Table", Description: "Ash veneer over an engineered board with solid ash legs.", Notes: "Ash veneer over engineered board, not solid wood." } }];
+    const table: ProductGroup = { ...group, productKey: "BS-TB", title: "Bedside Table", notes: tableRows[0]!.cells.Notes!, sourceRows: [9], sourceCorpus: `Title: Bedside Table\nDescription: ${tableRows[0]!.cells.Description}\nNotes: ${tableRows[0]!.cells.Notes}` };
+    const naive = groundProductOutput({ output: output({ product_key: "BS-TB", title: "Bedside Table", description_html: "<p>Solid wood bedside table with one drawer.</p>", attributes: [], claims: [] }), group: table, rows: tableRows });
+    expect(naive.content.descriptionHtml).not.toMatch(/solid wood/i);
+    expect(naive.reviewReasons).toContain('Listing says "solid wood" but the source negates it');
+    const faithful = groundProductOutput({
+      output: output({ product_key: "BS-TB", title: "Bedside Table", description_html: "<p>Ash veneer bedside table with solid ash legs. Not solid wood.</p>", attributes: [], claims: [{ text: "Not solid wood", source_row: 9, source_column: "Notes", quote: "not solid wood" }] }),
+      group: table,
+      rows: tableRows,
+    });
+    expect(faithful.blocked).toEqual([]);
+    expect(faithful.reviewReasons.filter((x) => /solid wood/.test(x))).toEqual([]);
+    const oak = groundProductOutput({
+      output: output({ product_key: "BS-TB", title: "Oak Table", description_html: "<p>Round solid wood table.</p>", attributes: [], claims: [] }),
+      group: { ...table, sourceCorpus: "Title: Oak Table\nDescription: Round side table in solid oak." },
+      rows: [{ row: 9, cells: { Title: "Oak Table", Description: "Round side table in solid oak." } }],
+    });
+    expect(oak.blocked).toEqual([]);
+    expect(oak.claims.map((c) => c.text)).toContain("solid wood");
+  });
+
   it("EC-D2: strips an invented claim and lowers confidence", () => {
     const r = groundProductOutput({
       output: output({
@@ -260,7 +330,10 @@ describe("groundProductOutput", () => {
     const r = groundProductOutput({ output: output({ title: "Handmade Dishwasher-safe Terracotta Planter", claims: [] }), group, rows });
     expect(r.content.title).not.toMatch(/dishwasher/i);
     expect(r.reviewReasons.some((x) => x.includes("dishwasher-safe"))).toBe(true);
-    expect(r.blocked).toEqual(expect.arrayContaining([{ text: "handmade", kind: "unsupported", reason: "not found in the source cells", term: "handmade" }, { text: "dishwasher-safe", kind: "unsupported", reason: "not found in the source cells", term: "dishwasher-safe" }]));
+    expect(r.blocked).toEqual([{ text: "dishwasher-safe", kind: "unsupported", reason: "not found in the source cells", term: "dishwasher-safe" }]);
+    // "Hand-thrown" in the source is evidence of handmade, so that word stays and is recorded as a claim.
+    expect(r.content.title).toMatch(/handmade/i);
+    expect(r.claims.map((c) => c.text)).toContain("handmade");
   });
 
   it("EC-B15: a lexicon term the source negates is blocked with the negation quoted from its cell", () => {

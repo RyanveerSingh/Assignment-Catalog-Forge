@@ -136,6 +136,10 @@ export function assignKeys(rows: CleanedRow[]): Keyed[] {
       const key = slugify(stripOptionTokens(i.row.title ?? "")) || i.tkey.replace(/ /g, "-");
       return { row: i.row, key, source: "title" };
     }
-    return { row: i.row, key: i.row.sku ?? syntheticSku(i.row), source: "single_row" };
+    if (i.row.sku) return { row: i.row, key: i.row.sku, source: "single_row" };
+    // No SKU: the product is known by its title (a readable, re-upload-stable handle); the variant
+    // still gets a synthetic SKU (EC-C6). A row with neither falls back to the synthetic key.
+    const titleSlug = slugify(stripOptionTokens(i.row.title ?? "")) || i.tkey.replace(/ /g, "-");
+    return titleSlug ? { row: i.row, key: titleSlug, source: "title" } : { row: i.row, key: syntheticSku(i.row), source: "single_row" };
   });
 }

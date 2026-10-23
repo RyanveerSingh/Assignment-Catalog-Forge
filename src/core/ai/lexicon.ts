@@ -8,18 +8,47 @@
 export interface ClaimTerm {
   term: string;
   variants: string[];
+  /**
+   * Marketing adjectives rather than facts, certifications or safety statements. When unsupported they
+   * are still removed from the listing, but removing "premium" does not need a reviewer's time.
+   */
+  soft?: true;
+  /** The phrase is only a claim when a place name follows ("Made in Portugal"), never in "hand-made in natural jute". */
+  placeAfter?: true;
+  /**
+   * Phrases that count as evidence the term holds ("solid oak" for solid wood) without being the
+   * term itself: they can support a claim but never cancel an explicit negation of the term.
+   */
+  supports?: string[];
 }
+
+/** Every phrase that proves a term is present in the source: its own spellings plus its supporting evidence. */
+export function evidenceFor(entry: ClaimTerm): string[] {
+  return entry.supports ? [...entry.variants, ...entry.supports] : entry.variants;
+}
+
+/** Origin phrases followed by a capitalised word: the shape of a real "Made in <Place>" statement. */
+export const PLACE_AFTER_RE = /\b(?:[Mm]ade in|[Hh]ergestellt in|[Ff]abriqu[ée] en|[Pp]roduit en)\s+\p{Lu}/u;
 
 export const CLAIM_LEXICON: ReadonlyArray<ClaimTerm> = [
   { term: "organic", variants: ["organic", "bio", "biologisch", "biologique", "oeko", "öko"] },
-  { term: "handmade", variants: ["handmade", "hand made", "made by hand", "handgefertigt", "handgemacht", "fait main", "fait a la main", "artisanal", "handcrafted", "hand crafted"] },
+  {
+    term: "handmade",
+    variants: ["handmade", "hand made", "made by hand", "handgefertigt", "handgefertigte", "handgemacht", "handgemachte", "fait main", "faite main", "fait a la main", "faite a la main", "artisanal", "artisanale", "handcrafted", "hand crafted"],
+    // A named hand process is evidence of handmade: a hand-poured candle, a hand-woven rug.
+    supports: [
+      "hand poured", "hand woven", "hand knotted", "hand thrown", "hand carved", "hand stitched", "hand sewn", "hand blown", "hand dipped", "hand turned", "hand forged", "hand cast", "wheel thrown", "thrown by hand",
+      "handgegossen", "handgegossene", "handgewebt", "handgeknupft", "handgedreht", "handgeschnitzt", "handgenaht", "mundgeblasen", "handgeschmiedet",
+      "coulee a la main", "tisse a la main", "noue a la main", "tourne a la main", "sculpte a la main", "cousu a la main", "souffle a la bouche", "forge a la main",
+    ],
+  },
   { term: "hand-thrown", variants: ["hand thrown", "handthrown", "thrown by hand", "wheel thrown", "handgedreht", "tourne a la main"] },
   { term: "hand-painted", variants: ["hand painted", "handpainted", "painted by hand", "handbemalt", "peint a la main"] },
   { term: "frost-proof", variants: ["frost proof", "frostproof", "frostsicher", "resistant au gel garanti", "frostfest"] },
   { term: "frost-resistant", variants: ["frost resistant", "frostresistant", "frostbestandig", "resistant au gel", "frost hardy"] },
   { term: "waterproof", variants: ["waterproof", "water proof", "wasserdicht", "etanche", "impermeable"] },
   { term: "water-resistant", variants: ["water resistant", "waterresistant", "wasserabweisend", "wasserfest", "resistant a l eau", "hydrofuge"] },
-  { term: "dishwasher-safe", variants: ["dishwasher safe", "dishwashersafe", "spulmaschinenfest", "spulmaschinengeeignet", "lavable au lave vaisselle", "passe au lave vaisselle"] },
+  { term: "dishwasher-safe", variants: ["dishwasher safe", "dishwashersafe", "dishwasher proof", "dishwasher friendly", "spulmaschinenfest", "spulmaschinengeeignet", "spulmaschinen geeignet", "fur die spulmaschine geeignet", "lavable au lave vaisselle", "passe au lave vaisselle", "compatible lave vaisselle", "compatibles lave vaisselle", "va au lave vaisselle"] },
   { term: "microwave-safe", variants: ["microwave safe", "microwavesafe", "mikrowellengeeignet", "mikrowellenfest", "passe au micro ondes", "compatible micro ondes"] },
   { term: "oven-safe", variants: ["oven safe", "ovensafe", "ofenfest", "backofenfest", "passe au four"] },
   { term: "freezer-safe", variants: ["freezer safe", "gefrierfest", "gefriergeeignet", "passe au congelateur"] },
@@ -55,13 +84,23 @@ export const CLAIM_LEXICON: ReadonlyArray<ClaimTerm> = [
   { term: "100% cotton", variants: ["100 cotton", "100 baumwolle", "100 coton", "reine baumwolle", "pure cotton"] },
   { term: "100% wool", variants: ["100 wool", "100 wolle", "100 laine", "pure wool", "reine wolle"] },
   { term: "100% linen", variants: ["100 linen", "100 leinen", "100 lin", "pure linen"] },
-  { term: "solid wood", variants: ["solid wood", "massivholz", "bois massif"] },
-  { term: "made in", variants: ["made in", "hergestellt in", "fabrique en", "produit en", "aus deutschland", "aus portugal", "aus italien"] },
-  { term: "limited edition", variants: ["limited edition", "limitierte auflage", "edition limitee"] },
-  { term: "award-winning", variants: ["award winning", "preisgekront", "prime"] },
-  { term: "bestseller", variants: ["bestseller", "best seller", "meilleure vente"] },
-  { term: "premium", variants: ["premium", "high quality", "hochwertig", "haute qualite", "top quality"] },
-  { term: "natural", variants: ["natural", "100 natural", "naturlich", "naturel", "naturelle"] },
+  {
+    term: "solid wood",
+    variants: ["solid wood", "solid timber", "massivholz", "massivem holz", "massives holz", "bois massif"],
+    // A named species backs the claim ("solid oak" is solid wood) but never outvotes an explicit
+    // "not solid wood": a veneer top with solid ash legs is still not solid wood.
+    supports: [
+      "solid oak", "solid beech", "solid ash", "solid pine", "solid walnut", "solid teak", "solid maple", "solid birch", "solid acacia", "solid mango wood",
+      "eiche massiv", "massive eiche", "massiveiche", "buche massiv", "massive buche", "esche massiv", "kiefer massiv", "nussbaum massiv", "teak massiv",
+      "chene massif", "hetre massif", "frene massif", "pin massif", "noyer massif", "teck massif",
+    ],
+  },
+  { term: "made in", variants: ["made in", "hergestellt in", "fabrique en", "produit en", "aus deutschland", "aus portugal", "aus italien"], placeAfter: true },
+  { term: "limited edition", variants: ["limited edition", "limitierte auflage", "edition limitee"], soft: true },
+  { term: "award-winning", variants: ["award winning", "preisgekront", "prime"], soft: true },
+  { term: "bestseller", variants: ["bestseller", "best seller", "meilleure vente"], soft: true },
+  { term: "premium", variants: ["premium", "high quality", "hochwertig", "haute qualite", "top quality"], soft: true },
+  { term: "natural", variants: ["natural", "100 natural", "naturlich", "naturliche", "naturlichem", "naturlichen", "naturlicher", "naturliches", "naturel", "naturelle", "naturels", "naturelles"], soft: true },
   { term: "plastic-free", variants: ["plastic free", "plastikfrei", "sans plastique"] },
   { term: "unbreakable", variants: ["unbreakable", "unzerbrechlich", "incassable"] },
   { term: "dimmable", variants: ["dimmable", "dimmbar", "a intensite variable"] },

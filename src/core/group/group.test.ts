@@ -155,16 +155,23 @@ describe("groupRows: keys and grouping", () => {
     expect(groups[0].variants.map((v) => v.options)).toEqual([{ size: "S" }, { size: "M" }]);
   });
 
-  it("EC-C6: a row without a SKU gets a synthetic GEN- SKU and still becomes a variant", () => {
+  it("EC-C6: a row without a SKU is keyed by its title and its variant gets a synthetic GEN- SKU", () => {
     const { groups } = groupRows([makeRow({ rowNumber: 1, title: "Mystery Item", price: price(500) })], opts);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].productKey).toBe("mystery-item");
+    expect(groups[0].keySource).toBe("title");
+    const [variant] = groups[0].variants;
+    expect(variant.synthetic).toBe(true);
+    expect(variant.sku).toMatch(/^GEN-[0-9A-F]{8}$/);
+    expect(variant.skuDisplay).toBe(variant.sku);
+    expect(variant.priceCents).toBe(500);
+  });
+
+  it("EC-C6: a row with neither SKU nor title falls back to the synthetic key", () => {
+    const { groups } = groupRows([makeRow({ rowNumber: 1, title: null, price: price(500) })], opts);
     expect(groups).toHaveLength(1);
     expect(groups[0].productKey).toMatch(/^GEN-[0-9A-F]{8}$/);
     expect(groups[0].keySource).toBe("single_row");
-    const [variant] = groups[0].variants;
-    expect(variant.synthetic).toBe(true);
-    expect(variant.sku).toBe(groups[0].productKey);
-    expect(variant.skuDisplay).toBe(variant.sku);
-    expect(variant.priceCents).toBe(500);
   });
 
   it("EC-C6: two SKU-less rows with the same title are one product with two synthetic variants", () => {
@@ -431,7 +438,7 @@ describe("groupRows: product fields and complexity", () => {
     expect(shuffled.groups.map((g) => g.variants)).toEqual(forward.groups.map((g) => g.variants));
     expect(shuffled.groups.map((g) => g.sourceHash)).toEqual(forward.groups.map((g) => g.sourceHash));
     expect(shuffled).toEqual(forward);
-    expect(forward.groups.map((g) => g.keySource)).toEqual(["sku_stem", "handle", "single_row", "title"]);
+    expect(forward.groups.map((g) => g.keySource)).toEqual(["sku_stem", "handle", "title", "title"]);
   });
 
   it("returns an empty result for no rows and never mutates its input", () => {
