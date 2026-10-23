@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { Db, DbOrTx } from "@/db/client";
 import { auditLog, imports, photos, products, variants } from "@/db/schema";
 import { planAssign, planDismiss, planRestore } from "@/core/photos/manual";
@@ -55,21 +55,29 @@ export async function insertPhoto(db: DbOrTx, input: typeof photos.$inferInsert)
   return row.id;
 }
 
-/** Apply matcher output to unmatched photos. Matched photos keep their assignment; re-runs are safe. */
-export async function applyPhotoMatches(db: DbOrTx, importId: string, matches: PhotoMatch[]): Promise<{ matched: number; unmatched: number }> {
+/**
+ * Apply matcher output to unmatched photos. Matched photos keep their assignment; re-runs are safe.
+ * Keys and SKUs are resolved inside this store only: the same product key in another store is a
+ * different product and must never receive this store's photos (EC-I1).
+ */
+export async function applyPhotoMatches(db: DbOrTx, storeId: string, importId: string, matches: PhotoMatch[]): Promise<{ matched: number; unmatched: number; productIds: string[] }> {
   const existing = await listPhotosForImport(db, importId);
   const byName = new Map(existing.map((p) => [p.originalName, p] as const));
   const keys = [...new Set(matches.map((m) => m.productKey).filter((k): k is string => !!k))];
   const productRows = keys.length
-    ? await db.select({ id: products.id, productKey: products.productKey, storeId: products.storeId }).from(products).where(inArray(products.productKey, keys))
+    ? await db
+        .select({ id: products.id, productKey: products.productKey })
+        .from(products)
+        .where(and(eq(products.storeId, storeId), inArray(products.productKey, keys), isNull(products.deletedAt)))
     : [];
   const productIdByKey = new Map(productRows.map((p) => [p.productKey, p.id] as const));
   const skus = [...new Set(matches.map((m) => m.sku).filter((s): s is string => !!s))];
-  const variantRows = skus.length ? await db.select({ id: variants.id, sku: variants.sku, productId: variants.productId }).from(variants).where(inArray(variants.sku, skus)) : [];
+  const variantRows = skus.length ? await db.select({ id: variants.id, sku: variants.sku }).from(variants).where(and(eq(variants.storeId, storeId), inArray(variants.sku, skus))) : [];
   const variantIdBySku = new Map(variantRows.map((v) => [v.sku, v.id] as const));
 
   let matched = 0;
   let unmatched = 0;
+  const touched = new Set<string>();
   for (const m of matches) {
     const photo = byName.get(m.filename);
     if (!photo || photo.status === "rejected") continue;
@@ -84,8 +92,9 @@ export async function applyPhotoMatches(db: DbOrTx, importId: string, matches: P
       .set({ productId, variantId: m.sku ? (variantIdBySku.get(m.sku) ?? null) : null, position: m.position, matchMethod: m.method, matchScore: m.score, status: "matched" })
       .where(eq(photos.id, photo.id));
     matched += 1;
+    touched.add(productId);
   }
-  return { matched, unmatched };
+  return { matched, unmatched, productIds: [...touched] };
 }
 
 export function groupsFromProducts(rows: Array<{ group: ProductGroup | null }>): ProductGroup[] {

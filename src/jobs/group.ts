@@ -72,7 +72,7 @@ export const groupHandler: JobHandler = async ({ job, db, log, signal }) => {
   await markDuplicateRows(db, importId, result.duplicateRows, productIdByRow);
   await assignAiBatchKeys(db, importId, AI_BATCH_SIZE, (p) => (p.group ? routeTier(p.group, 0).tier : "cheap"));
   await updateImport(db, importId, { productCount: result.groups.length });
-  await rematchPhotos(db, importId);
+  await rematchPhotos(db, imp.storeId, importId);
   await recomputeImportCounts(db, importId);
 
   const conflicts = result.groups.filter((g) => g.conflicts.length > 0).length;

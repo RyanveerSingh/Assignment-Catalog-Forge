@@ -12,7 +12,7 @@ Status legend
 | ❌ | Not handled: with the reason and what it would take |
 | ⬜ | Planned: not built yet |
 
-Counts (154 entries, last pass 2026-10-23 15:30 IST): ✅ 93 · 🟡 55 · ❌ 6 · ⬜ 0
+Counts (155 entries, last pass 2026-10-23 21:30 IST): ✅ 94 · 🟡 55 · ❌ 6 · ⬜ 0
 
 Tests reference these IDs by name (for example `EC-B5: parses "1.299,00 €" as 129900 EUR`), so a status is flipped to ✅ only when such a test exists. Run `npx vitest run` and grep for `EC-` to see them all.
 
@@ -170,6 +170,7 @@ Tests reference these IDs by name (for example `EC-B5: parses "1.299,00 €" as 
 | F8 | The reviewer wants to see which source words a claim rests on, and what was blocked | Every verified claim is a chip ("frost-resistant · Row 14 · Notes"); hovering or pinning it marks the exact quoted substring in the source cell. Everything the validator removed is persisted as `guardrails` and shown as Guardrail badges ("Blocked 'frost-proof' — source says 'not frost-proof' (Row 14 · Notes)") that mark the negation as the supplier wrote it. | ✅ `quote.test.ts`, grounding tests |
 | F9 | The reviewer wants to know what the cleaner changed before the AI saw the row | "Show cleaning" in the drawer lists, per source row, only the fields the deterministic cleaner changed or flagged: raw price cell → cents + currency, weight → g, lengths → cm, HTML → text with the count of unsafe tags removed, mojibake raw → repaired, colour fuzzy matches, size and SKU normalisation, detected language. | ✅ `xray.test.ts` (B1, B2, B5, B7, B9–B14, B18, C6, A4) |
 | F10 | The merchant re-runs AI on a selection with another model tier or prompt version | One job per selected product from the bulk bar, each audited like the single re-run; results go to the draft only. Products without source rows, deleted, or still pending from an earlier run are skipped and counted in the notice ("Queued 2 re-runs (1 skipped: no source rows)"), never failed. | 🟡 exercised by hand on real4 (Haiku and Sonnet) |
+| F11 | The merchant wants a clean import to go live without approving every product by hand | "Publish products that pass every check" on the upload form (`autoPublish: true` on the API) approves every draft of the import when it finishes, through the same audited approve path a reviewer uses. Products that need review, failed or are still being written stay where they are, and the import log says how many went live and how many wait. Photos that finish processing after the publish step (a re-upload finishes in a second, the ZIP takes longer) are pushed to the live listing as they are matched, words untouched. The first boot of a fresh deployment imports the new-12 sample this way so the demo shop is never empty. | ✅ `import-request.test.ts` (parsing); publish path exercised by hand on the showcase import |
 
 ## G. Translation
 
@@ -204,7 +205,7 @@ Tests reference these IDs by name (for example `EC-B5: parses "1.299,00 €" as 
 
 | ID | What happens | What CatalogForge does (and why) | Status |
 |---|---|---|---|
-| I1 | A user guesses another store's IDs | Every repository call is scoped by the session's store; IDs are UUIDs; the same product key in two stores yields two independent products. | ✅ |
+| I1 | A user guesses another store's IDs | Every repository call is scoped by the session's store; IDs are UUIDs; the same product key in two stores yields two independent products. Photo matching resolves product keys and SKUs inside the uploading store only, so a shared key in another store never receives its photos (found and fixed on 23 Oct when a demo-store ZIP attached itself to a sibling store's products). | ✅ `isolation.test.ts` |
 | I2 | An API key ends up in logs | Keys are hashed at rest, shown masked, and redacted by the logger. | ✅ mask/hash tests |
 | I3 | Supplier HTML tries to execute in the dashboard | Sanitised at ingest and again before storage; rendered only from sanitised HTML. | 🟡 |
 | I4 | A webhook target points at an internal address (metadata IP, 10/8, loopback, `.internal`, or a public name that resolves to a private IP) | Refused on save and again at send time: https only, no credentials, hostname not local, every resolved A/AAAA address outside the private, loopback, link-local, CGNAT, multicast and metadata ranges, so DNS rebinding is caught too. http is allowed for localhost only outside production. Image URLs in sheets are still not fetched (C14). | ✅ `lib/public-url.test.ts` |

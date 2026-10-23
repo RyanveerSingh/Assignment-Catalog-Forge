@@ -13,6 +13,7 @@ import { sha256Hex } from "@/lib/crypto";
 import { getStorage } from "@/providers/storage";
 import { JobError } from "@/queue/errors";
 import type { JobHandler } from "@/worker/loop";
+import { republishIfLive } from "./publish";
 
 const MAX_INPUT_PIXELS = 80_000_000;
 const MAX_ZIP_ENTRIES = 5_000;
@@ -128,19 +129,22 @@ export const photosHandler: JobHandler = async ({ job, db, log, signal }) => {
   await appendImportEvent(db, importId, rejected > 0 ? "warn" : "info", `Photos: ${accepted} accepted, ${rejected} rejected, ${skipped} already stored`, {
     rejections: rejections.slice(0, 50),
   });
-  const match = await rematchPhotos(db, importId);
+  const match = await rematchPhotos(db, storeId, importId);
   if (match) await appendImportEvent(db, importId, "info", `Photos matched: ${match.matched}, unmatched: ${match.unmatched}, missing references: ${match.missing}`);
 };
 
 /** Match every unmatched photo of an import against the products grouped so far (EC-C12, C13, C15). */
-export async function rematchPhotos(db: Db, importId: string): Promise<{ matched: number; unmatched: number; missing: number } | null> {
+export async function rematchPhotos(db: Db, storeId: string, importId: string): Promise<{ matched: number; unmatched: number; missing: number } | null> {
   const existing = await listPhotosForImport(db, importId);
   const unmatched = existing.filter((p) => p.status === "unmatched");
   const productRows = await db.select({ group: products.group }).from(products).where(eq(products.lastImportId, importId));
   const groups = groupsFromProducts(productRows);
   if (groups.length === 0) return null;
   const result = matchPhotos(unmatched.map((p) => p.originalName), groups);
-  const applied = await applyPhotoMatches(db, importId, result.matches);
+  const applied = await applyPhotoMatches(db, storeId, importId, result.matches);
+  // A product that is already live (a re-upload, or an import that auto-published before its photos
+  // finished processing) shows the new photos at once; words stay as published (EC-C13, F11).
+  for (const productId of applied.productIds) await republishIfLive(db, productId);
   return { matched: applied.matched, unmatched: result.matches.filter((m) => m.method === "none").length, missing: result.missingReferences.length };
 }
 

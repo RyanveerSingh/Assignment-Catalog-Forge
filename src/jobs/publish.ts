@@ -8,6 +8,16 @@ import type { JobHandler } from "@/worker/loop";
 
 type TranslatedField = "title" | "descriptionHtml" | "metaTitle" | "metaDescription";
 
+/** The same file can be attached twice (a re-upload before the dedupe rung existed); the shop shows it once. */
+function uniqueByBlob<T extends { blobId: string }>(rows: T[]): T[] {
+  const seen = new Set<string>();
+  return rows.filter((r) => {
+    if (seen.has(r.blobId)) return false;
+    seen.add(r.blobId);
+    return true;
+  });
+}
+
 /**
  * Approve = copy the draft into the published snapshot and rebuild the storefront rows for every
  * locale. The storefront reads only those rows (EC-H1, H2, H6). Translations that are fresh, or
@@ -19,7 +29,7 @@ export async function publishProduct(db: DbOrTx, productId: string): Promise<boo
   const [store] = await db.select({ locales: stores.locales }).from(stores).where(eq(stores.id, p.storeId)).limit(1);
   if (!store) return false;
   const variantRows = await getVariants(db, productId);
-  const photoRows = await listPhotosForProducts(db, [productId]);
+  const photoRows = uniqueByBlob(await listPhotosForProducts(db, [productId]));
   const images: StorefrontImage[] = photoRows.map((ph) => ({ id: ph.blobId, thumbId: ph.thumbBlobId, alt: p.draft?.title ?? p.handle }));
 
   const publishedVariants: PublishedVariant[] = variantRows.map((v) => ({
@@ -139,7 +149,8 @@ export async function republishIfLive(db: Db, productId: string): Promise<void> 
 
 /** The snapshot with image ids as the matched photos stand now; the same object back when nothing changed. */
 async function withCurrentImages(db: DbOrTx, productId: string, snapshot: PublishedSnapshot): Promise<PublishedSnapshot> {
-  const [photoRows, variantRows] = await Promise.all([listPhotosForProducts(db, [productId]), getVariants(db, productId)]);
+  const [allPhotos, variantRows] = await Promise.all([listPhotosForProducts(db, [productId]), getVariants(db, productId)]);
+  const photoRows = uniqueByBlob(allPhotos);
   const variantIdBySku = new Map(variantRows.map((v) => [v.sku, v.id] as const));
   const imageIds = photoRows.map((ph) => ph.blobId);
   const variants = snapshot.variants.map((v) => ({ ...v, imageIds: photoRows.filter((ph) => ph.variantId !== null && ph.variantId === variantIdBySku.get(v.sku)).map((ph) => ph.blobId) }));

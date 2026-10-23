@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDb, getDb, type Db } from "@/db/client";
 import { runMigrations } from "@/db/migrate";
 import { createImport, getImport } from "@/db/repositories/imports";
+import { applyPhotoMatches, insertPhoto, listPhotosForImport } from "@/db/repositories/photos";
 import { getProduct, upsertProductFromGroup } from "@/db/repositories/products";
 import { listProducts } from "@/db/repositories/products-query";
 import { createStore, getUserStore, registerUser } from "@/lib/auth";
@@ -91,5 +92,24 @@ describe.skipIf(!process.env.DATABASE_URL)("store isolation (integration)", () =
     expect(a.created).toBe(true);
     expect(b.created).toBe(true);
     expect(a.productId).not.toBe(b.productId);
+  });
+
+  it("EC-I1: a photo matched by key or SKU attaches only to this store's product, never to the same key elsewhere", async () => {
+    const stamp = Date.now();
+    const key = `PHOTO-${stamp}`;
+    // Store A owns the key first; the photo arrives in store B, which also has the key.
+    await upsertProductFromGroup(db, storeA, importA, group(key));
+    const importB = (await createImport(db, { storeId: storeB, name: "b-photos.csv" })).id;
+    const b = await upsertProductFromGroup(db, storeB, importB, group(key));
+    const blobId = crypto.randomUUID();
+    await insertPhoto(db, { storeId: storeB, importId: importB, blobId, thumbBlobId: blobId, sha256: `sha-${stamp}`, originalName: `${key}-1.jpg`, width: 10, height: 10, status: "unmatched" });
+
+    const applied = await applyPhotoMatches(db, storeB, importB, [{ filename: `${key}-1.jpg`, productKey: key, sku: `${key}-1`, position: 0, method: "sku", score: 95 }]);
+    expect(applied.matched).toBe(1);
+    const [photo] = await listPhotosForImport(db, importB);
+    expect(photo?.productId).toBe(b.productId);
+    expect(photo?.variantId).not.toBeNull();
+    const variantInB = await db.execute<{ store_id: string }>(`select store_id from variants where id = '${photo?.variantId}'`).then((r) => r.rows[0]);
+    expect(variantInB?.store_id).toBe(storeB);
   });
 });
