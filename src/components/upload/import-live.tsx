@@ -26,6 +26,9 @@ export type { ImportDto, ImportEventDto } from "./import-live-types";
 type ProgressPayload = ImportProgressEvent & { import?: ImportDto };
 
 const MAX_BACKOFF_MS = 10_000;
+/** The server sends progress every 3 s; this much silence means a proxy is holding the stream. */
+const STREAM_SILENCE_MS = 5_000;
+const POLL_FALLBACK_MS = 4_000;
 
 /** "41% of rows" for a tile, or where the count comes from while the total is still unknown. */
 function shareOfRows(n: number, total: number): string {
@@ -110,6 +113,8 @@ export function ImportLive({ storeSlug, initialImport, initialEvents, initialHyg
     [applyImport],
   );
 
+  const lastMessageRef = useRef(0);
+
   // Manual reconnect with ?after= so a dropped connection neither replays nor loses log lines.
   useEffect(() => {
     if (!live) return;
@@ -126,11 +131,13 @@ export function ImportLive({ storeSlug, initialImport, initialEvents, initialHyg
       };
       es.addEventListener("progress", (e) => {
         if (!(e instanceof MessageEvent) || typeof e.data !== "string") return;
+        lastMessageRef.current = Date.now();
         const p = parseJson(e.data);
         if (isProgress(p)) applyProgress(p);
       });
       es.addEventListener("log", (e) => {
         if (!(e instanceof MessageEvent) || typeof e.data !== "string") return;
+        lastMessageRef.current = Date.now();
         const l = parseJson(e.data);
         if (isLog(l)) pushEvents([{ id: l.id, level: l.level, message: l.message, data: l.data ?? null, createdAt: l.createdAt }]);
       });
@@ -150,6 +157,23 @@ export function ImportLive({ storeSlug, initialImport, initialEvents, initialHyg
       es?.close();
     };
   }, [live, detailUrl, applyProgress, pushEvents]);
+
+  // Some proxies hold a server-sent event stream open without passing a byte through (Cloudflare's quick
+  // tunnels do). The server sends progress at least every few seconds, so a silent stream means it is
+  // being held: poll the same data instead until events flow again.
+  useEffect(() => {
+    if (!live) return;
+    const timer = setInterval(() => {
+      if (Date.now() - lastMessageRef.current < STREAM_SILENCE_MS) return;
+      void api<{ import: ImportDto; events: ImportEventDto[] }>(`${detailUrl}?eventsAfter=${lastIdRef.current}`)
+        .then((r) => {
+          applyImport(r.import);
+          pushEvents(r.events);
+        })
+        .catch(() => undefined); // the next tick retries
+    }, POLL_FALLBACK_MS);
+    return () => clearInterval(timer);
+  }, [live, detailUrl, applyImport, pushEvents]);
 
   // The stream closes on a terminal status; one GET picks up log lines written in that same tick.
   const wasLiveRef = useRef(live);

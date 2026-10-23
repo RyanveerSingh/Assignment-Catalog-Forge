@@ -92,8 +92,6 @@ export const GET = withApi(async (req: Request, { params }: Ctx) => {
   });
 
   return new Response(stream, {
-    // "Content-Encoding: none" stops Next.js gzipping the stream: gzip buffers it until the
-    // connection ends, so behind any proxy that asks for compression (Cloudflare does) no event arrives.
-    headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache, no-transform", "Content-Encoding": "none", Connection: "keep-alive", "X-Accel-Buffering": "no" },
+    headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache, no-transform", Connection: "keep-alive", "X-Accel-Buffering": "no" },
   });
 });

@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
   // burn CPU on the free host for no gain.
   images: { unoptimized: true },
   poweredByHeader: false,
+  // Next's gzip holds server-sent events until the stream ends, so live import progress never arrives
+  // through a proxy that asks for compression. The host or CDN in front compresses pages instead.
+  compress: false,
   async headers() {
     return [
       {
