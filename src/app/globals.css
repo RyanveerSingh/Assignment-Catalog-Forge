@@ -270,17 +270,18 @@
     repeating-linear-gradient(to right, transparent 0 159px, rgb(17 17 17 / 0.035) 159px 160px);
 }
 
-/* The landing's text spotlight: registered so the circle's radius can ease in and out. */
-@property --spot-r {
-  syntax: "<length>";
+/* The landing's text spotlight: registered so the blob's scale can ease in and out. */
+@property --spot-k {
+  syntax: "<number>";
   inherits: true;
-  initial-value: 0px;
+  initial-value: 0;
 }
 
 .spotlight {
-  --spot-x: -999px;
-  --spot-y: -999px;
-  transition: --spot-r 280ms ease-out;
+  /* Parked off the text until the pointer arrives; an undefined position would void the whole mask. */
+  --b0x: -999px; --b0y: -999px; --b1x: -999px; --b1y: -999px; --b2x: -999px; --b2y: -999px;
+  --b3x: -999px; --b3y: -999px; --b4x: -999px; --b4y: -999px;
+  transition: --spot-k 320ms ease-out;
 }
 
 /* Skeleton shimmer for loading states. */
