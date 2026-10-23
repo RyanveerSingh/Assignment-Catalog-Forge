@@ -2,19 +2,20 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, CircleXIcon, EyeIcon, LayersIcon, ListChecksIcon, RefreshCw, SparklesIcon, UploadIcon } from "lucide-react";
 import { cn } from "cn";
-import { Kpi } from "@/components/ext/kpi";
 import { EmptyState } from "@/components/ext/page-header";
+import { StatTile } from "@/components/ext/stat-tile";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { CostStrategies as CostStrategiesData } from "@/core/metrics/cost-strategies";
 import type { StoreMetrics } from "@/db/repositories/metrics";
 import { api, ApiError, storeApi } from "@/lib/client/api";
-import { formatNumber, formatPercent, formatRelative } from "@/lib/format";
+import { formatNumber, formatRelative } from "@/lib/format";
 import { ChartCard, CostOverTimeChart, CoverageLegend, ModelUsageChart, RoutingChart, TranslationCoverageChart } from "./charts";
 import { CostSection } from "./cost-section";
 import { CostStrategies } from "./cost-strategies";
+import { HeadlineFigures } from "./headline-figures";
 import { SpeedSection } from "./speed-section";
 import { EvalTable, ModelTable, TranslationTable } from "./tables";
 
@@ -23,6 +24,10 @@ const CLOCK_MS = 10_000;
 
 /** The metrics route adds the priced strategies to the repository's figures. */
 type MetricsData = StoreMetrics & { strategies: CostStrategiesData };
+
+/** Rates roll through CountUp as whole tenths of a percent, so "41.7%" never shows as "42%" mid-flight. */
+const tenths = (fraction: number): number => Math.round(fraction * 1000);
+const formatTenths = (n: number): string => `${(n / 10).toFixed(1)}%`;
 
 export function MetricsDashboard({ storeSlug }: { storeSlug: string }) {
   const [data, setData] = useState<MetricsData | null>(null);
@@ -88,6 +93,7 @@ export function MetricsDashboard({ storeSlug }: { storeSlug: string }) {
           </div>
         ) : (
           <div aria-busy="true" aria-label="Loading metrics" className="space-y-6">
+            <Skeleton className="h-32 rounded-sm" />
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
               {Array.from({ length: 6 }, (_, i) => (
                 <Skeleton key={i} className="h-24 rounded-sm" />
@@ -133,20 +139,22 @@ export function MetricsDashboard({ storeSlug }: { storeSlug: string }) {
         </p>
       ) : null}
 
+      <HeadlineFigures data={data} />
+
       <section aria-labelledby="overview-heading" className="space-y-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 id="overview-heading" className="font-display text-xl text-ink">
             Overview
           </h2>
-          <p className="text-xs text-ink-muted">How many products came through, how many were written cleanly and how many needed a person</p>
+          <p className="text-xs text-ink-muted">How many products were written cleanly, how many needed a person and how much came through</p>
         </div>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <Kpi label="Products processed" value={formatNumber(p.total)} hint={`${formatNumber(p.byStatus.pending_ai ?? 0)} being written`} />
-        <Kpi label="Success rate" value={formatPercent(p.successRate, 1)} tone="success" hint={`${formatNumber((p.byStatus.draft ?? 0) + (p.byStatus.approved ?? 0))} of ${formatNumber(decided)} decided`} />
-        <Kpi label="Review rate" value={formatPercent(p.reviewRate, 1)} tone="warning" hint={`${formatNumber(p.byStatus.needs_review ?? 0)} need review`} />
-        <Kpi label="Failure rate" value={formatPercent(p.failureRate, 1)} tone="danger" hint={`${formatNumber(p.byStatus.failed ?? 0)} failed`} />
-        <Kpi label="Imports completed" value={formatNumber(i.completed)} hint={`${formatNumber(i.active)} active · ${formatNumber(i.needsAttention)} need attention`} />
-        <Kpi label="Rows processed" value={formatNumber(i.rowsProcessed)} hint="in completed imports" />
+          <StatTile index={0} label="Success rate" value={tenths(p.successRate)} format={formatTenths} icon={ListChecksIcon} tone="success" context={`${formatNumber((p.byStatus.draft ?? 0) + (p.byStatus.approved ?? 0))} of ${formatNumber(decided)} decided`} />
+          <StatTile index={1} label="Review rate" value={tenths(p.reviewRate)} format={formatTenths} icon={EyeIcon} tone="warning" context={`${formatNumber(p.byStatus.needs_review ?? 0)} need review`} />
+          <StatTile index={2} label="Failure rate" value={tenths(p.failureRate)} format={formatTenths} icon={CircleXIcon} tone="danger" context={`${formatNumber(p.byStatus.failed ?? 0)} failed`} />
+          <StatTile index={3} label="Being written" value={p.byStatus.pending_ai ?? 0} format={formatNumber} icon={SparklesIcon} tone="brand" context={`of ${formatNumber(p.total)} products`} />
+          <StatTile index={4} label="Imports completed" value={i.completed} format={formatNumber} icon={UploadIcon} context={`${formatNumber(i.active)} active · ${formatNumber(i.needsAttention)} need attention`} />
+          <StatTile index={5} label="Rows processed" value={i.rowsProcessed} format={formatNumber} icon={LayersIcon} tone="info" context="in completed imports" />
         </div>
       </section>
 

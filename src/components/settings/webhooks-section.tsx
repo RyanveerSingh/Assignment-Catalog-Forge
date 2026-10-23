@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertCircle, AlertTriangle, ChevronDown, ChevronRight, Loader2, Send, Trash2 } from "lucide-react";
+import { AlertCircle, AlertTriangle, ChevronDown, ChevronRight, Loader2, Send, Trash2, WebhookIcon } from "lucide-react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,7 +61,7 @@ export function WebhooksSection({ storeSlug, disabled }: { storeSlug: string; di
   );
 
   return (
-    <SectionCard id="webhooks" title="Webhooks" description="Called when an import finishes. Every delivery is signed with a per-webhook secret and retried with backoff when your endpoint is down.">
+    <SectionCard id="webhooks" icon={WebhookIcon} title="Webhooks" description="Called when an import finishes. Every delivery is signed with a per-webhook secret and retried with backoff when your endpoint is down.">
       {loadError ? (
         <div role="alert" className="flex items-center gap-2 rounded-sm bg-destructive/10 px-3 py-2 text-sm text-destructive">
           <AlertCircle aria-hidden className="size-4 shrink-0" />

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, Power } from "lucide-react";
+import { AlertTriangle, FlaskConicalIcon, Power } from "lucide-react";
+import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { api, ApiError } from "@/lib/client/api";
 import { SaveBar, SectionCard, useSave } from "./section-card";
@@ -30,7 +31,7 @@ export function ChaosPanel({ chaos, onApplied }: { chaos: ChaosDto | null; onApp
   const dirty = draft !== null && chaos !== null && SLIDERS.some((s) => draft[s.key] !== chaos[s.key]);
 
   return (
-    <SectionCard id="chaos" tone="testing" title="Chaos" description="Inject AI failures on purpose to watch retries, pauses and repair happen on a real import. Leave everything at 0 for normal operation.">
+    <SectionCard id="chaos" icon={FlaskConicalIcon} tone="testing" title="Chaos" description="Inject AI failures on purpose to watch retries, pauses and repair happen on a real import. Leave everything at 0 for normal operation.">
       {draft === null ? (
         <p className="text-sm text-ink-muted">Chaos settings are unavailable right now.</p>
       ) : (
@@ -44,7 +45,8 @@ export function ChaosPanel({ chaos, onApplied }: { chaos: ChaosDto | null; onApp
                   <label htmlFor={id} className="text-sm font-medium">
                     {s.label}
                   </label>
-                  <output htmlFor={id} className="num text-sm text-ink">
+                  {/* The pill follows the thumb as it is dragged and turns amber once any failure is switched on. */}
+                  <output htmlFor={id} className={cn("num inline-flex h-5 min-w-11 items-center justify-center rounded-full px-2 text-[11px] font-medium ring-1 ring-inset transition-colors", value > 0 ? "bg-warning-soft text-warning ring-warning/30" : "bg-paper-deep text-ink-muted ring-border")}>
                     {value}%
                   </output>
                 </div>

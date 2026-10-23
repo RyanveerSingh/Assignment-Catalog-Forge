@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { parseGoogleSheetsUrl } from "@/core/parse/google-sheets";
 import { storeApi } from "@/lib/client/api";
+import { DropZoneFace } from "./drop-zone-face";
 import { FileRow, formatBytes } from "./file-row";
 import { DEFAULT_UPLOAD_OPTIONS, UploadOptions, type UploadOptionsValue } from "./upload-options";
 
@@ -245,18 +246,14 @@ export function UploadPanel({ storeSlug }: { storeSlug: string }) {
           "aria-label": "Drop a supplier sheet and photos here, or press Enter to browse",
           // A held file is answered with a soft amber halo and a 1% swell: enough to say "here", not a bounce.
           className: cn(
-            "flex cursor-pointer flex-col items-center justify-center gap-2 border border-dashed px-6 py-10 text-center outline-none transition-[background-color,border-color,box-shadow,scale] duration-150 ease-out focus-visible:ring-2 focus-visible:ring-brand",
+            "group flex cursor-pointer flex-col items-center gap-5 border border-dashed px-6 py-8 text-center outline-none transition-[background-color,border-color,box-shadow,scale] duration-150 ease-out focus-visible:ring-2 focus-visible:ring-brand md:flex-row md:gap-8 md:px-8 md:text-left",
             isDragActive ? "scale-[1.01] border-brand bg-brand-soft/60 ring-4 ring-brand/15" : "border-input bg-card hover:bg-paper-deep/40",
             busy && "pointer-events-none opacity-60",
           ),
         })}
       >
         <input {...getInputProps()} />
-        <UploadIcon className="size-5 text-brand" aria-hidden />
-        <p className="text-sm font-medium text-ink">{isDragActive ? "Release to add the files" : "Drop a supplier sheet and photos here, or click to browse"}</p>
-        <p className="max-w-md text-xs text-ink-muted">
-          One CSV, XLSX or XLS up to 50 MB, or a SQL dump (.sql from mysqldump / pg_dump; read, never executed). Photos as PNG, JPG, WEBP or GIF up to 25 MB each, or one ZIP up to 200 MB. Pasting files works too.
-        </p>
+        <DropZoneFace active={isDragActive} />
       </div>
 
       <div className="flex flex-col gap-1.5">

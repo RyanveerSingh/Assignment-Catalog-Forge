@@ -9,7 +9,15 @@ export interface StoreMetrics {
   models: Array<{ model: string; purpose: string; calls: number; inputTokens: number; outputTokens: number; cacheReadTokens: number; costMicros: number; avgLatencyMs: number; p95LatencyMs: number }>;
   costOverTime: Array<{ day: string; costMicros: number; calls: number }>;
   cost: { totalMicros: number; naiveMicros: number; savedMicros: number; perProductMicros: number; per1000Micros: number; cacheHitRate: number; batchedShare: number };
-  speed: { avgRowsPerMinute: number | null; slowestImport: { id: string; name: string; rowsPerMinute: number } | null; fastestImport: { id: string; name: string; rowsPerMinute: number } | null; avgAiLatencyMs: number | null; p95AiLatencyMs: number | null };
+  speed: {
+    avgRowsPerMinute: number | null;
+    slowestImport: { id: string; name: string; rowsPerMinute: number } | null;
+    fastestImport: { id: string; name: string; rowsPerMinute: number } | null;
+    avgAiLatencyMs: number | null;
+    p95AiLatencyMs: number | null;
+    /** Wall-clock time from first row to last over completed imports; null until one has finished. */
+    medianImportMs: number | null;
+  };
   translations: Array<{ locale: string; products: number; fresh: number; outdated: number; failed: number; coverage: number }>;
   routing: Array<{ tier: string; products: number; costMicros: number }>;
   evals: Array<{ id: string; name: string; promptVersion: string; model: string; sample: string; metrics: Record<string, unknown>; createdAt: string }>;
@@ -17,6 +25,13 @@ export interface StoreMetrics {
   usage: ModelUsage[];
   /** Products that have an AI result, the denominator for "per 1,000 products". */
   productsThroughAi: number;
+}
+
+function median(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
 }
 
 /** Everything the Metrics tab shows, computed from the tables of record. Cheap enough for a dashboard refresh. */
@@ -85,10 +100,10 @@ export async function getStoreMetrics(db: DbOrTx, storeId: string): Promise<Stor
     .select({ id: imports.id, name: imports.name, totalRows: imports.totalRows, startedAt: imports.startedAt, finishedAt: imports.finishedAt })
     .from(imports)
     .where(and(eq(imports.storeId, storeId), eq(imports.status, "completed")));
-  const rates = speedRows
-    .filter((r) => r.startedAt && r.finishedAt && r.totalRows > 0)
-    .map((r) => ({ id: r.id, name: r.name, rowsPerMinute: Math.round((r.totalRows / Math.max(1, r.finishedAt!.getTime() - r.startedAt!.getTime())) * 60_000) }));
+  const timed = speedRows.flatMap((r) => (r.startedAt && r.finishedAt && r.totalRows > 0 ? [{ id: r.id, name: r.name, totalRows: r.totalRows, ms: Math.max(1, r.finishedAt.getTime() - r.startedAt.getTime()) }] : []));
+  const rates = timed.map((r) => ({ id: r.id, name: r.name, rowsPerMinute: Math.round((r.totalRows / r.ms) * 60_000) }));
   const avgRate = rates.length ? Math.round(rates.reduce((a, b) => a + b.rowsPerMinute, 0) / rates.length) : null;
+  const medianImportMs = median(timed.map((r) => r.ms));
   const slowest = rates.length ? rates.reduce((a, b) => (a.rowsPerMinute < b.rowsPerMinute ? a : b)) : null;
   const fastest = rates.length ? rates.reduce((a, b) => (a.rowsPerMinute > b.rowsPerMinute ? a : b)) : null;
 
@@ -160,6 +175,7 @@ export async function getStoreMetrics(db: DbOrTx, storeId: string): Promise<Stor
       fastestImport: fastest,
       avgAiLatencyMs: costAgg?.latency_avg ? Math.round(Number(costAgg.latency_avg)) : null,
       p95AiLatencyMs: costAgg?.latency_p95 ? Math.round(Number(costAgg.latency_p95)) : null,
+      medianImportMs,
     },
     translations: translationRows.map((r) => ({
       locale: r.locale,

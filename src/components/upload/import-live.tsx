@@ -2,18 +2,18 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeftIcon, BanIcon, PauseIcon, PlayIcon, RotateCcwIcon, TriangleAlertIcon } from "lucide-react";
+import { ArrowLeftIcon, BanIcon, CheckIcon, CircleXIcon, CoinsIcon, EyeIcon, LayersIcon, PackageIcon, PauseIcon, PlayIcon, RotateCcwIcon, TriangleAlertIcon } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import type { HygieneReport } from "@/core/metrics/hygiene";
 import type { ImportLogEvent, ImportProgressEvent } from "@/lib/events";
-import { CountUp } from "@/components/ext/count-up";
-import { Kpi } from "@/components/ext/kpi";
+import { StatTile } from "@/components/ext/stat-tile";
 import { StatusBadge } from "@/components/ext/status-badge";
 import { Button } from "@/components/ui/button";
 import { api, ApiError, storeApi } from "@/lib/client/api";
-import { formatCountdown, formatDuration, formatMicrosUsd, formatNumber, formatPercent, modeLabel, statusLabel } from "@/lib/format";
+import { formatCountdown, formatDuration, formatMicrosUsd, formatNumber, formatPercent, modeLabel } from "@/lib/format";
 import { HygienePipeline } from "./hygiene-pipeline";
 import { EventLog, MAX_EVENTS } from "./import-live-events";
+import { RowsProgress } from "./import-live-progress";
 import { SheetCard } from "./import-live-sheet";
 import { Banner, ConnBadge, type Connection, Stamp } from "./import-live-status";
 import { LiveStageStepper } from "./import-live-stepper";
@@ -27,7 +27,11 @@ type ProgressPayload = ImportProgressEvent & { import?: ImportDto };
 type Action = "pause" | "resume" | "cancel" | "retry";
 
 const MAX_BACKOFF_MS = 10_000;
-const COUNT_KEYS = ["pending", "processing", "done", "needs_review", "failed"] as const;
+
+/** "41% of rows" for a tile, or where the count comes from while the total is still unknown. */
+function shareOfRows(n: number, total: number): string {
+  return total > 0 ? `${formatPercent(n / total)} of rows` : "waiting for the row count";
+}
 
 function isImportStatus(s: string): s is ImportDto["status"] {
   return stepIndexFor(s) >= 0 || SIDE_STATES.has(s);
@@ -305,20 +309,23 @@ export function ImportLive({ storeSlug, initialImport, initialEvents, initialHyg
       <LiveStageStepper status={imp.status} lastStage={lastStage} />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <Kpi label="Total rows" value={<CountUp value={totalRows} format={formatNumber} />} />
-        <Kpi label="Done" tone="success" value={<CountUp value={counts.done} format={formatNumber} />} />
-        <Kpi label="Needs review" tone="warning" value={<CountUp value={counts.needs_review} format={formatNumber} />} />
-        <Kpi label="Failed" tone="danger" value={<CountUp value={counts.failed} format={formatNumber} />} />
-        <Kpi label="Products" value={<CountUp value={imp.productCount} format={formatNumber} />} />
-        <Kpi
+        <StatTile index={0} label="Total rows" value={totalRows} format={formatNumber} icon={LayersIcon} context={totalRows > 0 ? `${formatNumber(finished)} finished` : "counting the sheet"} />
+        <StatTile index={1} label="Done" value={counts.done} format={formatNumber} icon={CheckIcon} tone="success" context={shareOfRows(counts.done, totalRows)} />
+        <StatTile index={2} label="Needs review" value={counts.needs_review} format={formatNumber} icon={EyeIcon} tone="warning" context={shareOfRows(counts.needs_review, totalRows)} contextTone={counts.needs_review > 0 ? "warning" : "muted"} />
+        <StatTile index={3} label="Failed" value={counts.failed} format={formatNumber} icon={CircleXIcon} tone="danger" context={shareOfRows(counts.failed, totalRows)} contextTone={counts.failed > 0 ? "danger" : "muted"} />
+        <StatTile index={4} label="Products" value={imp.productCount} format={formatNumber} icon={PackageIcon} tone="info" context={imp.productCount > 0 ? `about ${(totalRows / imp.productCount).toFixed(1)} rows each` : "grouped once rows are clean"} />
+        <StatTile
+          index={5}
           label="Cost so far"
+          value={imp.costMicros}
+          format={formatMicrosUsd}
+          icon={CoinsIcon}
           tone="brand"
-          value={<CountUp value={imp.costMicros} format={formatMicrosUsd} />}
-          hint={
+          context={
             <>
               {saved !== null ? (
                 <span className="text-success" title="Compared with paying list price for every call: no caching, batching or cheaper models">
-                  saved {formatMicrosUsd(saved)} vs list price ·{" "}
+                  saved {formatMicrosUsd(saved)} vs list ·{" "}
                 </span>
               ) : null}
               budget ${(imp.budgetCents / 100).toFixed(2)}
@@ -327,32 +334,13 @@ export function ImportLive({ storeSlug, initialImport, initialEvents, initialHyg
         />
       </div>
 
-      <section aria-label="Row progress" className="bg-card px-4 py-3 hairline">
-        <div className="flex flex-wrap items-baseline justify-between gap-2 text-xs">
-          <span className="font-medium text-ink">Rows processed</span>
-          <span className="num text-ink-muted" suppressHydrationWarning>
-            {formatNumber(finished)} / {formatNumber(totalRows)} · {formatPercent(fraction)}
-            {rowsPerMin !== null ? ` · ${formatNumber(rowsPerMin)} rows/min` : ""}
-          </span>
-        </div>
-        <div role="progressbar" aria-label="Rows processed" aria-valuemin={0} aria-valuemax={Math.max(1, totalRows)} aria-valuenow={finished} className="mt-2 h-1.5 w-full bg-paper-deep">
-          <div className="h-full bg-brand transition-[width] duration-300" style={{ width: `${fraction * 100}%` }} />
-        </div>
-        <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink-muted">
-          {COUNT_KEYS.map((k) => (
-            <div key={k} className="flex gap-1">
-              <dt>{statusLabel(k)}</dt>
-              <dd className="num text-ink">{formatNumber(counts[k])}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
+      <RowsProgress counts={counts} totalRows={totalRows} finished={finished} fraction={fraction} rowsPerMin={rowsPerMin} />
 
       <HygienePipeline storeSlug={storeSlug} importId={id} status={imp.status} active={live} initial={initialHygiene} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <SheetCard imp={imp} />
-        <EventLog events={events} />
+        <EventLog events={events} live={live} />
       </div>
 
       <RowsTable storeSlug={storeSlug} importId={id} counts={counts} totalRows={totalRows} />

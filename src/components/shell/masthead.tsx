@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { SessionUser, StoreAccess } from "@/lib/auth";
 import { NavTabs } from "./nav-tabs";
+import { storeInitial } from "./store-initial";
 import { StoreSwitcher } from "./store-switcher";
 import { UserMenu } from "./user-menu";
 
@@ -10,10 +11,15 @@ export function Masthead({ user, store, stores, demoMode }: { user: SessionUser;
     <header className="bg-ink text-paper">
       <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-4 pt-3 md:px-6">
         <div className="flex items-center gap-4">
-          <Link href={`/app/${store.slug}/upload`} className="font-display text-2xl leading-none tracking-tight text-paper">
+          <Link href="/" title="CatalogForge home" className="font-display text-2xl leading-none tracking-tight text-paper">
             Catalog<span className="text-brand">Forge</span>
           </Link>
-          <StoreSwitcher current={store} stores={stores} />
+          <span className="flex items-center gap-2">
+            <span aria-hidden className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand font-display text-sm leading-none text-brand-foreground ring-2 ring-paper/15">
+              {storeInitial(store.name)}
+            </span>
+            <StoreSwitcher current={store} stores={stores} />
+          </span>
         </div>
         <div className="flex items-center gap-3">
           {demoMode ? (

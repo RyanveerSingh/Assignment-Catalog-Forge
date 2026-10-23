@@ -21,7 +21,7 @@ import { buildColumns, type ColumnMeta } from "./products-columns";
 import { applyFilterPatch, countActiveFilters, DEFAULT_FILTERS, PAGE_SIZES, parseFilters, toApiQuery, toExportQuery, toSearchParams, type ProductFilters } from "./products-filters";
 import { BulkRerunPopover, ProductsToolbar } from "./products-toolbar";
 import { ReviewDrawer } from "./review-drawer";
-import type { BulkApproveResponse, BulkRerunResponse, ProductListItem, ProductListResponse, RerunSettings } from "./types";
+import type { BulkApproveResponse, BulkRerunResponse, ProductListItem, ProductListResponse, ProductStatusCounts, RerunSettings } from "./types";
 
 const SEARCH_DEBOUNCE_MS = 300;
 const EXPORTS = [
@@ -40,8 +40,11 @@ function skippedSummary(skipped: ReadonlyArray<{ reason: string }>): string {
   return `${skipped.length} skipped: ${reasons}`;
 }
 
-export function ProductsTable({ storeSlug, initialImportId = "" }: { storeSlug: string; initialImportId?: string }) {
+export function ProductsTable({ storeSlug, initialImportId = "", onStatusCounts }: { storeSlug: string; initialImportId?: string; onStatusCounts?: (counts: ProductStatusCounts) => void }) {
   const reduce = useReducedMotion();
+  // Read through a ref so a parent re-rendering with a new callback never triggers a refetch.
+  const onStatusCountsRef = useRef(onStatusCounts);
+  onStatusCountsRef.current = onStatusCounts;
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -95,12 +98,13 @@ export function ProductsTable({ storeSlug, initialImportId = "" }: { storeSlug: 
     const seq = ++requestSeq.current;
     setLoading(true);
     setError(null);
-    api<ProductListResponse>(`${storeApi(storeSlug)}/products?${queryString}`)
+    api<ProductListResponse>(`${storeApi(storeSlug)}/products?${queryString}&withStatusCounts=true`)
       .then((res) => {
         if (seq !== requestSeq.current) return;
         setItems(res.items);
         setTotal(res.total);
         if (res.categories) setCategories(res.categories);
+        if (res.statusCounts) onStatusCountsRef.current?.(res.statusCounts);
       })
       .catch((err: unknown) => {
         if (seq !== requestSeq.current) return;
@@ -312,7 +316,7 @@ export function ProductsTable({ storeSlug, initialImportId = "" }: { storeSlug: 
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && e.target === e.currentTarget) setOpenId(row.original.id);
                         }}
-                        className={cn("h-9 cursor-pointer border-b border-border/60 transition-colors duration-100 last:border-0 hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand", row.getIsSelected() && "bg-brand-soft/40 ring-1 ring-inset ring-brand hover:bg-brand-soft/50", row.original.deletedAt && "text-ink-muted")}
+                        className={cn("group h-9 cursor-pointer border-b border-border/60 transition-colors duration-100 last:border-0 hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand", row.getIsSelected() && "bg-brand-soft/40 ring-1 ring-inset ring-brand hover:bg-brand-soft/50", row.original.deletedAt && "text-ink-muted")}
                       >
                         {row.getVisibleCells().map((cell) => {
                           const meta = (cell.column.columnDef.meta ?? {}) as ColumnMeta;

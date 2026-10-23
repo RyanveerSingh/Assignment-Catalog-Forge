@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { KeyRound, ShieldCheck } from "lucide-react";
+import { KeyRound, ShieldCheck, SparklesIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +22,7 @@ export function AiSection({ settings, disabled, onSave }: SectionProps) {
   const live = settings.aiMode === "anthropic";
 
   return (
-    <SectionCard id="ai" title="AI" description="Which key writes the listings, and how much one import may spend before it pauses for approval.">
+    <SectionCard id="ai" icon={SparklesIcon} title="AI" description="Which key writes the listings, and how much one import may spend before it pauses for approval.">
       <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
         <div className="space-y-1.5">
           <Label htmlFor="api-key">Anthropic API key</Label>

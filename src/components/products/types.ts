@@ -43,10 +43,14 @@ export interface ProductListItem {
   createdAt: string;
 }
 
+/** Every status with its count (0 when none), for the strip above the table. */
+export type ProductStatusCounts = Record<ProductStatus, number>;
+
 export interface ProductListResponse {
   items: ProductListItem[];
   total: number;
   categories?: Array<{ category: string; n: number }>;
+  statusCounts?: ProductStatusCounts;
 }
 
 export interface BulkApproveResponse {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X } from "lucide-react";
+import { BookAIcon, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SaveBar, SectionCard, useSave } from "./section-card";
@@ -37,7 +37,7 @@ export function TranslationSection({ settings, disabled, onSave }: SectionProps)
   };
 
   return (
-    <SectionCard id="translation" title="Translation" description="Brand names and terms in the glossary are never translated; they are passed through verbatim in every language.">
+    <SectionCard id="translation" icon={BookAIcon} title="Translation" description="Brand names and terms in the glossary are never translated; they are passed through verbatim in every language.">
       <div className="space-y-2">
         <Label htmlFor="glossary-input">Glossary</Label>
         <div className="rounded-lg border border-input px-2 py-1.5 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">

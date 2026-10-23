@@ -63,14 +63,17 @@ export function buildColumns(storeSlug: string): ColumnDef<ProductListItem, unkn
     },
     {
       id: "thumb",
-      size: 40,
+      size: 52,
       header: () => <span className="sr-only">Photo</span>,
+      // The frame clips the zoom, so a hovered row's photo swells inside its 44 px square and nothing around it moves.
       cell: ({ row }) =>
         row.original.thumbBlobId ? (
-          <img src={imageUrl(storeSlug, row.original.thumbBlobId)} alt="" width={32} height={32} loading="lazy" className="size-8 border border-border object-cover" />
+          <span className="block size-11 overflow-hidden rounded-md border border-border bg-paper-deep">
+            <img src={imageUrl(storeSlug, row.original.thumbBlobId)} alt="" width={44} height={44} loading="lazy" className="size-full object-cover transition-transform duration-300 ease-out group-hover:scale-110" />
+          </span>
         ) : (
-          <span className="flex size-8 items-center justify-center border border-dashed border-border text-ink-muted" aria-label="No photo">
-            <ImageIcon className="size-3.5" />
+          <span className="flex size-11 items-center justify-center rounded-md border border-dashed border-border text-ink-muted" aria-label="No photo">
+            <ImageIcon className="size-4" />
           </span>
         ),
     },
@@ -123,7 +126,7 @@ export function buildColumns(storeSlug: string): ColumnDef<ProductListItem, unkn
         return (
           <Tooltip>
             <TooltipTrigger render={<span className="inline-flex cursor-default" tabIndex={0} />}>
-              <ConfidenceChip score={p.minConfidence} />
+              <ConfidenceChip score={p.minConfidence} bar />
             </TooltipTrigger>
             <TooltipContent side="right">
               {entries.length === 0 ? (

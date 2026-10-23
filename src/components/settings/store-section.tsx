@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { StoreIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -22,7 +23,7 @@ export function StoreSection({ settings, disabled, onSave }: SectionProps) {
   const dirty = name.trim() !== settings.name || currency !== settings.defaultCurrency;
 
   return (
-    <SectionCard id="store" title="Store" description="The name visitors see in the storefront, and the currency assumed when a sheet gives prices without one.">
+    <SectionCard id="store" icon={StoreIcon} title="Store" description="The name visitors see in the storefront, and the currency assumed when a sheet gives prices without one.">
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="store-name">Store name</Label>

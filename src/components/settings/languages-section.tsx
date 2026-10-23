@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, X } from "lucide-react";
+import { LanguagesIcon, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -58,7 +58,7 @@ export function LanguagesSection({ settings, disabled, onSave }: SectionProps) {
     });
 
   return (
-    <SectionCard id="languages" title="Languages" description="Every product is written in English first; enabled languages are translated automatically. The country map decides which language a visitor sees.">
+    <SectionCard id="languages" icon={LanguagesIcon} title="Languages" description="Every product is written in English first; enabled languages are translated automatically. The country map decides which language a visitor sees.">
       <fieldset className="space-y-2">
         <legend className="text-sm font-medium">Published languages</legend>
         <div className="flex flex-wrap gap-x-6 gap-y-2">

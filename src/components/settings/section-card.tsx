@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { AlertCircle, CheckCircle2, FlaskConical, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, FlaskConical, Loader2, type LucideIcon } from "lucide-react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/client/api";
@@ -24,15 +24,23 @@ export function useSave(): { state: SaveState; run: (fn: () => Promise<unknown>)
   return { state, run, reset };
 }
 
-export function SectionCard({ id, title, description, tone = "default", children }: { id: string; title: string; description?: React.ReactNode; tone?: "default" | "testing"; children: React.ReactNode }) {
+/** A settings card: an icon tile, the title, a one-line subtitle and the controls. The testing tone wears a warning ring. */
+export function SectionCard({ id, title, description, icon: Icon, tone = "default", children }: { id: string; title: string; description?: React.ReactNode; icon?: LucideIcon; tone?: "default" | "testing"; children: React.ReactNode }) {
   return (
     <section aria-labelledby={`${id}-title`} className={cn("rounded-sm bg-card hairline", tone === "testing" && "ring-2 ring-warning/40")}>
-      <header className="flex flex-wrap items-start justify-between gap-2 border-b border-border px-4 py-3 md:px-5">
-        <div>
-          <h2 id={`${id}-title`} className="font-display text-lg text-ink">
-            {title}
-          </h2>
-          {description ? <p className="mt-0.5 max-w-2xl text-xs text-ink-muted">{description}</p> : null}
+      <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-4 py-3 md:px-5">
+        <div className="flex min-w-0 items-start gap-3">
+          {Icon ? (
+            <span aria-hidden className={cn("mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-sm", tone === "testing" ? "bg-warning-soft text-warning" : "bg-paper-deep text-brand")}>
+              <Icon className="size-4" />
+            </span>
+          ) : null}
+          <div className="min-w-0">
+            <h2 id={`${id}-title`} className="font-display text-lg leading-tight text-ink">
+              {title}
+            </h2>
+            {description ? <p className="mt-0.5 max-w-2xl text-xs text-ink-muted">{description}</p> : null}
+          </div>
         </div>
         {tone === "testing" ? (
           <span className="inline-flex h-5 items-center gap-1 rounded-sm bg-warning-soft px-1.5 text-[11px] font-medium uppercase tracking-wide text-warning ring-1 ring-inset ring-warning/25">

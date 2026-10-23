@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { isPromptVersion, PROMPT_VERSIONS } from "@/core/ai/prompts";
 import { getDb } from "@/db/client";
+import { countProductsByStatus } from "@/db/repositories/overview";
 import { listCategories, listProducts, type ProductSortKey } from "@/db/repositories/products-query";
 import { bulkApprove, bulkRerunAi } from "@/db/repositories/review";
 import { PRODUCT_STATUSES, type ProductStatus } from "@/db/schema";
@@ -37,8 +38,12 @@ export const GET = withApi(async (req: Request, { params }: Ctx) => {
     limit: parseIntParam(q.get("limit"), 25, 1, 100),
     offset: parseIntParam(q.get("offset"), 0),
   });
-  const categories = q.get("withCategories") === "true" ? await listCategories(getDb(), store.id) : undefined;
-  return json({ ...result, categories });
+  // Whole-store counts, unfiltered on purpose: the strip shows the catalog, the table shows the slice.
+  const [categories, statusCounts] = await Promise.all([
+    q.get("withCategories") === "true" ? listCategories(getDb(), store.id) : undefined,
+    q.get("withStatusCounts") === "true" ? countProductsByStatus(getDb(), store.id) : undefined,
+  ]);
+  return json({ ...result, categories, statusCounts });
 });
 
 const idsSchema = z.array(z.string().min(1).max(64)).min(1, "Select at least one product").max(500);
