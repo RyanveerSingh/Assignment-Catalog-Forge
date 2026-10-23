@@ -18,6 +18,7 @@ const SAMPLES: ReadonlyArray<{ name: string; what: string }> = [
   { name: "messy-120.csv", what: "Every mess at once: EN/DE headers, BOM, EU prices, scattered variants, duplicates, SKU conflicts." },
   { name: "messy-120.xlsx", what: "Same data as a workbook: two title rows above the header and an extra empty sheet." },
   { name: "photos-messy.zip", what: "56 photos for messy-120: SKU names, stems, fuzzy names, junk files and traversal paths." },
+  { name: "dump-mysql.sql", what: "A mysqldump of a product table: DROP and CREATE statements, two tables, escaped quotes, a NULL price. Parsed in memory, never executed." },
   { name: "semicolon-eu.csv", what: "German ;-export: 12,50 and 1.299,00 € prices, kg weights, German colours, no parent column." },
   { name: "broken-latin1.csv", what: "windows-1252 bytes: umlauts, ß and € that must be re-decoded." },
   { name: "no-header.csv", what: "Data rows with no header row at all." },
@@ -70,7 +71,7 @@ export default async function UploadPage({ params }: { params: Promise<{ store: 
       <PageHeader
         eyebrow="Imports"
         title="Upload a supplier sheet"
-        description="Drop a CSV or XLSX with any photos. Parsing, cleaning, grouping and AI writing run in the background; every row stays visible while it happens."
+        description="Drop a CSV, XLSX or SQL dump, or paste a Google Sheets link, with any photos. Parsing, cleaning, grouping and AI writing run in the background; every row stays visible while it happens."
       />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)]">
         <UploadPanel storeSlug={slug} />

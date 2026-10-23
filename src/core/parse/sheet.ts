@@ -1,15 +1,16 @@
 /**
- * Buffer → ParsedSheet for CSV, XLSX and XLS uploads (EC-A4–A8, A12–A16). Never throws:
- * anything that cannot be parsed comes back as zero rows plus an error issue.
+ * Buffer → ParsedSheet for CSV, XLSX, XLS and SQL-dump uploads (EC-A4–A8, A12–A16, A20–A22).
+ * Never throws: anything that cannot be parsed comes back as zero rows plus an error issue.
  */
 
 import * as Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { issue, type CanonicalField, type Issue, type ParsedSheet, type RawRow } from "../types";
-import { decodeText } from "./encoding";
+import { decodeText, type DecodedText } from "./encoding";
 import { detectDelimiter } from "./delimiter";
 import { dedupeHeaders, detectHeaderRow, mapColumns } from "./headers";
 import { sniffFileType, type FileKind, type SniffResult } from "./sniff";
+import { looksLikeSqlDump, parseSqlDump } from "./sql-dump";
 
 export interface ParseSheetOptions {
   filename?: string;
@@ -62,9 +63,17 @@ function parse(buf: Buffer, opts: ParseSheetOptions): ParsedSheet {
     );
   }
 
-  const loaded = sniff.kind === "csv" ? loadCsv(buf) : loadWorkbook(buf, sniff.kind);
+  if (sniff.kind !== "csv") {
+    const loaded = loadWorkbook(buf, sniff.kind);
+    issues.push(...loaded.issues);
+    if (loaded.fatal) return { ...emptySheet(loaded.format, issues), sheetName: loaded.sheetName };
+    return buildSheet(loaded, opts, issues);
+  }
+  // A dump sniffs as plain text; the statements, or a .sql extension, tell it apart from a CSV.
+  const decoded = decodeText(buf);
+  if (looksLikeSqlDump(decoded.text, opts.filename)) return loadSqlDump(decoded, opts, issues);
+  const loaded = loadCsv(decoded);
   issues.push(...loaded.issues);
-  if (loaded.fatal) return { ...emptySheet(loaded.format, issues), sheetName: loaded.sheetName };
   return buildSheet(loaded, opts, issues);
 }
 
@@ -72,8 +81,17 @@ function parse(buf: Buffer, opts: ParseSheetOptions): ParsedSheet {
 // Loading a grid of text cells
 // ---------------------------------------------------------------------------
 
-function loadCsv(buf: Buffer): Loaded {
-  const decoded = decodeText(buf);
+/** The dump parser builds the whole sheet itself; only the per-cell Excel-accident flags are shared. */
+function loadSqlDump(decoded: DecodedText, opts: ParseSheetOptions, issues: Issue[]): ParsedSheet {
+  const dump = parseSqlDump(decoded.text, { maxRows: normaliseMaxRows(opts.maxRows) });
+  const grid = dump.rows.map((row) => dump.headers.map((h) => row.cells[h] ?? ""));
+  const dateSensitive = dateSensitiveColumns(dump.originalHeaders, grid.slice(0, MAPPING_SAMPLE_ROWS));
+  const cellIssues: Issue[] = [];
+  grid.forEach((cells, i) => flagCells(cells, dump.headers, dump.rows[i].rowNumber, dateSensitive, cellIssues));
+  return { ...dump, encoding: decoded.encoding, issues: [...issues, ...dump.issues, ...cellIssues] };
+}
+
+function loadCsv(decoded: DecodedText): Loaded {
   const { delimiter } = detectDelimiter(decoded.text.slice(0, DELIMITER_SAMPLE_CHARS));
   const result = Papa.parse<string[]>(decoded.text, { delimiter, header: false, skipEmptyLines: "greedy", quoteChar: '"' });
   const grid = dropBlankRows(result.data.map((row) => row.map(cellText)));
@@ -247,7 +265,7 @@ function typicalWidth(dataRows: Grid, headerWidth: number): number {
 function unsupportedIssue(sniff: SniffResult): Issue {
   if (sniff.kind === "empty") return issue("sheet.unsupported_type", "error", "File is empty.", { ec: "A1", value: sniff.kind });
   const hint = sniff.kind === "html" ? " If this came from Excel, use Save As → CSV or XLSX." : "";
-  return issue("sheet.unsupported_type", "error", `This looks like ${describeKind(sniff)}, not a spreadsheet. Upload a CSV or XLSX export.${hint}`, { ec: "A2", value: sniff.kind });
+  return issue("sheet.unsupported_type", "error", `This looks like ${describeKind(sniff)}, not a spreadsheet. Upload a CSV or XLSX export, or a SQL dump.${hint}`, { ec: "A2", value: sniff.kind });
 }
 
 function describeKind(sniff: SniffResult): string {

@@ -189,7 +189,7 @@ export interface ParsedSheet {
   totalRows: number;
   /** True when rows beyond the cap were dropped (EC-A14). */
   truncated: boolean;
-  format: "csv" | "xlsx" | "xls";
+  format: "csv" | "xlsx" | "xls" | "sql";
   encoding?: string;
   delimiter?: string;
   sheetName?: string;

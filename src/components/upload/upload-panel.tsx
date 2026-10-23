@@ -4,20 +4,24 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useId, useRef, useState } from "react";
 import { type FileRejection, useDropzone } from "react-dropzone";
-import { FileArchiveIcon, FileSpreadsheetIcon, ImageIcon, type LucideIcon, UploadIcon, XIcon } from "lucide-react";
+import { DatabaseIcon, FileArchiveIcon, FileSpreadsheetIcon, ImageIcon, LinkIcon, UploadIcon } from "lucide-react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { parseGoogleSheetsUrl } from "@/core/parse/google-sheets";
 import { storeApi } from "@/lib/client/api";
+import { FileRow, formatBytes } from "./file-row";
 
 const MB = 1024 * 1024;
 /** Mirrors the server defaults (MAX_SHEET_BYTES, MAX_PHOTO_BYTES, MAX_ZIP_BYTES); the server re-checks (EC-A3). */
 const LIMITS = { sheet: 50 * MB, photo: 25 * MB, zip: 200 * MB } as const;
-const SHEET_EXT = new Set(["csv", "xlsx", "xls"]);
+const SHEET_EXT = new Set(["csv", "xlsx", "xls", "sql"]);
 const PHOTO_EXT = new Set(["png", "jpg", "jpeg", "webp", "gif"]);
 const ACCEPT = {
   "text/csv": [".csv"],
-  "text/plain": [".csv"],
+  "text/plain": [".csv", ".sql"],
+  "application/sql": [".sql"],
+  "application/x-sql": [".sql"],
   "application/vnd.ms-excel": [".xls", ".csv"],
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
   "image/png": [".png"],
@@ -34,25 +38,29 @@ const MODES = [
 type Mode = (typeof MODES)[number]["value"];
 type Kind = "sheet" | "photo" | "zip";
 type Phase = "idle" | "uploading" | "processing";
+/** A validated Google Sheets link standing in for the sheet file (EC-A23). */
+interface SheetLink {
+  url: string;
+  sheetId: string;
+  gid: string | null;
+}
+
+function extensionOf(name: string): string {
+  return name.toLowerCase().split(".").pop() ?? "";
+}
 
 function kindOf(file: File): Kind | null {
-  const ext = file.name.toLowerCase().split(".").pop() ?? "";
+  const ext = extensionOf(file.name);
   if (SHEET_EXT.has(ext)) return "sheet";
   if (PHOTO_EXT.has(ext)) return "photo";
   if (ext === "zip") return "zip";
   return null;
 }
 
-function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < MB) return `${Math.round(n / 1024)} KB`;
-  return `${(n / MB).toFixed(1)} MB`;
-}
-
 /** EC-A1 (empty), EC-A3 (limits) and the accepted extensions. EC-A2 (a lying extension) is settled by the server's magic-byte sniff. */
 function validate(file: File): { kind: Kind } | { error: string } {
   const kind = kindOf(file);
-  if (!kind) return { error: `${file.name}: not a supported type. Sheets are .csv, .xlsx or .xls; photos are .png, .jpg, .jpeg, .webp or .gif; or one .zip of photos.` };
+  if (!kind) return { error: `${file.name}: not a supported type. Sheets are .csv, .xlsx, .xls or a .sql dump; photos are .png, .jpg, .jpeg, .webp or .gif; or one .zip of photos.` };
   if (file.size === 0) return { error: `${file.name} is empty (0 bytes)` };
   if (file.size > LIMITS[kind]) {
     const noun = kind === "sheet" ? "Sheets" : kind === "zip" ? "ZIP archives" : "Photos";
@@ -83,7 +91,7 @@ function serverMessage(status: number, body: Record<string, unknown> | null): st
     case 413:
       return "The upload is larger than the server accepts.";
     case 415:
-      return "The sheet is not a CSV or XLSX file.";
+      return "The sheet is not a CSV, XLSX or SQL file.";
     case 503:
       return "The database is temporarily unavailable; please retry.";
     default:
@@ -95,6 +103,8 @@ export function UploadPanel({ storeSlug }: { storeSlug: string }) {
   const router = useRouter();
   const uid = useId();
   const [sheet, setSheet] = useState<File | null>(null);
+  const [sheetLink, setSheetLink] = useState<SheetLink | null>(null);
+  const [linkText, setLinkText] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
   const [problems, setProblems] = useState<string[]>([]);
   const [notices, setNotices] = useState<string[]>([]);
@@ -128,7 +138,9 @@ export function UploadPanel({ storeSlug }: { storeSlug: string }) {
       }
       if (nextSheet) {
         if (sheet && !sameFile(sheet, nextSheet)) notes.push(`Replaced ${sheet.name} with ${nextSheet.name} (one sheet per import)`);
+        if (sheetLink) notes.push(`Replaced the Google Sheets link with ${nextSheet.name} (one sheet per import)`);
         setSheet(nextSheet);
+        setSheetLink(null);
       }
       if (nextPhotos.length > 0) setPhotos((prev) => [...prev, ...nextPhotos.filter((f) => !prev.some((p) => sameFile(p, f)))]);
       setProblems(errs);
@@ -136,20 +148,41 @@ export function UploadPanel({ storeSlug }: { storeSlug: string }) {
       setServerError(null);
       setReused(null);
     },
-    [sheet],
+    [sheet, sheetLink],
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: ACCEPT, multiple: true, disabled: busy });
 
+  /** The link is only validated here; the server fetches it when the import starts (EC-A23). */
+  const applyLink = (): void => {
+    const url = linkText.trim();
+    if (url === "" || busy) return;
+    const ref = parseGoogleSheetsUrl(url);
+    if (!ref) {
+      setProblems(["That is not a Google Sheets link. Copy it from the browser address bar or from Share → Copy link."]);
+      return;
+    }
+    const notes: string[] = [];
+    if (sheet) notes.push(`Replaced ${sheet.name} with the Google Sheets link (one sheet per import)`);
+    setSheet(null);
+    setSheetLink({ url, sheetId: ref.sheetId, gid: ref.gid });
+    setLinkText("");
+    setProblems([]);
+    setNotices(notes);
+    setServerError(null);
+    setReused(null);
+  };
+
   const start = (): void => {
-    if (!sheet || busy) return;
+    if ((!sheet && !sheetLink) || busy) return;
     const dollars = Number(budget);
     if (!Number.isFinite(dollars) || dollars <= 0) {
       setProblems(["Enter an AI budget above $0"]);
       return;
     }
     const form = new FormData();
-    form.append("sheet", sheet, sheet.name);
+    if (sheetLink) form.append("sheetUrl", sheetLink.url);
+    else if (sheet) form.append("sheet", sheet, sheet.name);
     for (const p of photos) form.append("photos", p, p.name);
     form.append("mode", mode);
     form.append("budgetCents", String(Math.round(dollars * 100)));
@@ -200,10 +233,12 @@ export function UploadPanel({ storeSlug }: { storeSlug: string }) {
   const totalBytes = (sheet?.size ?? 0) + photos.reduce((n, p) => n + p.size, 0);
   const zipCount = photos.filter((p) => kindOf(p) === "zip").length;
   const photoCount = photos.length - zipCount;
-  const summary = [sheet ? "1 sheet" : "no sheet", photoCount > 0 ? `${photoCount} photo${photoCount === 1 ? "" : "s"}` : null, zipCount > 0 ? `${zipCount} ZIP` : null, totalBytes > 0 ? formatBytes(totalBytes) : null]
+  const sheetSummary = sheetLink ? "1 Google Sheet" : sheet ? "1 sheet" : "no sheet";
+  const summary = [sheetSummary, photoCount > 0 ? `${photoCount} photo${photoCount === 1 ? "" : "s"}` : null, zipCount > 0 ? `${zipCount} ZIP` : null, totalBytes > 0 ? formatBytes(totalBytes) : null]
     .filter((s) => s !== null)
     .join(" · ");
   const pct = Math.round(progress * 100);
+  const processingText = sheetLink ? "Upload complete · fetching the Google Sheet and queueing the import…" : "Upload complete · storing files and queueing the import…";
 
   return (
     <div className="flex flex-col gap-4">
@@ -221,7 +256,43 @@ export function UploadPanel({ storeSlug }: { storeSlug: string }) {
         <input {...getInputProps()} />
         <UploadIcon className="size-5 text-brand" aria-hidden />
         <p className="text-sm font-medium text-ink">{isDragActive ? "Release to add the files" : "Drop a supplier sheet and photos here, or click to browse"}</p>
-        <p className="max-w-md text-xs text-ink-muted">One CSV, XLSX or XLS up to 50 MB. Photos as PNG, JPG, WEBP or GIF up to 25 MB each, or one ZIP up to 200 MB. Pasting files works too.</p>
+        <p className="max-w-md text-xs text-ink-muted">
+          One CSV, XLSX or XLS up to 50 MB, or a SQL dump (.sql from mysqldump / pg_dump; read, never executed). Photos as PNG, JPG, WEBP or GIF up to 25 MB each, or one ZIP up to 200 MB. Pasting files works too.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor={`${uid}-link`} className="text-[11px] font-medium uppercase tracking-wider text-ink-muted">
+          Or paste a Google Sheets link
+        </label>
+        <div className="flex gap-2">
+          <Input
+            id={`${uid}-link`}
+            type="url"
+            inputMode="url"
+            autoComplete="off"
+            spellCheck={false}
+            placeholder="https://docs.google.com/spreadsheets/d/…"
+            value={linkText}
+            disabled={busy}
+            onChange={(e) => setLinkText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                applyLink();
+              }
+            }}
+            aria-describedby={`${uid}-link-hint`}
+            className="bg-card"
+          />
+          <Button variant="outline" onClick={applyLink} disabled={busy || linkText.trim() === ""} className="shrink-0 cursor-pointer">
+            <LinkIcon data-icon="inline-start" aria-hidden />
+            Use link
+          </Button>
+        </div>
+        <p id={`${uid}-link-hint`} className="text-xs text-ink-muted">
+          The sheet must be shared as Anyone with the link → Viewer. The tab in the link (#gid) is used, otherwise the first tab.
+        </p>
       </div>
 
       {problems.length > 0 ? (
@@ -239,15 +310,19 @@ export function UploadPanel({ storeSlug }: { storeSlug: string }) {
         </ul>
       ) : null}
 
-      {sheet || photos.length > 0 ? (
+      {sheet || sheetLink || photos.length > 0 ? (
         <ul className="max-h-56 divide-y divide-border overflow-y-auto bg-card text-sm hairline" aria-label="Selected files">
-          {sheet ? <FileRow icon={FileSpreadsheetIcon} label="Sheet" file={sheet} disabled={busy} onRemove={() => setSheet(null)} /> : null}
+          {sheet ? (
+            <FileRow icon={extensionOf(sheet.name) === "sql" ? DatabaseIcon : FileSpreadsheetIcon} label={extensionOf(sheet.name) === "sql" ? "Dump" : "Sheet"} name={sheet.name} size={sheet.size} disabled={busy} onRemove={() => setSheet(null)} />
+          ) : null}
+          {sheetLink ? <FileRow icon={LinkIcon} label="Link" name={sheetLink.url} detail={sheetLink.gid === null ? "first tab" : `gid ${sheetLink.gid}`} disabled={busy} onRemove={() => setSheetLink(null)} /> : null}
           {photos.map((p, idx) => (
             <FileRow
               key={`${p.name}-${p.size}-${p.lastModified}`}
               icon={kindOf(p) === "zip" ? FileArchiveIcon : ImageIcon}
               label={kindOf(p) === "zip" ? "ZIP" : "Photo"}
-              file={p}
+              name={p.name}
+              size={p.size}
               disabled={busy}
               onRemove={() => setPhotos((prev) => prev.filter((_, i) => i !== idx))}
             />
@@ -296,7 +371,7 @@ export function UploadPanel({ storeSlug }: { storeSlug: string }) {
             <div className="h-full bg-brand transition-[width] duration-200" style={{ width: `${pct}%` }} />
           </div>
           <p className="num mt-1 text-xs text-ink-muted" aria-live="polite">
-            {phase === "processing" ? "Upload complete · storing files and queueing the import…" : `Uploading ${pct}% · ${formatBytes(totalBytes * progress)} of ${formatBytes(totalBytes)}`}
+            {phase === "processing" ? processingText : `Uploading ${pct}% · ${formatBytes(totalBytes * progress)} of ${formatBytes(totalBytes)}`}
           </p>
         </div>
       ) : null}
@@ -318,7 +393,7 @@ export function UploadPanel({ storeSlug }: { storeSlug: string }) {
       ) : null}
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button onClick={start} disabled={!sheet || busy} className="cursor-pointer bg-brand text-brand-foreground hover:bg-brand/90">
+        <Button onClick={start} disabled={(!sheet && !sheetLink) || busy} className="cursor-pointer bg-brand text-brand-foreground hover:bg-brand/90">
           <UploadIcon data-icon="inline-start" aria-hidden />
           {busy ? "Uploading…" : "Start import"}
         </Button>
@@ -330,27 +405,5 @@ export function UploadPanel({ storeSlug }: { storeSlug: string }) {
         <span className="text-xs text-ink-muted">{summary}</span>
       </div>
     </div>
-  );
-}
-
-function FileRow({ icon: Icon, label, file, disabled, onRemove }: { icon: LucideIcon; label: string; file: File; disabled: boolean; onRemove: () => void }) {
-  return (
-    <li className="flex items-center gap-3 px-3 py-2">
-      <Icon className="size-4 shrink-0 text-ink-muted" aria-hidden />
-      <span className="w-10 shrink-0 text-[10px] uppercase tracking-wide text-ink-muted">{label}</span>
-      <span className="min-w-0 flex-1 truncate text-ink" title={file.name}>
-        {file.name}
-      </span>
-      <span className="num shrink-0 text-xs text-ink-muted">{formatBytes(file.size)}</span>
-      <button
-        type="button"
-        aria-label={`Remove ${file.name}`}
-        disabled={disabled}
-        onClick={onRemove}
-        className="cursor-pointer rounded-sm p-1 text-ink-muted transition-colors hover:text-destructive focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        <XIcon className="size-3.5" aria-hidden />
-      </button>
-    </li>
   );
 }

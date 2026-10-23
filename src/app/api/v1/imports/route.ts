@@ -1,26 +1,22 @@
 import { getDb } from "@/db/client";
 import { listImports } from "@/db/repositories/imports";
-import { HttpError, json, parseIntParam, withApi } from "@/lib/http";
+import { json, parseIntParam, withApi } from "@/lib/http";
+import { readImportRequest } from "@/lib/import-request";
 import { requireApiKeyStore } from "@/lib/session";
-import { acceptUpload, type UploadFile } from "@/lib/upload";
+import { acceptUpload } from "@/lib/upload";
 import { serializeImport } from "@/lib/serializers";
 
 /**
  * Public import API (Bearer `cf_live_…` key, created in Settings).
  *   POST /api/v1/imports   multipart: sheet=<file> photos=<file>… mode=fast|economy
+ *                          or sheetUrl=<public Google Sheets link> (form field or JSON body)
  *   GET  /api/v1/imports   list
  * Returns 202 with the import id; poll GET /api/v1/imports/{id}.
  */
 export const POST = withApi(async (req: Request) => {
   const { storeId } = await requireApiKeyStore(req);
-  const form = await req.formData().catch(() => null);
-  if (!form) throw new HttpError(400, "invalid_form", "Expected multipart form data with a 'sheet' file");
-  const sheet = form.get("sheet");
-  if (!(sheet instanceof File)) throw new HttpError(400, "missing_sheet", "Attach a CSV or XLSX file as 'sheet'");
-  const photos: UploadFile[] = [];
-  for (const entry of form.getAll("photos")) if (entry instanceof File) photos.push({ name: entry.name, data: Buffer.from(await entry.arrayBuffer()) });
-  const mode = form.get("mode") === "economy" ? "economy" : "fast";
-  const result = await acceptUpload(getDb(), { storeId, sheet: { name: sheet.name, data: Buffer.from(await sheet.arrayBuffer()) }, photos, mode });
+  const request = await readImportRequest(req);
+  const result = await acceptUpload(getDb(), { storeId, ...request });
   return json({ importId: result.importId, reused: result.reused, warnings: result.warnings, statusUrl: `/api/v1/imports/${result.importId}` }, { status: result.reused ? 200 : 202 });
 });
 

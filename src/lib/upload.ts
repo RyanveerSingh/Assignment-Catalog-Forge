@@ -101,10 +101,10 @@ function describeRejection(kind: string, name: string): string {
     case "image":
       return `${name} is an image. Upload it in the photos field instead`;
     case "zip":
-      return `${name} is a ZIP. Upload the sheet itself (CSV or XLSX) and put photos in the photos field`;
+      return `${name} is a ZIP. Upload the sheet itself (CSV, XLSX or SQL dump) and put photos in the photos field`;
     case "xls":
       return `${name} is an old .xls workbook; please save it as .xlsx or .csv`;
     default:
-      return `${name} is not a CSV or XLSX file`;
+      return `${name} is not a CSV, XLSX or SQL dump file`;
   }
 }
