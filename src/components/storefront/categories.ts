@@ -87,6 +87,20 @@ export function flatLeaves(families: CategoryFamily[]): CategoryLeaf[] {
   return [...byLabel.values()].sort((a, b) => b.n - a.n || a.label.localeCompare(b.label));
 }
 
+export interface CategoryTile {
+  category: string;
+  label: string;
+  n: number;
+}
+
+const MAX_TILES = 8;
+
+/** Tiles for the store home: the families when there are several, otherwise the lone family's leaves, so the row never holds one tile. */
+export function categoryTiles(families: CategoryFamily[]): CategoryTile[] {
+  if (families.length >= 2) return families.slice(0, MAX_TILES).map((f) => ({ category: f.family, label: f.label, n: f.n }));
+  return (families[0]?.leaves ?? []).slice(0, MAX_TILES).map((l) => ({ category: l.category, label: l.label, n: l.n }));
+}
+
 /**
  * Chips for a category page: the leaves below the path when it is a family or a middle level
  * ("Decor" → Clocks, Rugs, Vases), otherwise the other leaves of the same family.

@@ -24,8 +24,11 @@ export interface BagProductSummary {
   imageId: string | null;
 }
 
-/** Quantity stepper and the one accent-coloured button on the page. Disabled until the picker resolves a variant. */
-export function AddToBag({ slug, locale, product, variant }: { slug: string; locale: string; product: BagProductSummary; variant: PublishedVariant | null }) {
+/**
+ * Quantity stepper and the one accent-coloured button on the page. Disabled until the picker
+ * resolves a variant. `compact` drops the stepper (always one) for the phone bar, where there is no room for it.
+ */
+export function AddToBag({ slug, locale, product, variant, compact = false }: { slug: string; locale: string; product: BagProductSummary; variant: PublishedVariant | null; compact?: boolean }) {
   const reduce = useReducedMotion();
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
@@ -51,6 +54,36 @@ export function AddToBag({ slug, locale, product, variant }: { slug: string; loc
     setAdded(true);
   };
 
+  const button = (
+    <button
+      type="button"
+      onClick={submit}
+      disabled={!variant}
+      className={cn(
+        "inline-flex h-11 min-w-0 cursor-pointer items-center justify-center rounded-sm px-5 text-sm font-medium outline-none transition-[background-color,color,scale] duration-150 focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-paper disabled:cursor-not-allowed disabled:opacity-50 motion-safe:active:scale-[0.98]",
+        compact ? "shrink-0" : "flex-1",
+        added ? "bg-ink text-paper" : "bg-brand text-brand-foreground hover:bg-ink",
+      )}
+    >
+      <span className="grid" aria-hidden>
+        <motion.span className={LABEL} animate={added ? { opacity: 0, y: -6 } : { opacity: 1, y: 0 }} transition={settle(reduce, 0.18)}>
+          {t(locale, "addToBag")}
+        </motion.span>
+        <motion.span className={LABEL} animate={added ? { opacity: 1, y: 0 } : { opacity: 0, y: 6 }} transition={settle(reduce, 0.18)}>
+          <motion.span className="inline-flex" animate={{ scale: added ? 1 : 0.5 }} transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 600, damping: 22 }}>
+            <Check aria-hidden className="size-4" />
+          </motion.span>
+          {t(locale, "addedToBag")}
+        </motion.span>
+      </span>
+      <span className="sr-only" aria-live="polite">
+        {added ? t(locale, "addedToBag") : t(locale, "addToBag")}
+      </span>
+    </button>
+  );
+
+  if (compact) return button;
+
   return (
     <div className="flex flex-wrap items-stretch gap-3">
       <div className="inline-flex items-center rounded-sm bg-card hairline" role="group" aria-label={t(locale, "quantity")}>
@@ -64,30 +97,7 @@ export function AddToBag({ slug, locale, product, variant }: { slug: string; loc
           <Plus aria-hidden className="size-4" />
         </button>
       </div>
-      <button
-        type="button"
-        onClick={submit}
-        disabled={!variant}
-        className={cn(
-          "inline-flex h-11 min-w-0 flex-1 cursor-pointer items-center justify-center rounded-sm px-5 text-sm font-medium outline-none transition-[background-color,color,scale] duration-150 focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-paper disabled:cursor-not-allowed disabled:opacity-50 motion-safe:active:scale-[0.98]",
-          added ? "bg-ink text-paper" : "bg-brand text-brand-foreground hover:bg-ink",
-        )}
-      >
-        <span className="grid" aria-hidden>
-          <motion.span className={LABEL} animate={added ? { opacity: 0, y: -6 } : { opacity: 1, y: 0 }} transition={settle(reduce, 0.18)}>
-            {t(locale, "addToBag")}
-          </motion.span>
-          <motion.span className={LABEL} animate={added ? { opacity: 1, y: 0 } : { opacity: 0, y: 6 }} transition={settle(reduce, 0.18)}>
-            <motion.span className="inline-flex" animate={{ scale: added ? 1 : 0.5 }} transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 600, damping: 22 }}>
-              <Check aria-hidden className="size-4" />
-            </motion.span>
-            {t(locale, "addedToBag")}
-          </motion.span>
-        </span>
-        <span className="sr-only" aria-live="polite">
-          {added ? t(locale, "addedToBag") : t(locale, "addToBag")}
-        </span>
-      </button>
+      {button}
     </div>
   );
 }

@@ -62,3 +62,24 @@ export async function listStorefrontCategories(db: DbOrTx, storeId: string, loca
   `);
   return result.rows.map((r) => ({ category: r.category, n: Number(r.n) }));
 }
+
+export interface StorefrontCategoryPhoto {
+  category: string;
+  imageId: string;
+  thumbId: string;
+  alt: string;
+  updatedAtMs: number;
+}
+
+/** The first photo of the newest photographed product in each category path; the storefront borrows it for category tiles and menus. */
+export async function listStorefrontCategoryPhotos(db: DbOrTx, storeId: string, locale: string): Promise<StorefrontCategoryPhoto[]> {
+  const result = await db.execute<{ category: string; image_id: string; thumb_id: string | null; alt: string | null; updated_ms: number }>(sql`
+    select distinct on (category) category,
+           images->0->>'id' as image_id, images->0->>'thumbId' as thumb_id, images->0->>'alt' as alt,
+           (extract(epoch from updated_at) * 1000)::float8 as updated_ms
+      from storefront_products
+     where store_id = ${storeId} and locale = ${locale} and category is not null and jsonb_array_length(images) > 0
+     order by category, updated_at desc
+  `);
+  return result.rows.map((r) => ({ category: r.category, imageId: r.image_id, thumbId: r.thumb_id ?? r.image_id, alt: r.alt ?? "", updatedAtMs: Number(r.updated_ms) }));
+}

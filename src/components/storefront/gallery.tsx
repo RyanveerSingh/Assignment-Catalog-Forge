@@ -1,27 +1,39 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "cn";
 import type { StorefrontImage } from "@/db/schema";
 import { t } from "./i18n";
+import { ImagePlaceholder } from "./image-placeholder";
 import { storefrontImageUrl } from "./image-url";
-import { ImagePlaceholder } from "./product-card";
+import { zoomOrigin } from "./zoom-origin";
 
 const ARROW = "absolute top-1/2 hidden size-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-paper/90 text-ink hairline outline-none transition-colors hover:bg-paper focus-visible:ring-2 focus-visible:ring-brand md:inline-flex";
+/** Lens zoom only where there is a precise pointer to steer it: desktop widths with a mouse or trackpad. */
+const ZOOM_MEDIA = "(min-width: 768px) and (hover: hover) and (pointer: fine)";
+const ZOOM_SCALE = 1.8;
 
 /**
  * Below md the slides are a scroll-snap track: swiping is native scrolling and the active index is
  * read back from the scroll position. From md up the same slides stack and crossfade instead: the
  * incoming slide fades in on top while the outgoing one waits underneath, so the paper behind never
- * shows through mid-fade. Thumbnails, arrows and arrow keys drive both through one `go()`.
+ * shows through mid-fade. Thumbnails, arrows and arrow keys drive both through one `go()`. On
+ * desktop the active photo scales up under the pointer (a transform anchored at the cursor), so
+ * the part being looked at stays put.
  */
 export function Gallery({ images, storeSlug, title, locale }: { images: StorefrontImage[]; storeSlug: string; title: string; locale: string }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const frame = useRef<number | null>(null);
   const [index, setIndex] = useState(0);
+  const [zoom, setZoom] = useState<{ x: number; y: number } | null>(null);
   const count = images.length;
+
+  const onMouseMove = (e: MouseEvent<HTMLDivElement>) => {
+    if (!window.matchMedia(ZOOM_MEDIA).matches) return;
+    setZoom(zoomOrigin(e.clientX, e.clientY, e.currentTarget.getBoundingClientRect()));
+  };
 
   const go = useCallback(
     (next: number) => {
@@ -75,12 +87,15 @@ export function Gallery({ images, storeSlug, title, locale }: { images: Storefro
           tabIndex={0}
           onScroll={onScroll}
           onKeyDown={onKeyDown}
+          onMouseMove={onMouseMove}
+          onMouseLeave={() => setZoom(null)}
           aria-live="polite"
-          className="flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain rounded-sm bg-paper-deep hairline outline-none [scrollbar-width:none] focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-paper md:relative md:snap-none md:overflow-hidden [&::-webkit-scrollbar]:hidden"
+          className="flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain rounded-sm bg-paper-deep hairline outline-none [scrollbar-width:none] focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-paper md:relative md:snap-none md:cursor-zoom-in md:overflow-hidden [&::-webkit-scrollbar]:hidden"
           style={{ aspectRatio: "4 / 5" }}
         >
           {images.map((img, i) => {
             const active = i === index;
+            const lens = active && zoom;
             return (
               <div
                 key={`${img.id}-${i}`}
@@ -90,7 +105,10 @@ export function Gallery({ images, storeSlug, title, locale }: { images: Storefro
                 aria-hidden={!active}
                 className={cn("relative h-full w-full shrink-0 snap-center md:absolute md:inset-0 md:transition-opacity md:duration-300 md:ease-out", active ? "md:z-10 md:opacity-100 md:delay-0" : "md:z-0 md:opacity-0 md:delay-300")}
               >
-                <Image src={storefrontImageUrl(storeSlug, img.id)} alt={img.alt || title} fill priority={i === 0} sizes="(min-width: 768px) 58vw, 100vw" className="object-cover" />
+                {/* Only the scale transitions; the origin follows the cursor instantly so the lens never lags behind it. */}
+                <div className="absolute inset-0 transition-transform duration-300 ease-out" style={lens ? { transform: `scale(${ZOOM_SCALE})`, transformOrigin: `${lens.x}% ${lens.y}%` } : undefined}>
+                  <Image src={storefrontImageUrl(storeSlug, img.id)} alt={img.alt || title} fill priority={i === 0} sizes="(min-width: 768px) 58vw, 100vw" className="object-cover" />
+                </div>
               </div>
             );
           })}

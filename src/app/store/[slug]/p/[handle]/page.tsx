@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight, Truck, Undo2 } from "lucide-react";
+import { Check, ChevronRight, Truck, Undo2 } from "lucide-react";
 import { cn } from "cn";
 import { BuyBox } from "@/components/storefront/buy-box";
 import { familyOf, leafLabel, segments, titleCase } from "@/components/storefront/categories";
@@ -71,7 +71,8 @@ export default async function ProductPage({ params }: { params: Params }) {
   const hasLongForm = Boolean(product.descriptionHtml) || details.length > 0 || care !== null || product.tags.length > 0 || hasFallback;
 
   return (
-    <article className="mx-auto max-w-6xl px-4 py-6 md:px-6 md:py-10">
+    // Extra bottom room below md keeps the last line clear of the sticky "Add to bag" bar.
+    <article className="mx-auto max-w-6xl px-4 pb-24 pt-6 md:px-6 md:py-10">
       <nav aria-label={t(locale, "breadcrumb")} className="text-sm text-ink-muted">
         <ol className="flex flex-wrap items-center gap-1">
           <li>
@@ -117,7 +118,13 @@ export default async function ProductPage({ params }: { params: Params }) {
             </h1>
           </header>
 
-          <BuyBox slug={slug} locale={locale} variants={product.variants} fallbackCurrency={product.currency ?? ctx.store.defaultCurrency} product={{ handle: product.handle, title: product.title, imageId: product.images[0]?.id ?? null }} />
+          <BuyBox slug={slug} locale={locale} variants={product.variants} fallbackCurrency={product.currency ?? ctx.store.defaultCurrency} product={{ handle: product.handle, title: product.title, imageId: product.images[0]?.id ?? null }} sticky />
+
+          {/* True by construction: every published claim was verified against the supplier's row before it could be approved. */}
+          <p className="flex items-start gap-2 text-xs leading-relaxed text-ink-muted">
+            <Check aria-hidden className="mt-0.5 size-3.5 shrink-0 text-brand" strokeWidth={2.2} />
+            <span>{t(locale, "checkedAgainstSheet")}</span>
+          </p>
 
           <ul className="space-y-2 rounded-sm bg-paper-deep/60 px-4 py-3 text-sm">
             <li className="flex items-start gap-3">
@@ -199,7 +206,7 @@ export default async function ProductPage({ params }: { params: Params }) {
             {related.label}
           </h2>
           <div className="mt-6">
-            <ProductGrid products={related.items} slug={slug} locale={locale} now={Date.now()} eager={0} />
+            <ProductGrid products={related.items} slug={slug} locale={locale} now={Date.now()} eager={0} fallbackCurrency={ctx.store.defaultCurrency} />
           </div>
         </section>
       ) : null}

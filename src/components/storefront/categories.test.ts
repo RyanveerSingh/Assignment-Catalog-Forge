@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { flatLeaves, groupCategories, leafLabel, parentSegments, relatedLeaves, titleCase } from "./categories";
+import { categoryTiles, flatLeaves, groupCategories, leafLabel, parentSegments, relatedLeaves, titleCase } from "./categories";
 
 const LIST = [
   { category: "Home & Garden > Decor > Clocks", n: 1 },
@@ -74,6 +74,23 @@ describe("relatedLeaves", () => {
 
   it("returns nothing for an unknown family", () => {
     expect(relatedLeaves(families, "Toys > Puzzles")).toEqual([]);
+  });
+});
+
+describe("categoryTiles", () => {
+  it("uses the families when there are at least two", () => {
+    expect(categoryTiles(groupCategories(LIST)).map((t) => [t.label, t.n])).toEqual([
+      ["Home & Garden", 5],
+      ["Furniture", 4],
+    ]);
+  });
+
+  it("falls back to the leaves of a lone family, and caps at eight", () => {
+    const one = groupCategories(LIST.filter((c) => c.category.startsWith("Home")));
+    expect(categoryTiles(one).map((t) => t.label)).toEqual(["Clocks", "Food Containers", "Food Storage", "Side Tables", "Vases"]);
+    const many = groupCategories(Array.from({ length: 12 }, (_, i) => ({ category: `Family ${i}`, n: 1 })));
+    expect(categoryTiles(many)).toHaveLength(8);
+    expect(categoryTiles([])).toEqual([]);
   });
 });
 

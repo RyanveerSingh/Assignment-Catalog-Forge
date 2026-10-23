@@ -4,7 +4,7 @@ import { localizedCountryNames } from "@/components/storefront/country-names";
 import { t } from "@/components/storefront/i18n";
 import { ShopFooter } from "@/components/storefront/shop-footer";
 import { ShopHeader } from "@/components/storefront/shop-header";
-import { cachedCategories, cachedStore, loadStorefront } from "./storefront-context";
+import { cachedCategories, cachedCategoryPhotos, cachedStore, loadStorefront } from "./storefront-context";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +25,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 export default async function StorefrontLayout({ children, params }: { children: React.ReactNode; params: Params }) {
   const { slug } = await params;
   const ctx = await loadStorefront(slug);
-  const families = groupCategories(await cachedCategories(ctx.store.id, ctx.locale));
+  const [categories, photos] = await Promise.all([cachedCategories(ctx.store.id, ctx.locale), cachedCategoryPhotos(ctx.store.id, ctx.locale)]);
+  const families = groupCategories(categories);
   const countryNames = localizedCountryNames(ctx.locale, ctx.country);
 
   return (
@@ -33,7 +34,7 @@ export default async function StorefrontLayout({ children, params }: { children:
       <a href="#storefront-main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-sm focus:bg-ink focus:px-3 focus:py-2 focus:text-paper">
         {t(ctx.locale, "skip")}
       </a>
-      <ShopHeader slug={slug} storeName={ctx.store.name} locale={ctx.locale} country={ctx.country} countryNames={countryNames} families={families} />
+      <ShopHeader slug={slug} storeName={ctx.store.name} locale={ctx.locale} country={ctx.country} countryNames={countryNames} families={families} photos={photos} />
       <main id="storefront-main" className="flex-1">
         {children}
       </main>

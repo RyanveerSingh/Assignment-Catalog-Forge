@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import { SORT_KEYS, type StorefrontSort } from "@/components/storefront/collection-href";
 import { resolveLocale, type LocaleResolution } from "@/core/i18n/locale";
 import { getStorefrontDb } from "@/db/client";
-import { getStorefrontProduct, getStorefrontStore, listStorefrontCategories, listStorefrontProducts, type StorefrontRow, type StorefrontStore } from "@/db/repositories/storefront";
+import type { CategoryPhoto } from "@/components/storefront/category-photos";
+import { getStorefrontProduct, getStorefrontStore, listStorefrontCategories, listStorefrontCategoryPhotos, listStorefrontProducts, type StorefrontRow, type StorefrontStore } from "@/db/repositories/storefront";
 import { singleFlight } from "@/lib/single-flight";
 
 export { categoryHref } from "@/components/storefront/hrefs";
@@ -129,6 +130,15 @@ export function cachedProduct(storeId: string, locale: string, handle: string): 
 export function cachedCategories(storeId: string, locale: string): Promise<Array<{ category: string; n: number }>> {
   const key = ["storefront-categories", storeId, locale];
   return unstable_cache(() => singleFlight(key.join("|"), () => listStorefrontCategories(getStorefrontDb(), storeId, locale)), key, {
+    revalidate: REVALIDATE_SECONDS,
+    tags: [storeTag(storeId)],
+  })();
+}
+
+/** One photo per category path for tiles and menus; the same 30 s cache and tag as the categories themselves. */
+export function cachedCategoryPhotos(storeId: string, locale: string): Promise<CategoryPhoto[]> {
+  const key = ["storefront-category-photos", storeId, locale];
+  return unstable_cache(() => singleFlight(key.join("|"), () => listStorefrontCategoryPhotos(getStorefrontDb(), storeId, locale)), key, {
     revalidate: REVALIDATE_SECONDS,
     tags: [storeTag(storeId)],
   })();
