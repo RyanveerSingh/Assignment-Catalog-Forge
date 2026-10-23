@@ -23,7 +23,8 @@
     "seed": "tsx scripts/seed.ts",
     "samples": "tsx scripts/generate-samples.ts",
     "eval": "tsx eval/run.ts",
-    "load": "tsx scripts/load-test.ts"
+    "load": "tsx scripts/load-test.ts",
+    "tunnel": "tsx scripts/tunnel.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.1.0",

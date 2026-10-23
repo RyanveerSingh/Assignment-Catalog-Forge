@@ -165,6 +165,10 @@ curl -X POST https://<host>/api/v1/imports -H "Authorization: Bearer cf_live_…
 
 **Webhooks.** When an import finishes, every subscribed endpoint receives a JSON POST with `X-CatalogForge-Event`, `X-CatalogForge-Delivery`, `X-CatalogForge-Timestamp` and `X-CatalogForge-Signature: sha256=<hex>`, the HMAC-SHA256 of `<timestamp>.<body>` with the webhook's secret; answer 2xx. Non-2xx and timeouts are retried five times with backoff; redirects are not followed; endpoints on private, loopback or internal addresses (including names that resolve to them) are refused.
 
+## Sharing the local server
+
+`npm run tunnel` starts the production server if nothing answers on port 3000 and opens a Cloudflare quick tunnel: a public https URL (`https://<random>.trycloudflare.com`) with no account and no card, valid while the window, the server and the laptop are up. The script downloads the tunnel client once on Windows; on macOS or Linux install `cloudflared` first. The URL changes on every start; the Render deployment below is the stable one.
+
 ## Deploying (free tier)
 
 1. **Neon:** create a free project, copy the direct connection string.
