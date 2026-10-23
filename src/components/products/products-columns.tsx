@@ -38,7 +38,7 @@ function TranslationChips({ t }: { t: ProductListItem["translations"] }) {
       {chips.map((c) => (
         <span key={c.label} className={cn("inline-flex h-4 items-center gap-0.5 px-1 text-[10px] ring-1 ring-inset", c.className)} title={`${c.n} ${c.label}`}>
           <span className="num">{c.n}</span>
-          <span className="uppercase tracking-wide">{c.label.slice(0, 4)}</span>
+          <span className="uppercase tracking-wide">{c.label}</span>
         </span>
       ))}
     </span>

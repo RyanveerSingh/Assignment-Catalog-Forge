@@ -136,9 +136,10 @@ Local machine, Docker Postgres. The first block uses the demo provider (determin
 
 ## Dashboard
 
-![Products](docs/screenshots/04-products.png)
-![Review drawer](docs/screenshots/05-review-drawer.png)
-![Metrics](docs/screenshots/06-metrics.png)
+![Data hygiene pipeline on the import page](docs/screenshots/03b-hygiene.png)
+![Products with the unmatched-photos tray](docs/screenshots/04-products.png)
+![Review drawer: claims, guardrails and the cleaning X-ray](docs/screenshots/05c-cleaning-xray.png)
+![Metrics with the cost strategies table](docs/screenshots/06-metrics.png)
 ![Storefront](docs/screenshots/10-storefront-product.png)
 
 - **Upload:** drag-and-drop sheet + photos/ZIP, Fast vs Economy, budget, live SSE progress with a stage stepper, KPIs, sheet mapping, event log and a filterable per-row table with issues and reasons. Also accepts a `mysqldump` / `pg_dump` of a product table (`.sql`, parsed in memory, never executed) and a pasted public Google Sheets link, fetched from docs.google.com only, which then follows the exact same path as an uploaded file. The import page draws a data-hygiene flow: per stage, what the deterministic pipeline did (duplicates collapsed, mojibake and unsafe HTML repaired, prices and units normalised, conflicts and possible duplicates, routing by tier, response-cache hits, claims verified or blocked), every count taken from the tables of record.
