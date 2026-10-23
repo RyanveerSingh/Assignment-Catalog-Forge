@@ -132,19 +132,21 @@ Built by `scripts/lib/sample-new.ts` from the twelve `NEW_12_CATALOG` templates.
 
 ## photos-new-12.zip
 
-18 entries, all 600×600 images under 13 KB, rendered like `photos-messy.zip`:
+18 entries, 3.5 MB. Unlike `photos-messy.zip` these are real photographs: openly licensed pictures (CC0, CC BY, CC BY-SA)
+from Wikimedia Commons and Flickr, resized to 900–1200 px, kept under `photos-src/new-12/` with their credits in
+`photos-src/new-12/CREDITS.md`. The generator copies a file from that folder whenever the planned name exists there and
+renders a placeholder otherwise, so the matcher sees the same names either way and the storefront shows real goods.
 
 - 13 named by SKU (`EN-SP-20.jpg`, `EN-SP-24.png`, `ST-VS-WH.jpg`, `ST-VS-SG.jpg`, `SS-SP-16.jpg`, `SS-SP-18.jpg`, `OK-WC-01.jpg`,
   `TK-GB-01.jpg`, `BW-FW-01.png`, `WX-DC-M.jpg`, `LN-AP-01.jpg`, `GL-FC-10.jpg`, `FC-CV-GR.jpg`); only three of them are also
   named in an `Image` cell, the rest must be matched by SKU (C12).
 - `SG-BK-front.png` and `SG-BK-2.png` — named by the product stem, not a SKU (C12).
 - `desk_walnut_holder_studio.jpg` — nothing in the name points at a product; only row 26's `Image` cell does (C14).
-- `IMG_2031_WX-DC-L.jpg` — a camera name with the SKU inside it. The matcher's fuzzy rung is edit distance over the whole
-  stem, not token overlap, so this file is expected in the Unmatched tray; the image itself shows `WX-DC-L` so a reviewer
-  can assign it by hand (C13).
-- `DSC_0417.jpg` — matches nothing (C13).
+- `IMG_2031_WX-DC-L.jpg` — a camera name with the SKU inside it. The matcher's token rung (`sku_token`) finds `WX-DC-L`
+  between the underscores and attaches the file to the coat's L variant (C13).
+- `DSC_0417.jpg` — matches nothing and lands in the Unmatched tray (C13).
 
-`unmatchedPhotos` in `ground-truth/new-12.json` lists the last two.
+`unmatchedPhotos` in `ground-truth/new-12.json` lists only `DSC_0417.jpg`.
 
 ## Ground truth semantics
 

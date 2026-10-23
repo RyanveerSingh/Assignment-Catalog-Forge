@@ -8,7 +8,7 @@
  * byte-identical CSV/JSON (and, on the same libvips build, identical images and ZIP).
  */
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import * as iconv from "iconv-lite";
 import { validateCatalog } from "./lib/catalog";
@@ -26,6 +26,12 @@ export interface GenerateOptions {
   seed: number;
   /** Print the per-row mess log for messy-120 (what the README is written from). */
   verbose?: boolean;
+  /**
+   * Folder of real photos, one sub-folder per sample (`photos-src/new-12/<file name>`). A planned
+   * image whose name exists there is copied instead of rendered, so the ZIP carries openly
+   * licensed product photos while the matcher still sees the planned names.
+   */
+  photoSourceDir?: string;
 }
 
 export interface GeneratedFile {
@@ -35,11 +41,13 @@ export interface GeneratedFile {
   summary: string;
 }
 
-async function renderPhotoZip(plan: PhotoPlanEntry[]): Promise<ZipEntry[]> {
+async function renderPhotoZip(plan: PhotoPlanEntry[], sourceDir?: string): Promise<ZipEntry[]> {
   const rendered = new Map<string, Buffer>();
   for (const entry of plan) {
-    if (entry.kind === "image") rendered.set(entry.name, await renderImage(entry.spec));
-    else if (entry.kind === "bytes") rendered.set(entry.name, entry.data);
+    if (entry.kind === "image") {
+      const real = sourceDir ? join(sourceDir, entry.name) : null;
+      rendered.set(entry.name, real && existsSync(real) ? readFileSync(real) : await renderImage(entry.spec));
+    } else if (entry.kind === "bytes") rendered.set(entry.name, entry.data);
   }
   for (const entry of plan) {
     if (entry.kind !== "copy") continue;
@@ -96,8 +104,10 @@ export async function generateSamples(opts: GenerateOptions): Promise<GeneratedF
     `${fresh.rows.length} rows, ${freshTruth.products.length} new products, ${freshTruth.duplicateRows.length} duplicate, ${freshTruth.products.filter((p) => p.language !== "en").length} non-English`,
   );
   write("ground-truth/new-12.json", groundTruthJson(freshTruth, false), `${freshTruth.products.length} products, ${freshTruth.unmatchedPhotos.length} unmatched photos`);
-  const freshZip = await renderPhotoZip(fresh.photoPlan);
-  write("photos-new-12.zip", await buildZip(freshZip), `${freshZip.length} entries`);
+  const freshSource = opts.photoSourceDir ? join(opts.photoSourceDir, "new-12") : undefined;
+  const freshZip = await renderPhotoZip(fresh.photoPlan, freshSource);
+  const realCount = freshSource ? freshZip.filter((e) => existsSync(join(freshSource, e.name))).length : 0;
+  write("photos-new-12.zip", await buildZip(freshZip), `${freshZip.length} entries, ${realCount} real photos`);
 
   // --- semicolon-eu
   const semi = buildSemicolon(seed);
@@ -145,7 +155,7 @@ function parseArgs(argv: string[]): GenerateOptions {
       if (!Number.isInteger(opts.seed)) throw new Error(`--seed must be an integer, got ${value}`);
     } else throw new Error(`unknown argument ${flag}`);
   }
-  return opts;
+  return { ...opts, photoSourceDir: join(opts.outDir, "photos-src") };
 }
 
 const invokedDirectly = /generate-samples\.ts$/.test(process.argv[1] ?? "");
