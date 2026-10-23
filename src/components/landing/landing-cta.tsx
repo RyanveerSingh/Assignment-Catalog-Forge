@@ -5,6 +5,7 @@ import { cn } from "cn";
 import { buttonVariants } from "@/components/ui/button";
 import { appLinks, SHOP_HREF } from "./landing-links";
 import { PressLink } from "./press";
+import { HoverWords } from "./hover-words";
 import { Reveal } from "./reveal";
 import { CONTAINER } from "./site-chrome";
 
@@ -23,7 +24,7 @@ export function LandingCta({ dashboardHref }: Props) {
             <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 size-[760px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-brand/7" />
             <div className="relative mx-auto flex max-w-2xl flex-col items-center">
               <h2 id="cta-heading" className="font-display text-[36px] leading-[1.05] text-balance text-ink sm:text-[44px] md:text-[56px]">
-                See it with your own sheet
+                <HoverWords text="See it with your own sheet" />
               </h2>
               <p className="mt-5 max-w-lg text-base leading-relaxed text-balance text-ink-muted md:text-lg">The demo account has sample sheets ready to drop in, from ten clean rows to ten thousand messy ones. Or bring the file your supplier just sent.</p>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -58,7 +59,7 @@ export function LandingExplore({ dashboardHref }: Props) {
       <div className={CONTAINER}>
         <Reveal>
           <h2 id="explore-heading" className="font-display text-2xl text-ink md:text-[28px]">
-            Explore CatalogForge
+            <HoverWords text="Explore CatalogForge" />
           </h2>
         </Reveal>
         <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">

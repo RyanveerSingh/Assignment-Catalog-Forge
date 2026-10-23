@@ -3,6 +3,7 @@
 import { motion, useReducedMotion } from "motion/react";
 import { cn } from "cn";
 import { settle } from "@/components/ext/motion";
+import { HOVER_WORD } from "./hover-words";
 
 interface Word {
   text: string;
@@ -28,7 +29,7 @@ export function HeroHeadline() {
   return (
     <>
       {WORDS.map((word, i) => (
-        <motion.span key={`${i}-${word.text}`} className={cn("inline-block whitespace-pre", word.accent && "text-brand italic")} initial={{ opacity: 0, y: "0.4em" }} animate={{ opacity: 1, y: 0 }} transition={settle(reduce, 0.55, 0.1 + i * 0.04)}>
+        <motion.span key={`${i}-${word.text}`} className={cn("inline-block whitespace-pre", word.accent ? "text-brand italic transition-colors duration-300 ease-out hover:text-ink" : HOVER_WORD)} initial={{ opacity: 0, y: "0.4em" }} animate={{ opacity: 1, y: 0 }} transition={settle(reduce, 0.55, 0.1 + i * 0.04)}>
           {word.text}
           {i < WORDS.length - 1 ? " " : ""}
         </motion.span>
