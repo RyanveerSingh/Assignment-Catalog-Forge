@@ -4,7 +4,8 @@ export interface PathSize {
 }
 
 const GUTTER = 44;
-const MOBILE_X = 18;
+/** Inside the 16 px phone gutter, clear of the text's left edge. */
+const MOBILE_X = 7;
 /** Vertical distance between bends on wide screens. */
 const BEND = 640;
 

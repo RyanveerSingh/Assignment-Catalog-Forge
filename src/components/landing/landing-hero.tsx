@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { cn } from "cn";
 import { buttonVariants } from "@/components/ui/button";
+import { HeroHeadline } from "./hero-headline";
 import { HeroTransform } from "./hero-transform";
 import { CONTAINER } from "./site-chrome";
 
@@ -13,9 +14,7 @@ export function LandingHero({ dashboardHref }: { dashboardHref: string | null })
         <div>
           <p className="mb-4 text-[11px] font-medium tracking-[0.18em] text-brand uppercase">For shops that sell what their suppliers send</p>
           <h1 id="hero-heading" className="font-display max-w-xl text-[2.6rem] leading-[1.02] text-ink sm:text-5xl lg:text-[3.3rem]">
-            Drop in a supplier sheet.
-            <br />
-            Get a <span className="text-brand">store-ready catalogue</span> in three languages.
+            <HeroHeadline />
           </h1>
           <p className="mt-6 max-w-xl text-base leading-relaxed text-ink-muted md:text-lg">
             Upload the spreadsheet your supplier sent, with any photos. Prices and SKUs are fixed by code, each listing is written from your rows and translated into German and French, and every claim shows the cell it came from. Review, approve, and it is live in your shop.

@@ -1,8 +1,10 @@
 import { LandingBeforeAfter } from "./landing-before-after";
 import { LandingCta } from "./landing-cta";
+import { LandingFeatures } from "./landing-features";
 import { LandingHero } from "./landing-hero";
 import { LandingNumbers } from "./landing-numbers";
 import { LandingPromises } from "./landing-promises";
+import { LandingShopStrip } from "./landing-shop-strip";
 import { LandingSteps } from "./landing-steps";
 import { LandingTryIt } from "./landing-try-it";
 import { ScrollPathAnimator } from "./scroll-path";
@@ -20,11 +22,13 @@ export function LandingPage({ dashboardHref }: Props) {
       <SiteHeader dashboardHref={dashboardHref} />
       <main className="flex-1 overflow-x-clip">
         <LandingHero dashboardHref={dashboardHref} />
+        <LandingShopStrip />
         <ScrollPathAnimator>
           <LandingSteps />
           <LandingBeforeAfter />
           <LandingTryIt />
           <LandingNumbers />
+          <LandingFeatures />
           <LandingPromises />
           <LandingCta dashboardHref={dashboardHref} />
         </ScrollPathAnimator>

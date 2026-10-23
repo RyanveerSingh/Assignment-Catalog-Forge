@@ -184,9 +184,23 @@
   & a { text-decoration: underline; text-underline-offset: 3px; }
 }
 
+/* A slow, seamless horizontal loop: the track holds two copies and travels exactly one copy's width. */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@utility animate-marquee {
+  animation: marquee 48s linear infinite;
+  will-change: transform;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+  .animate-marquee {
+    animation: none;
   }
 }

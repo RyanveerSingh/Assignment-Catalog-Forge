@@ -3,7 +3,7 @@ import { buildPath } from "./path-geometry";
 
 describe("buildPath", () => {
   it("draws a straight gutter line on narrow screens", () => {
-    expect(buildPath({ width: 390, height: 2000 }, true)).toBe("M 18 0 L 18 2000");
+    expect(buildPath({ width: 390, height: 2000 }, true)).toBe("M 7 0 L 7 2000");
   });
 
   it("starts at the right gutter, ends at the bottom and alternates sides on wide screens", () => {
