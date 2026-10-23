@@ -36,16 +36,6 @@ export function isImportActive(status: string): boolean {
 
 export type StepState = "done" | "current" | "upcoming" | "paused" | "attention" | "failed" | "cancelled";
 
-export const STATE_CLASS: Record<StepState, string> = {
-  done: "bg-success-soft text-success ring-success/40",
-  current: "bg-brand text-brand-foreground ring-brand",
-  upcoming: "bg-card text-ink-muted ring-border",
-  paused: "bg-warning-soft text-warning ring-warning/50",
-  attention: "bg-warning-soft text-warning ring-warning/50",
-  failed: "bg-destructive/10 text-destructive ring-destructive/50",
-  cancelled: "bg-muted text-ink-muted ring-border",
-};
-
 export const STATE_TEXT: Record<StepState, string> = {
   done: "completed",
   current: "in progress",

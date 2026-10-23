@@ -1,7 +1,8 @@
 "use client";
 
 import { cn } from "cn";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Chip } from "@/components/ext/chip";
+import { CARD, TH } from "@/components/ext/surfaces";
 import type { CostStrategies as CostStrategiesData, CostStrategyRow, StrategyKey } from "@/core/metrics/cost-strategies";
 import { formatMicrosUsd, formatNumber, formatPercent } from "@/lib/format";
 
@@ -30,15 +31,16 @@ const COPY: Record<StrategyKey, { label: string; describe: (d: CostStrategiesDat
   },
 };
 
+const HEAD = cn(TH, "h-11 border-b border-border px-4 text-left whitespace-nowrap first:pl-5 last:pr-5");
 const NUM = "num text-right";
 
 /** Four prices for the same recorded calls, so the routing, cache and batch decisions can be read as money. */
 export function CostStrategies({ strategies }: { strategies: CostStrategiesData }) {
   const baseline = strategies.rows.find((r) => r.key === "naive")?.costMicros ?? 0;
   return (
-    <section aria-labelledby="strategies-heading" className="space-y-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="strategies-heading" className="font-display text-xl text-ink">
+    <section aria-labelledby="strategies-heading" className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 px-1">
+        <h2 id="strategies-heading" className="font-display text-lg text-ink">
           What the same work would have cost
         </h2>
         <p className="text-xs text-ink-muted">
@@ -46,28 +48,38 @@ export function CostStrategies({ strategies }: { strategies: CostStrategiesData 
         </p>
       </div>
       {strategies.totalCalls === 0 ? (
-        <p className="rounded-sm border border-dashed border-border px-4 py-6 text-center text-sm text-ink-muted">No AI calls yet.</p>
+        <p className="rounded-2xl border border-dashed border-line-strong px-4 py-8 text-center text-sm text-ink-muted">No AI calls yet.</p>
       ) : (
-        <div className="rounded-sm bg-card hairline">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Approach</TableHead>
-                <TableHead className="text-right">Calls</TableHead>
-                <TableHead className="text-right">Cost</TableHead>
-                <TableHead className="text-right">Per 1,000 products</TableHead>
-                <TableHead className="text-right">Savings</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+        <div className={cn(CARD, "overflow-x-auto")}>
+          <table className="w-full min-w-[760px] border-separate border-spacing-0 text-[13px]">
+            <thead>
+              <tr>
+                <th scope="col" className={HEAD}>
+                  Approach
+                </th>
+                <th scope="col" className={cn(HEAD, "text-right")}>
+                  Calls
+                </th>
+                <th scope="col" className={cn(HEAD, "text-right")}>
+                  Cost
+                </th>
+                <th scope="col" className={cn(HEAD, "text-right")}>
+                  Per 1,000 products
+                </th>
+                <th scope="col" className={cn(HEAD, "text-right")}>
+                  Savings
+                </th>
+              </tr>
+            </thead>
+            <tbody>
               {strategies.rows.map((row) => (
                 <StrategyRow key={row.key} row={row} data={strategies} baseline={baseline} />
               ))}
-            </TableBody>
-          </Table>
+            </tbody>
+          </table>
         </div>
       )}
-      {strategies.demo ? <p className="text-xs text-ink-muted">Demo writer in use: costs are estimated at Haiku and Sonnet list rates.</p> : null}
+      {strategies.demo ? <p className="px-1 text-xs text-ink-muted">Demo writer in use: costs are estimated at Haiku and Sonnet list rates.</p> : null}
     </section>
   );
 }
@@ -76,33 +88,34 @@ function StrategyRow({ row, data, baseline }: { row: CostStrategyRow; data: Cost
   const copy = COPY[row.key];
   const isActual = row.key === "actual";
   const width = baseline > 0 ? Math.min(1, row.costMicros / baseline) : 0;
+  const cell = cn("border-b border-border/70 px-4 py-3 align-top first:pl-5 last:pr-5", isActual && "bg-brand-soft/40");
   return (
-    <TableRow className={cn(isActual && "bg-brand-soft/30")}>
-      <TableCell className="max-w-xs whitespace-normal align-top">
-        <div className="flex items-center gap-2">
+    <tr className="transition-colors hover:bg-surface-2/50 last:[&>td]:border-0">
+      <td className={cn(cell, "max-w-xs whitespace-normal")}>
+        <div className="flex flex-wrap items-center gap-2">
           <span className={cn("text-ink", isActual ? "font-semibold" : "font-medium")}>{copy.label}</span>
-          {isActual ? <span className="rounded-sm bg-brand-soft px-1 py-0.5 text-[10px] font-medium uppercase tracking-wide text-brand">{data.demo ? "estimated" : "recorded"}</span> : null}
+          {isActual ? <Chip tone="brand">{data.demo ? "estimated" : "recorded"}</Chip> : null}
         </div>
         <p className="mt-0.5 text-xs leading-snug text-ink-muted">{copy.describe(data)}</p>
-      </TableCell>
-      <TableCell className={cn(NUM, "align-top")}>{formatNumber(row.calls)}</TableCell>
-      <TableCell className={cn(NUM, "align-top")}>
-        <div className="text-ink">{formatMicrosUsd(row.costMicros)}</div>
-        <div aria-hidden className="mt-1 ml-auto h-[3px] w-24 overflow-hidden rounded-full bg-paper-deep">
-          <div className={cn("h-full rounded-full", isActual ? "bg-brand" : "bg-ink/40")} style={{ width: `${width * 100}%` }} />
+      </td>
+      <td className={cn(cell, NUM)}>{formatNumber(row.calls)}</td>
+      <td className={cn(cell, NUM)}>
+        <div className="font-medium text-ink">{formatMicrosUsd(row.costMicros)}</div>
+        <div aria-hidden className="mt-1.5 ml-auto h-1 w-24 overflow-hidden rounded-full bg-surface-2">
+          <div className={cn("h-full origin-left rounded-full", isActual ? "bg-brand" : "bg-ink/35")} style={{ transform: `scaleX(${width})` }} />
         </div>
-      </TableCell>
-      <TableCell className={cn(NUM, "align-top")}>{row.per1000Micros === null ? <span className="text-ink-muted">—</span> : formatMicrosUsd(row.per1000Micros)}</TableCell>
-      <TableCell className={cn(NUM, "align-top")}>
+      </td>
+      <td className={cn(cell, NUM)}>{row.per1000Micros === null ? <span className="text-ink-muted">—</span> : formatMicrosUsd(row.per1000Micros)}</td>
+      <td className={cn(cell, NUM)}>
         {row.key === "naive" ? (
           <span className="text-ink-muted">list price</span>
         ) : (
           <>
-            <span className={cn(row.savedMicros > 0 ? "text-success" : "text-ink-muted")}>{formatMicrosUsd(row.savedMicros)}</span>
+            <span className={cn("font-medium", row.savedMicros > 0 ? "text-success" : "text-ink-muted")}>{formatMicrosUsd(row.savedMicros)}</span>
             <span className="ml-1 text-ink-muted">· {formatPercent(row.savedShare)}</span>
           </>
         )}
-      </TableCell>
-    </TableRow>
+      </td>
+    </tr>
   );
 }

@@ -203,13 +203,13 @@ export function ReviewListing({
 
       <ClaimInspector claims={product.claims} guardrails={product.guardrails ?? []} pinned={pinned} onHover={onHover} onSelect={onSelect} />
 
-      <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center gap-2 border-t border-border bg-popover px-4 py-2">
-        <Button type="submit" size="sm" disabled={!dirty || saving} className="cursor-pointer">
+      <div className="sticky bottom-0 -mx-5 flex flex-wrap items-center gap-2 border-t border-border bg-card/95 px-5 py-2.5 backdrop-blur">
+        <Button type="submit" size="sm" disabled={!dirty || saving} className="cursor-pointer rounded-full">
           <SaveIcon data-icon="inline-start" />
           {saving ? "Saving…" : dirty ? "Save changes" : "No changes"}
         </Button>
         {dirty && !saving ? (
-          <Button type="button" variant="ghost" size="sm" onClick={() => setForm(base)} className="cursor-pointer">
+          <Button type="button" variant="ghost" size="sm" onClick={() => setForm(base)} className="cursor-pointer rounded-full">
             Discard
           </Button>
         ) : null}

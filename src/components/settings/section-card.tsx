@@ -3,6 +3,8 @@
 import { useCallback, useState } from "react";
 import { AlertCircle, CheckCircle2, FlaskConical, Loader2, type LucideIcon } from "lucide-react";
 import { cn } from "cn";
+import { Chip } from "@/components/ext/chip";
+import { CARD } from "@/components/ext/surfaces";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/client/api";
 
@@ -24,32 +26,31 @@ export function useSave(): { state: SaveState; run: (fn: () => Promise<unknown>)
   return { state, run, reset };
 }
 
-/** A settings card: an icon tile, the title, a one-line subtitle and the controls. The testing tone wears a warning ring. */
+/** A settings card: an icon tile, the title, a one-line subtitle and the controls. The testing tone wears an amber ring. `id` is the anchor the section list jumps to. */
 export function SectionCard({ id, title, description, icon: Icon, tone = "default", children }: { id: string; title: string; description?: React.ReactNode; icon?: LucideIcon; tone?: "default" | "testing"; children: React.ReactNode }) {
   return (
-    <section aria-labelledby={`${id}-title`} className={cn("rounded-sm bg-card hairline", tone === "testing" && "ring-2 ring-warning/40")}>
-      <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-4 py-3 md:px-5">
-        <div className="flex min-w-0 items-start gap-3">
+    <section id={id} aria-labelledby={`${id}-title`} className={cn(CARD, "scroll-mt-20", tone === "testing" && "shadow-[0_0_0_1px_var(--warning),var(--shadow-card)]")}>
+      <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-5 py-4 md:px-6">
+        <div className="flex min-w-0 items-start gap-3.5">
           {Icon ? (
-            <span aria-hidden className={cn("mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-sm", tone === "testing" ? "bg-warning-soft text-warning" : "bg-paper-deep text-brand")}>
-              <Icon className="size-4" />
+            <span aria-hidden className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", tone === "testing" ? "bg-warning-soft text-warning" : "bg-brand-soft text-brand")}>
+              <Icon className="size-5" />
             </span>
           ) : null}
           <div className="min-w-0">
-            <h2 id={`${id}-title`} className="font-display text-lg leading-tight text-ink">
+            <h2 id={`${id}-title`} className="font-display text-[1.15rem] leading-tight text-ink">
               {title}
             </h2>
-            {description ? <p className="mt-0.5 max-w-2xl text-xs text-ink-muted">{description}</p> : null}
+            {description ? <p className="mt-1 max-w-2xl text-xs leading-relaxed text-ink-muted">{description}</p> : null}
           </div>
         </div>
         {tone === "testing" ? (
-          <span className="inline-flex h-5 items-center gap-1 rounded-sm bg-warning-soft px-1.5 text-[11px] font-medium uppercase tracking-wide text-warning ring-1 ring-inset ring-warning/25">
-            <FlaskConical aria-hidden className="size-3" />
+          <Chip tone="warning" icon={FlaskConical}>
             Testing only
-          </span>
+          </Chip>
         ) : null}
       </header>
-      <div className="space-y-4 px-4 py-4 md:px-5">{children}</div>
+      <div className="space-y-5 px-5 py-5 md:px-6">{children}</div>
     </section>
   );
 }
@@ -76,8 +77,8 @@ export function SaveStatus({ state, savedLabel = "Saved" }: { state: SaveState; 
 
 export function SaveBar({ state, onSave, disabled, dirty = true, label = "Save" }: { state: SaveState; onSave: () => void; disabled?: boolean; dirty?: boolean; label?: string }) {
   return (
-    <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3">
-      <Button size="sm" onClick={onSave} disabled={disabled || !dirty || state.kind === "saving"}>
+    <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
+      <Button onClick={onSave} disabled={disabled || !dirty || state.kind === "saving"} className="cursor-pointer rounded-full px-5">
         {state.kind === "saving" ? <Loader2 aria-hidden className="animate-spin" /> : null}
         {label}
       </Button>

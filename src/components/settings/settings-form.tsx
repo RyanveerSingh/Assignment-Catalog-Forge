@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AlertCircle, Lock } from "lucide-react";
+import { Reveal } from "@/components/ext/reveal";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api, ApiError, storeApi } from "@/lib/client/api";
 import { AiSection } from "./ai-section";
 import { ChaosPanel } from "./chaos-panel";
 import { LanguagesSection } from "./languages-section";
+import { SettingsNav } from "./settings-nav";
 import { StoreSection } from "./store-section";
 import { TranslationSection } from "./translation-section";
 import { WebhooksSection } from "./webhooks-section";
@@ -77,41 +79,54 @@ export function SettingsForm({ storeSlug, isOwner }: { storeSlug: string; isOwne
 
   if (error) {
     return (
-      <div role="alert" className="flex items-center gap-2 rounded-sm bg-destructive/10 px-3 py-2 text-sm text-destructive">
+      <div role="alert" className="flex items-center gap-2 rounded-2xl bg-destructive/5 px-4 py-3 text-sm text-destructive ring-1 ring-destructive/20">
         <AlertCircle aria-hidden className="size-4 shrink-0" />
         <span>{error}</span>
-        <Button variant="outline" size="xs" className="ml-auto" onClick={() => void load()}>
+        <Button variant="outline" size="xs" className="ml-auto cursor-pointer rounded-full" onClick={() => void load()}>
           Retry
         </Button>
       </div>
     );
   }
 
-  if (!settings) {
-    return (
-      <div aria-busy="true" aria-label="Loading settings" className="space-y-6">
-        {Array.from({ length: 4 }, (_, i) => (
-          <Skeleton key={i} className="h-40 rounded-sm" />
-        ))}
-      </div>
-    );
-  }
-
   const disabled = !isOwner;
   return (
-    <div className="space-y-6">
-      {disabled ? (
-        <p role="note" className="flex items-center gap-2 rounded-sm bg-info-soft px-3 py-2 text-sm text-info">
-          <Lock aria-hidden className="size-4 shrink-0" />
-          Only the store owner can change these settings. You can view them.
-        </p>
-      ) : null}
-      <StoreSection settings={settings} disabled={disabled} onSave={onSave} />
-      <LanguagesSection settings={settings} disabled={disabled} onSave={onSave} />
-      <TranslationSection settings={settings} disabled={disabled} onSave={onSave} />
-      <AiSection settings={settings} disabled={disabled} onSave={onSave} />
-      <WebhooksSection storeSlug={storeSlug} disabled={disabled} />
-      <ChaosPanel chaos={chaos} onApplied={setChaos} />
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-10">
+      <SettingsNav />
+      {!settings ? (
+        <div aria-busy="true" aria-label="Loading settings" className="flex flex-col gap-6">
+          {Array.from({ length: 4 }, (_, i) => (
+            <Skeleton key={i} className="h-48 rounded-2xl" />
+          ))}
+        </div>
+      ) : (
+        <div className="flex min-w-0 flex-col gap-6">
+          {disabled ? (
+            <p role="note" className="flex items-center gap-2 rounded-2xl bg-brand-soft px-4 py-3 text-sm text-brand">
+              <Lock aria-hidden className="size-4 shrink-0" />
+              Only the store owner can change these settings. You can view them.
+            </p>
+          ) : null}
+          <Reveal index={0}>
+            <StoreSection settings={settings} disabled={disabled} onSave={onSave} />
+          </Reveal>
+          <Reveal index={1}>
+            <LanguagesSection settings={settings} disabled={disabled} onSave={onSave} />
+          </Reveal>
+          <Reveal index={2}>
+            <TranslationSection settings={settings} disabled={disabled} onSave={onSave} />
+          </Reveal>
+          <Reveal index={3}>
+            <AiSection settings={settings} disabled={disabled} onSave={onSave} />
+          </Reveal>
+          <Reveal index={4}>
+            <WebhooksSection storeSlug={storeSlug} disabled={disabled} />
+          </Reveal>
+          <Reveal index={5}>
+            <ChaosPanel chaos={chaos} onApplied={setChaos} />
+          </Reveal>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,19 +1,19 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
-import { ChevronRightIcon } from "lucide-react";
 import { motion, useInView, useReducedMotion } from "motion/react";
 import { cn } from "cn";
-import { hygieneStageFor, type HygieneItem, type HygieneReport, type HygieneSegment, type HygieneStage, type HygieneStageKey, type HygieneTone } from "@/core/metrics/hygiene";
+import { hygieneStageFor, type HygieneItem, type HygieneReport, type HygieneSegment, type HygieneStage, type HygieneTone } from "@/core/metrics/hygiene";
 import { CountUp } from "@/components/ext/count-up";
-import { settle } from "@/components/ext/motion";
+import { settle, stagger } from "@/components/ext/motion";
+import { CARD } from "@/components/ext/surfaces";
 import { api, storeApi } from "@/lib/client/api";
 import { formatNumber, formatPercent } from "@/lib/format";
 
 const REFRESH_MS = 10_000;
 
-/* Chart slots, not new colours: moss for what passed untouched, amber for what was repaired or
- * assumed, slate for what was flagged, clay for conflicts and failures. */
+/* Chart slots, not new colours: green for what passed untouched, blue for what was repaired or
+ * assumed, light blue for what was flagged, amber for conflicts and failures. */
 const TONE_BG: Record<HygieneTone, string> = {
   good: "bg-chart-3",
   changed: "bg-chart-1",
@@ -29,8 +29,8 @@ interface HygieneResponse {
 }
 
 /**
- * The five deterministic stages as a horizontal flow with counts and a stacked bar each. Polls every
- * 10 s while the worker owns the import and once more when it lets go, so the final counts land.
+ * The five deterministic stages as a row of raised cards with counts and a stacked bar each. Polls
+ * every 10 s while the worker owns the import and once more when it lets go, so the final counts land.
  */
 export function HygienePipeline({ storeSlug, importId, status, active, initial }: { storeSlug: string; importId: string; status: string; active: boolean; initial: HygieneReport | null }) {
   const url = `${storeApi(storeSlug)}/imports/${encodeURIComponent(importId)}/hygiene`;
@@ -74,57 +74,48 @@ export function HygienePipeline({ storeSlug, importId, status, active, initial }
   const current = active ? hygieneStageFor(status) : null;
 
   return (
-    <section aria-labelledby="hygiene-heading" className="bg-card hairline">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-border px-4 py-2.5">
+    <section aria-labelledby="hygiene-heading" className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-1">
         <h2 id="hygiene-heading" className="font-display text-lg text-ink">
           What we fixed in your sheet
         </h2>
         <p className="text-[11px] text-ink-muted" title="Counted from the stored rows after each deterministic stage, before any model saw them">
-          What was already clean, what we repaired or assumed, and what we flagged, counted before any AI saw a row
+          Clean, repaired or assumed, and flagged, counted before any AI saw a row
           {active ? " · refreshes every 10 s" : ""}
           {failed ? <span className="text-warning"> · last refresh failed; showing the previous counts</span> : null}
         </p>
       </div>
-      {report ? <StageFlow stages={report.stages} current={current} /> : <p className="px-4 py-6 text-sm text-ink-muted">Counting…</p>}
+      {report ? (
+        <ol aria-label="Cleaning stages" className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 xl:grid-cols-5">
+          {report.stages.map((stage, i) => (
+            <StageCard key={stage.key} stage={stage} index={i} isCurrent={stage.key === current} />
+          ))}
+        </ol>
+      ) : (
+        <p className={cn(CARD, "px-5 py-8 text-sm text-ink-muted")}>Counting…</p>
+      )}
     </section>
   );
 }
 
-function StageFlow({ stages, current }: { stages: HygieneStage[]; current: HygieneStageKey | null }) {
+function StageCard({ stage, index, isCurrent }: { stage: HygieneStage; index: number; isCurrent: boolean }) {
+  const reduce = useReducedMotion();
   return (
-    <ol
-      aria-label="Cleaning stages"
-      className={cn(
-        "grid grid-cols-1 divide-y divide-border",
-        "sm:grid-cols-2 sm:divide-y-0 sm:[&>li:nth-child(even)]:border-l sm:[&>li:nth-child(n+3)]:border-t",
-        "xl:grid-cols-5 xl:[&>li]:border-t-0 xl:[&>li]:border-l xl:[&>li:first-child]:border-l-0",
-      )}
-    >
-      {stages.map((stage, i) => (
-        <StageCard key={stage.key} stage={stage} index={i} isCurrent={stage.key === current} isLast={i === stages.length - 1} />
-      ))}
-    </ol>
-  );
-}
-
-function StageCard({ stage, index, isCurrent, isLast }: { stage: HygieneStage; index: number; isCurrent: boolean; isLast: boolean }) {
-  return (
-    <li className="relative min-w-0 border-border px-4 py-3" aria-current={isCurrent ? "step" : undefined}>
-      {isLast ? null : <ChevronRightIcon aria-hidden className="absolute top-3.5 -right-2 z-10 hidden size-4 bg-card text-ink-muted/70 xl:block" />}
-      <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-ink-muted">
-        <span className={cn("flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] ring-1 ring-inset", isCurrent ? "bg-brand text-brand-foreground ring-brand" : "bg-card text-ink-muted ring-border")}>
+    <motion.li initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={settle(reduce, 0.45, 0.2 + stagger(index, 0.06))} className={cn(CARD, "relative min-w-0 px-4 py-4", isCurrent && "shadow-[0_0_0_2px_var(--brand),var(--shadow-card)]")} aria-current={isCurrent ? "step" : undefined}>
+      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-muted">
+        <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-full text-[10px]", isCurrent ? "bg-brand text-brand-foreground" : "bg-surface-2 text-ink-muted")}>
           {isCurrent ? <span aria-hidden className="size-1.5 animate-pulse rounded-full bg-current" /> : <span aria-hidden>{index + 1}</span>}
         </span>
         <span className="truncate">{stage.label}</span>
         {isCurrent ? <span className="sr-only">, in progress</span> : null}
       </div>
-      <div className="mt-2 flex flex-wrap items-baseline gap-x-1.5">
-        <CountUp value={stage.headline.value} format={formatNumber} className="font-display text-2xl leading-none text-ink tabular" />
+      <div className="mt-3 flex flex-wrap items-baseline gap-x-1.5">
+        <CountUp value={stage.headline.value} format={formatNumber} className="font-display text-[1.75rem] leading-none text-ink tabular" />
         <span className="text-xs text-ink-muted">{stage.headline.unit}</span>
       </div>
-      {stage.bar.length > 0 ? <Bar segments={stage.bar} /> : <p className="mt-2 text-[11px] leading-[6px] text-ink-muted">{stage.empty}</p>}
+      {stage.bar.length > 0 ? <Bar segments={stage.bar} delay={stagger(index, 0.06)} /> : <p className="mt-3 text-[11px] leading-[8px] text-ink-muted">{stage.empty}</p>}
       <Items items={stage.items} />
-    </li>
+    </motion.li>
   );
 }
 
@@ -133,17 +124,17 @@ function StageCard({ stage, index, isCurrent, isLast }: { stage: HygieneStage; i
  * segments grow out of the left end the first time the card scrolls into view (a transform, so the
  * track underneath stays put); later refreshes change the shares without replaying the entrance.
  */
-function Bar({ segments }: { segments: HygieneSegment[] }) {
+function Bar({ segments, delay }: { segments: HygieneSegment[]; delay: number }) {
   const reduce = useReducedMotion();
   const track = useRef<HTMLDivElement>(null);
   // Observe the full-width track, not the child: a box scaled to zero width has no area for IntersectionObserver to see.
   const inView = useInView(track, { once: true, amount: 0.5 });
   const label = segments.map((s) => `${s.label} ${formatPercent(s.share, 1)}`).join(", ");
   return (
-    <div ref={track} role="img" aria-label={label} className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-paper-deep">
-      <motion.div className="flex h-full w-full origin-left gap-px" initial={{ scaleX: 0 }} animate={{ scaleX: inView ? 1 : 0 }} transition={settle(reduce, 0.7, 0.1)}>
+    <div ref={track} role="img" aria-label={label} className="mt-3 h-2 w-full overflow-hidden rounded-full bg-surface-2">
+      <motion.div className="flex h-full w-full origin-left gap-px" initial={{ scaleX: 0 }} animate={{ scaleX: inView ? 1 : 0 }} transition={settle(reduce, 0.7, 0.3 + delay)}>
         {segments.map((s) => (
-          <div key={s.key} title={`${s.label}: ${formatNumber(s.value)} (${formatPercent(s.share, 1)})`} className={cn("h-full", TONE_BG[s.tone])} style={{ flex: `${s.share} 1 2px` }} />
+          <div key={s.key} title={`${s.label}: ${formatNumber(s.value)} (${formatPercent(s.share, 1)})`} className={cn("h-full rounded-full", TONE_BG[s.tone])} style={{ flex: `${s.share} 1 2px` }} />
         ))}
       </motion.div>
     </div>
@@ -152,7 +143,7 @@ function Bar({ segments }: { segments: HygieneSegment[] }) {
 
 function Items({ items }: { items: HygieneItem[] }) {
   return (
-    <dl className="mt-2.5 flex flex-col gap-0.5 text-[11px]">
+    <dl className="mt-3 flex flex-col gap-1 text-[11px]">
       {items.map((i) => (
         <Fragment key={i.key}>
           <Row item={i} />
@@ -169,11 +160,11 @@ function Row({ item, child = false }: { item: HygieneItem; child?: boolean }) {
   return (
     <div className={cn("flex items-baseline gap-1.5", child && "pl-3")}>
       <dt className={cn("flex min-w-0 items-center gap-1.5", muted ? "text-ink-muted/80" : "text-ink-muted")} title={item.label}>
-        {item.tone ? <span aria-hidden className={cn("size-2 shrink-0 rounded-[2px]", TONE_BG[item.tone])} /> : null}
+        {item.tone ? <span aria-hidden className={cn("size-2 shrink-0 rounded-full", TONE_BG[item.tone])} /> : null}
         <span className="truncate">{item.label}</span>
       </dt>
       <span aria-hidden className="mb-[3px] min-w-2 flex-1 border-b border-dotted border-border" />
-      <dd className={cn("num shrink-0", zero ? "text-ink-muted/80" : "text-ink")}>
+      <dd className={cn("num shrink-0", zero ? "text-ink-muted/80" : "font-medium text-ink")}>
         <CountUp value={item.value} format={formatNumber} />
       </dd>
     </div>

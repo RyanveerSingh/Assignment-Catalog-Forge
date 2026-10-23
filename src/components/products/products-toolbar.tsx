@@ -4,8 +4,8 @@ import { useState } from "react";
 import { cn } from "cn";
 import { CheckIcon, SearchIcon, SparklesIcon, XIcon } from "lucide-react";
 import { isPromptVersion, PROMPT_VERSION, PROMPT_VERSIONS } from "@/core/ai/prompts";
+import { CARD, PILL_OFF, PILL_ON, PILL_TOGGLE } from "@/components/ext/surfaces";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverDescription, PopoverHeader, PopoverTitle, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,20 +20,13 @@ const CONFIDENCE_PRESETS: ReadonlyArray<{ key: string; label: string; min: numbe
   { key: "high", label: "High ≥ 85", min: 85, max: null },
 ];
 
-/** A toggle chip: pressed state is shown by colour AND a check mark. */
+const FIELD = "h-10 rounded-full bg-card text-[13px] text-ink ring-1 ring-border outline-none placeholder:text-ink-muted/70 focus-visible:ring-2 focus-visible:ring-brand";
+
+/** A toggle pill: pressed state is shown by colour AND a check mark. */
 function Chip({ pressed, onClick, children, title }: { pressed: boolean; onClick: () => void; children: React.ReactNode; title?: string }) {
   return (
-    <button
-      type="button"
-      aria-pressed={pressed}
-      title={title}
-      onClick={onClick}
-      className={cn(
-        "inline-flex h-7 cursor-pointer items-center gap-1 rounded-sm px-2 text-xs whitespace-nowrap ring-1 ring-inset transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
-        pressed ? "bg-brand-soft text-brand ring-brand/40" : "bg-card text-ink-muted ring-border hover:bg-accent hover:text-ink",
-      )}
-    >
-      {pressed ? <CheckIcon aria-hidden className="size-3" /> : null}
+    <button type="button" aria-pressed={pressed} title={title} onClick={onClick} className={cn(PILL_TOGGLE, "outline-none focus-visible:ring-2 focus-visible:ring-brand", pressed ? PILL_ON : PILL_OFF)}>
+      {pressed ? <CheckIcon aria-hidden className="size-3.5" /> : null}
       {children}
     </button>
   );
@@ -41,61 +34,56 @@ function Chip({ pressed, onClick, children, title }: { pressed: boolean; onClick
 
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center gap-1" role="group" aria-label={label}>
-      <span className="mr-0.5 text-[10px] font-medium uppercase tracking-wider text-ink-muted">{label}</span>
+    <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={label}>
+      <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-muted">{label}</span>
       {children}
     </div>
   );
 }
 
+/** The white toolbar above the table: search and the two selects on the first row, pill groups beneath. */
 export function ProductsToolbar({ filters, searchText, onSearchChange, onChange, onReset, categories }: { filters: ProductFilters; searchText: string; onSearchChange: (q: string) => void; onChange: (patch: Partial<ProductFilters>) => void; onReset: () => void; categories: Array<{ category: string; n: number }> }) {
   const toggleStatus = (s: ProductStatus) => onChange({ status: filters.status.includes(s) ? filters.status.filter((x) => x !== s) : [...filters.status, s] });
   const confidenceKey = CONFIDENCE_PRESETS.find((p) => p.min === filters.minConfidence && p.max === filters.maxConfidence)?.key ?? "custom";
   const active = countActiveFilters(filters);
 
   return (
-    <div className="flex flex-col gap-2 border-b border-border pb-3">
+    <div className={cn(CARD, "flex flex-col gap-3 p-3 md:p-4")}>
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-[220px] flex-1 sm:max-w-sm">
-          <SearchIcon aria-hidden className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-ink-muted" />
-          <Input type="search" aria-label="Search title, key, handle or SKU" placeholder="Search title, key, handle, SKU…" value={searchText} onChange={(e) => onSearchChange(e.target.value)} className="h-8 bg-card pl-7 text-sm md:text-sm" />
+          <SearchIcon aria-hidden className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-ink-muted" />
+          <input type="search" aria-label="Search title, key, handle or SKU" placeholder="Search title, key, handle, SKU…" value={searchText} onChange={(e) => onSearchChange(e.target.value)} className={cn(FIELD, "w-full pr-4 pl-10 [&::-webkit-search-cancel-button]:hidden")} />
         </div>
-        <div className="flex items-center gap-1">
-          <Label htmlFor="filter-import" className="text-[10px] font-medium uppercase tracking-wider text-ink-muted">
-            Import
-          </Label>
-          <Input id="filter-import" placeholder="import id" value={filters.importId} onChange={(e) => onChange({ importId: e.target.value.trim() })} className="h-8 w-[150px] bg-card num text-xs md:text-xs" spellCheck={false} />
-        </div>
-        <div className="flex items-center gap-1">
-          <Label className="text-[10px] font-medium uppercase tracking-wider text-ink-muted">Category</Label>
-          <Select value={filters.category || "__all__"} onValueChange={(v) => onChange({ category: v && v !== "__all__" ? v : "" })}>
-            <SelectTrigger size="default" aria-label="Category" className="h-8 w-[200px] cursor-pointer bg-card text-xs">
-              <SelectValue>{(v: string) => (v === "__all__" || !v ? "All categories" : v.split(" > ").slice(-1)[0])}</SelectValue>
-            </SelectTrigger>
-            <SelectContent align="start" alignItemWithTrigger={false} className="w-auto min-w-[260px] max-w-[420px]">
-              <SelectItem value="__all__">All categories</SelectItem>
-              {categories.map((c) => (
-                <SelectItem key={c.category} value={c.category} className="text-xs">
-                  <span className="truncate">{c.category}</span>
-                  <span className="ml-auto num text-ink-muted">{c.n}</span>
-                </SelectItem>
-              ))}
-              {filters.category && !categories.some((c) => c.category === filters.category) ? (
-                <SelectItem value={filters.category} className="text-xs">
-                  {filters.category}
-                </SelectItem>
-              ) : null}
-            </SelectContent>
-          </Select>
-        </div>
+        <input id="filter-import" aria-label="Import id" placeholder="Import id" value={filters.importId} onChange={(e) => onChange({ importId: e.target.value.trim() })} className={cn(FIELD, "num w-[150px] px-4 text-xs")} spellCheck={false} />
+        <Select value={filters.category || "__all__"} onValueChange={(v) => onChange({ category: v && v !== "__all__" ? v : "" })}>
+          <SelectTrigger size="default" aria-label="Category" className={cn(FIELD, "w-[210px] cursor-pointer border-0 pl-4")}>
+            <SelectValue>{(v: string) => (v === "__all__" || !v ? "All categories" : v.split(" > ").slice(-1)[0])}</SelectValue>
+          </SelectTrigger>
+          <SelectContent align="start" alignItemWithTrigger={false} className="w-auto min-w-[260px] max-w-[420px] rounded-2xl p-1.5">
+            <SelectItem value="__all__" className="rounded-lg">
+              All categories
+            </SelectItem>
+            {categories.map((c) => (
+              <SelectItem key={c.category} value={c.category} className="rounded-lg text-xs">
+                <span className="truncate">{c.category}</span>
+                <span className="ml-auto num text-ink-muted">{c.n}</span>
+              </SelectItem>
+            ))}
+            {filters.category && !categories.some((c) => c.category === filters.category) ? (
+              <SelectItem value={filters.category} className="rounded-lg text-xs">
+                {filters.category}
+              </SelectItem>
+            ) : null}
+          </SelectContent>
+        </Select>
         {active > 0 ? (
-          <button type="button" onClick={onReset} className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-sm px-2 text-xs text-ink-muted underline-offset-4 hover:text-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
-            <XIcon aria-hidden className="size-3" />
+          <button type="button" onClick={onReset} className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-full px-3 text-[13px] font-medium text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none">
+            <XIcon aria-hidden className="size-3.5" />
             Clear {active} {active === 1 ? "filter" : "filters"}
           </button>
         ) : null}
       </div>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5">
         <Group label="Status">
           {PRODUCT_STATUSES.map((s) => (
             <Chip key={s} pressed={filters.status.includes(s)} onClick={() => toggleStatus(s)}>
@@ -110,9 +98,9 @@ export function ProductsToolbar({ filters, searchText, onSearchChange, onChange,
             </Chip>
           ))}
           <span className="inline-flex items-center gap-1 text-[11px] text-ink-muted">
-            <Input aria-label="Minimum confidence" type="number" min={0} max={100} placeholder="min" value={filters.minConfidence ?? ""} onChange={(e) => onChange({ minConfidence: e.target.value === "" ? null : Math.min(100, Math.max(0, Number(e.target.value))) })} className="h-7 w-14 bg-card px-1.5 num text-xs md:text-xs" />
+            <input aria-label="Minimum confidence" type="number" min={0} max={100} placeholder="min" value={filters.minConfidence ?? ""} onChange={(e) => onChange({ minConfidence: e.target.value === "" ? null : Math.min(100, Math.max(0, Number(e.target.value))) })} className={cn(FIELD, "num h-9 w-16 px-3 text-xs")} />
             –
-            <Input aria-label="Maximum confidence" type="number" min={0} max={100} placeholder="max" value={filters.maxConfidence ?? ""} onChange={(e) => onChange({ maxConfidence: e.target.value === "" ? null : Math.min(100, Math.max(0, Number(e.target.value))) })} className="h-7 w-14 bg-card px-1.5 num text-xs md:text-xs" />
+            <input aria-label="Maximum confidence" type="number" min={0} max={100} placeholder="max" value={filters.maxConfidence ?? ""} onChange={(e) => onChange({ maxConfidence: e.target.value === "" ? null : Math.min(100, Math.max(0, Number(e.target.value))) })} className={cn(FIELD, "num h-9 w-16 px-3 text-xs")} />
           </span>
         </Group>
         <Group label="Show">
@@ -186,20 +174,17 @@ export function RerunSettingsFields({ idPrefix, value, onChange, disabled }: { i
   );
 }
 
-/** The bulk-bar buttons are 24 px tall; 10 px of invisible hit area above and below makes a 44 px tap (same trick as Checkbox and the photo tray). */
-const TAP_TARGET_XS = "relative after:absolute after:inset-x-0 after:-inset-y-2.5 after:content-['']";
-
 /** "Re-run AI" for the selection: one job per product with the chosen tier and prompt version; the Queue button is the confirmation. */
-export function BulkRerunPopover({ count, busy, disabled, onQueue }: { count: number; busy: boolean; disabled: boolean; onQueue: (settings: RerunSettings) => Promise<boolean> }) {
+export function BulkRerunPopover({ count, busy, disabled, onQueue, className }: { count: number; busy: boolean; disabled: boolean; onQueue: (settings: RerunSettings) => Promise<boolean>; className?: string }) {
   const [open, setOpen] = useState(false);
   const [settings, setSettings] = useState<RerunSettings>({ tier: "cheap", promptVersion: PROMPT_VERSION });
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger render={<Button type="button" variant="outline" size="xs" disabled={disabled} className={cn("cursor-pointer", TAP_TARGET_XS)} />}>
+      <PopoverTrigger render={<Button type="button" size="sm" disabled={disabled} className={cn("cursor-pointer", className)} />}>
         <SparklesIcon data-icon="inline-start" />
         Re-run AI
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-80">
+      <PopoverContent align="center" side="top" sideOffset={10} className="w-80 rounded-2xl p-4 shadow-[var(--shadow-pop)]">
         <PopoverHeader>
           <PopoverTitle>
             Re-run AI on {count} {count === 1 ? "product" : "products"}
@@ -212,7 +197,7 @@ export function BulkRerunPopover({ count, busy, disabled, onQueue }: { count: nu
             type="button"
             size="sm"
             disabled={busy}
-            className="cursor-pointer bg-brand text-brand-foreground hover:bg-brand/90"
+            className="cursor-pointer"
             onClick={async () => {
               const ok = await onQueue(settings);
               if (ok) setOpen(false);

@@ -1,13 +1,12 @@
 "use client";
 
-import { cn } from "cn";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
+import { Segmented } from "@/components/ext/segmented";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 const MODES = [
-  { value: "fast", label: "Fast", hint: "Results in minutes.", detail: "Realtime API" },
-  { value: "economy", label: "Economy", hint: "About half the price; can take hours.", detail: "Batch API" },
+  { value: "fast", label: "Fast", hint: "Realtime API: results in minutes." },
+  { value: "economy", label: "Economy", hint: "Batch API: about half the price, can take hours." },
 ] as const;
 type Mode = (typeof MODES)[number]["value"];
 
@@ -28,52 +27,44 @@ interface Props {
   disabled: boolean;
 }
 
-/** Speed, budget and the publish switch: the three choices a merchant makes before an import starts. */
+const EYEBROW = "text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-muted";
+
+/** Speed, budget and the publish switch, as one compact row beneath the drop zone. */
 export function UploadOptions({ uid, value, onChange, disabled }: Props) {
   const set = (patch: Partial<UploadOptionsValue>): void => onChange({ ...value, ...patch });
   return (
-    <div className="flex flex-col gap-4">
-      <div className="grid gap-4 sm:grid-cols-[1fr_200px]">
-        <fieldset className="flex min-w-0 flex-col gap-1.5">
-          <legend className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-ink-muted">Speed</legend>
-          <div className="grid grid-cols-2 gap-px bg-border hairline">
-            {MODES.map((m) => (
-              <label
-                key={m.value}
-                className={cn(
-                  "flex cursor-pointer flex-col gap-0.5 bg-card px-3 py-2 transition-colors has-[:checked]:bg-brand-soft has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand has-[:focus-visible]:ring-inset",
-                  disabled && "cursor-not-allowed opacity-60",
-                )}
-              >
-                <input type="radio" name={`${uid}-mode`} value={m.value} checked={value.mode === m.value} disabled={disabled} onChange={() => set({ mode: m.value })} className="sr-only" />
-                <span className="text-sm font-medium text-ink">{m.label}</span>
-                <span className="text-xs text-ink-muted">
-                  {m.hint} <span className="text-[11px] text-ink-muted/80">{m.detail}.</span>
-                </span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={`${uid}-budget`} className="text-[11px] font-medium uppercase tracking-wider text-ink-muted">
-            AI budget
-          </label>
-          <div className="relative">
-            <span aria-hidden className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-sm text-ink-muted">
-              $
-            </span>
-            <Input id={`${uid}-budget`} type="number" inputMode="decimal" min={1} step={1} value={value.budget} disabled={disabled} onChange={(e) => set({ budget: e.target.value })} aria-describedby={`${uid}-budget-hint`} className="num bg-card pl-6" />
-          </div>
-          <p id={`${uid}-budget-hint`} className="text-xs text-ink-muted">
-            The import pauses for your review when AI spend reaches this amount.
-          </p>
+    <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
+      <div className="flex flex-col gap-1.5">
+        <span className={EYEBROW}>Speed</span>
+        <Segmented label="Speed" value={value.mode} options={MODES} disabled={disabled} onChange={(mode) => set({ mode })} />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor={`${uid}-budget`} className={EYEBROW}>
+          AI budget
+        </label>
+        <div className="relative">
+          <span aria-hidden className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-sm text-ink-muted">
+            $
+          </span>
+          <input
+            id={`${uid}-budget`}
+            type="number"
+            inputMode="decimal"
+            min={1}
+            step={1}
+            value={value.budget}
+            disabled={disabled}
+            onChange={(e) => set({ budget: e.target.value })}
+            title="The import pauses for your review when AI spend reaches this amount."
+            className="num h-11 w-28 rounded-full bg-card pr-3 pl-7 text-sm text-ink ring-1 ring-border outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:opacity-50"
+          />
         </div>
       </div>
-      <Label className={cn("flex cursor-pointer items-start gap-3 bg-card px-3 py-2.5 font-normal hairline", disabled && "cursor-not-allowed opacity-60")}>
-        <Checkbox checked={value.autoPublish} disabled={disabled} onCheckedChange={(checked) => set({ autoPublish: checked })} className="mt-0.5 cursor-pointer" />
-        <span className="flex flex-col gap-0.5">
-          <span className="text-sm font-medium text-ink">Publish products that pass every check</span>
-          <span className="text-xs text-ink-muted">They go live on your storefront the moment the import finishes. Anything that needs a second look still waits for you.</span>
+      <Label htmlFor={`${uid}-publish`} className="flex h-11 cursor-pointer items-center gap-3 rounded-full bg-card pr-4 pl-3 font-normal ring-1 ring-border has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60">
+        <Switch id={`${uid}-publish`} checked={value.autoPublish} disabled={disabled} onCheckedChange={(checked) => set({ autoPublish: checked })} className="cursor-pointer" />
+        <span className="flex flex-col leading-tight">
+          <span className="text-[13px] font-medium text-ink">Publish what passes every check</span>
+          <span className="text-[11px] text-ink-muted">Anything flagged still waits for you</span>
         </span>
       </Label>
     </div>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { cn } from "cn";
 import { ChevronRightIcon, ImagesIcon, RefreshCwIcon } from "lucide-react";
+import { CARD } from "@/components/ext/surfaces";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,8 +36,9 @@ function insertAt(items: TrayPhoto[], index: number, photo: TrayPhoto): TrayPhot
 }
 
 /**
- * Photos the matcher could not place (EC-C13), as a strip above the products table. Every action is
- * optimistic: the card moves at once and comes back with the error if the server disagrees.
+ * Photos the matcher could not place (EC-C13), as a horizontal strip of cards above the products
+ * table. Every action is optimistic: the card moves at once and comes back with the error if the
+ * server disagrees.
  */
 export function UnmatchedPhotos({ storeSlug, onAssigned }: { storeSlug: string; onAssigned?: (productId: string) => void }) {
   const headingId = useId();
@@ -179,23 +181,25 @@ export function UnmatchedPhotos({ storeSlug, onAssigned }: { storeSlug: string; 
         </div>
       ) : null}
       {strip.loading && strip.items.length === 0 ? (
-        <ul className="flex gap-2 overflow-hidden" aria-hidden>
+        <ul className="flex gap-3 overflow-hidden" aria-hidden>
           {Array.from({ length: 5 }).map((_, i) => (
-            <li key={i} className="w-40 shrink-0">
-              <Skeleton className="aspect-square w-full rounded-none" />
+            <li key={i} className="w-44 shrink-0 rounded-2xl p-2 ring-1 ring-border">
+              <Skeleton className="aspect-square w-full rounded-xl" />
+              <Skeleton className="mt-2 h-3 w-3/4" />
+              <Skeleton className="mt-1.5 h-3 w-1/2" />
             </li>
           ))}
         </ul>
       ) : strip.items.length === 0 && !strip.error ? (
         <p className="py-2 text-xs text-ink-muted">{emptyText}</p>
       ) : (
-        <ul className={cn("flex gap-2 overflow-x-auto pb-1 transition-opacity", strip.loading && "opacity-70")} aria-busy={strip.loading}>
-          {strip.items.map((p) => (
-            <UnmatchedPhotoCard key={p.id} storeSlug={storeSlug} photo={p} busy={busyIds.has(p.id)} error={errors[p.id] ?? null} onAssign={(product) => void assign(p, product)} onDismiss={() => void dismiss(p)} onRestore={() => void restore(p)} />
+        <ul className={cn("flex snap-x gap-3 overflow-x-auto pb-2 no-scrollbar transition-opacity", strip.loading && "opacity-70")} aria-busy={strip.loading}>
+          {strip.items.map((p, i) => (
+            <UnmatchedPhotoCard key={p.id} storeSlug={storeSlug} photo={p} index={i} busy={busyIds.has(p.id)} error={errors[p.id] ?? null} onAssign={(product) => void assign(p, product)} onDismiss={() => void dismiss(p)} onRestore={() => void restore(p)} />
           ))}
           {strip.items.length < strip.total ? (
-            <li className="flex w-40 shrink-0 items-center justify-center border border-dashed border-border">
-              <Button type="button" variant="ghost" size="sm" disabled={strip.loading} onClick={() => void load(status, strip.items.length)} className="cursor-pointer">
+            <li className="flex w-44 shrink-0 items-center justify-center rounded-2xl border border-dashed border-line-strong">
+              <Button type="button" variant="ghost" size="sm" disabled={strip.loading} onClick={() => void load(status, strip.items.length)} className="cursor-pointer rounded-full">
                 {strip.loading ? "Loading…" : `Load ${formatNumber(Math.min(TRAY_PAGE_SIZE, strip.total - strip.items.length))} more`}
               </Button>
             </li>
@@ -207,19 +211,21 @@ export function UnmatchedPhotos({ storeSlug, onAssigned }: { storeSlug: string; 
 
   return (
     <TooltipProvider>
-      <section aria-labelledby={headingId} className="border border-border bg-card">
-        <div className="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1">
+      <section aria-labelledby={headingId} className={CARD}>
+        <div className="flex min-h-14 flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 md:px-4">
           <h2 id={headingId} className="font-sans text-sm font-medium tracking-normal text-ink">
-            <button type="button" aria-expanded={open} onClick={() => setUserOpen(!open)} className="-ml-1 flex h-9 cursor-pointer items-center gap-1.5 rounded-sm px-1 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
-              <ChevronRightIcon aria-hidden className={cn("size-4 text-ink-muted transition-transform", open && "rotate-90")} />
-              <ImagesIcon aria-hidden className="size-4 text-brand" />
+            <button type="button" aria-expanded={open} onClick={() => setUserOpen(!open)} className="-ml-1 flex h-10 cursor-pointer items-center gap-2 rounded-full px-2 transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+              <ChevronRightIcon aria-hidden className={cn("size-4 text-ink-muted transition-transform duration-200", open && "rotate-90")} />
+              <span className="flex size-7 items-center justify-center rounded-lg bg-brand-soft text-brand">
+                <ImagesIcon aria-hidden className="size-4" />
+              </span>
               Unmatched photos
-              <span className="num text-ink-muted">({unmatched.loading && unmatched.items.length === 0 ? "…" : formatNumber(unmatched.total)})</span>
+              <span className="num rounded-full bg-surface-2 px-2 py-0.5 text-[11px] text-ink-muted">{unmatched.loading && unmatched.items.length === 0 ? "…" : formatNumber(unmatched.total)}</span>
             </button>
           </h2>
           <span className="hidden text-xs text-ink-muted md:inline">The matcher could not place these. Assign them by hand or dismiss them.</span>
           <div className="ml-auto flex items-center gap-2">
-            <Label htmlFor={`${headingId}-dismissed`} className="flex h-9 cursor-pointer items-center gap-2 text-xs font-normal text-ink-muted">
+            <Label htmlFor={`${headingId}-dismissed`} className="flex h-10 cursor-pointer items-center gap-2 text-xs font-normal text-ink-muted">
               <Switch
                 id={`${headingId}-dismissed`}
                 size="sm"
@@ -233,23 +239,23 @@ export function UnmatchedPhotos({ storeSlug, onAssigned }: { storeSlug: string; 
               Show dismissed
               {showDismissed && !dismissed.loading ? <span className="num">({formatNumber(dismissed.total)})</span> : null}
             </Label>
-            <Button type="button" variant="ghost" size="icon-sm" onClick={refresh} aria-label="Refresh photos" className="relative cursor-pointer after:absolute after:-inset-2 after:content-['']">
+            <Button type="button" variant="ghost" size="icon-lg" onClick={refresh} aria-label="Refresh photos" className="cursor-pointer rounded-full">
               <RefreshCwIcon className={cn((unmatched.loading || dismissed.loading) && "animate-spin")} />
             </Button>
           </div>
         </div>
         {open ? (
-          <div className="flex flex-col gap-3 border-t border-border px-3 py-2">
+          <div className="flex flex-col gap-3 border-t border-border px-3 pt-3 pb-1 md:px-4">
             {renderStrip(unmatched, "unmatched", "Every photo has a product. Nothing to assign.")}
             {showDismissed ? (
-              <div className="flex flex-col gap-1 border-t border-dashed border-border pt-2">
-                <h3 className="font-sans text-[11px] font-medium uppercase tracking-wide text-ink-muted">
+              <div className="flex flex-col gap-2 border-t border-dashed border-border pt-3">
+                <h3 className="font-sans text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-muted">
                   Dismissed <span className="num normal-case tracking-normal">{formatNumber(dismissed.total)}</span>
                 </h3>
                 {renderStrip(dismissed, "rejected", "No dismissed photos.")}
               </div>
             ) : null}
-            <div role="status" aria-live="polite" className={cn("min-h-4 text-xs", notice?.tone === "error" ? "text-destructive" : "text-success")}>
+            <div role="status" aria-live="polite" className={cn("min-h-4 pb-1 text-xs", notice?.tone === "error" ? "text-destructive" : "text-success")}>
               {notice?.text ?? ""}
             </div>
           </div>

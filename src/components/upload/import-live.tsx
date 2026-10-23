@@ -1,21 +1,21 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeftIcon, BanIcon, CheckIcon, CircleXIcon, CoinsIcon, EyeIcon, LayersIcon, PackageIcon, PauseIcon, PlayIcon, RotateCcwIcon, TriangleAlertIcon } from "lucide-react";
+import { BanIcon, CheckIcon, CircleXIcon, CoinsIcon, EyeIcon, LayersIcon, PackageIcon, PauseIcon, TriangleAlertIcon } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import type { HygieneReport } from "@/core/metrics/hygiene";
 import type { ImportLogEvent, ImportProgressEvent } from "@/lib/events";
+import { Reveal } from "@/components/ext/reveal";
 import { StatTile } from "@/components/ext/stat-tile";
-import { StatusBadge } from "@/components/ext/status-badge";
 import { Button } from "@/components/ui/button";
 import { api, ApiError, storeApi } from "@/lib/client/api";
-import { formatCountdown, formatDuration, formatMicrosUsd, formatNumber, formatPercent, modeLabel } from "@/lib/format";
+import { formatCountdown, formatMicrosUsd, formatNumber, formatPercent } from "@/lib/format";
 import { HygienePipeline } from "./hygiene-pipeline";
+import { type ImportAction, ImportHeader } from "./import-header";
 import { EventLog, MAX_EVENTS } from "./import-live-events";
 import { RowsProgress } from "./import-live-progress";
 import { SheetCard } from "./import-live-sheet";
-import { Banner, ConnBadge, type Connection, Stamp } from "./import-live-status";
+import { Banner, type Connection } from "./import-live-status";
 import { LiveStageStepper } from "./import-live-stepper";
 import type { ImportDto, ImportEventDto } from "./import-live-types";
 import { RowsTable } from "./rows-table";
@@ -24,7 +24,6 @@ import { isImportActive, SIDE_STATES, stepIndexFor } from "./stage-stepper";
 export type { ImportDto, ImportEventDto } from "./import-live-types";
 
 type ProgressPayload = ImportProgressEvent & { import?: ImportDto };
-type Action = "pause" | "resume" | "cancel" | "retry";
 
 const MAX_BACKOFF_MS = 10_000;
 
@@ -70,7 +69,7 @@ export function ImportLive({ storeSlug, initialImport, initialEvents, initialHyg
   const lastIdRef = useRef(initialEvents.reduce((m, e) => Math.max(m, e.id), 0));
   const [lastStage, setLastStage] = useState<string | null>(() => (stepIndexFor(initialImport.status) >= 0 ? initialImport.status : null));
   const [conn, setConn] = useState<Connection>("connecting");
-  const [busy, setBusy] = useState<Action | null>(null);
+  const [busy, setBusy] = useState<ImportAction | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const live = isImportActive(imp.status);
@@ -166,7 +165,7 @@ export function ImportLive({ storeSlug, initialImport, initialEvents, initialHyg
       .catch(() => undefined); // a missed tail of the log is not worth a banner
   }, [live, detailUrl, applyImport, pushEvents]);
 
-  const runAction = async (action: Action): Promise<void> => {
+  const runAction = async (action: ImportAction): Promise<void> => {
     setBusy(action);
     setActionError(null);
     try {
@@ -188,99 +187,18 @@ export function ImportLive({ storeSlug, initialImport, initialEvents, initialHyg
   const rowsPerMin = live && elapsedMs !== null && elapsedMs > 10_000 && finished > 0 ? Math.round(finished / (elapsedMs / 60_000)) : null;
   const countdown = imp.status === "paused" ? formatCountdown(imp.pausedUntil, now) : null;
   const saved = imp.costSummary && imp.costSummary.savedMicros > 0 ? imp.costSummary.savedMicros : null;
-  const canPause = live && imp.status !== "paused";
   const canResume = imp.status === "paused";
-  const canRetry = imp.status === "failed" || imp.status === "needs_attention";
-  const brandButton = "cursor-pointer bg-brand text-brand-foreground hover:bg-brand/90";
-  const mode = modeLabel(imp.mode);
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="border-b border-border pb-4">
-        <Link
-          href={`/app/${storeSlug}/upload`}
-          className="inline-flex cursor-pointer items-center gap-1 rounded-sm text-xs text-ink-muted transition-colors hover:text-ink focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
-        >
-          <ArrowLeftIcon className="size-3.5" aria-hidden /> All imports
-        </Link>
-        <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.18em] text-brand">Import</div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-display max-w-full min-w-0 truncate text-2xl leading-tight text-ink md:text-3xl">{imp.name}</h1>
-              <StatusBadge status={imp.status} />
-              <span className="rounded-sm bg-muted px-1.5 py-0.5 text-[11px] uppercase tracking-wide text-ink-muted" title={mode.detail}>
-                {mode.label}
-              </span>
-            </div>
-            <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
-              <span>
-                Created <Stamp iso={imp.createdAt} now={now} />
-              </span>
-              {imp.startedAt ? (
-                <span>
-                  Started <Stamp iso={imp.startedAt} now={now} />
-                </span>
-              ) : null}
-              {imp.finishedAt ? (
-                <span>
-                  Finished <Stamp iso={imp.finishedAt} now={now} />
-                </span>
-              ) : null}
-              {elapsedMs !== null ? (
-                <span className="num" suppressHydrationWarning>
-                  {formatDuration(elapsedMs)}
-                  {imp.finishedAt ? "" : " so far"}
-                </span>
-              ) : null}
-              <ConnBadge live={live} conn={conn} />
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {canPause ? (
-              <Button variant="outline" size="sm" className="cursor-pointer" disabled={busy !== null} onClick={() => void runAction("pause")}>
-                <PauseIcon data-icon="inline-start" aria-hidden /> Pause
-              </Button>
-            ) : null}
-            {canResume ? (
-              <Button size="sm" className={brandButton} disabled={busy !== null} onClick={() => void runAction("resume")}>
-                <PlayIcon data-icon="inline-start" aria-hidden /> Resume
-              </Button>
-            ) : null}
-            {canRetry ? (
-              <Button size="sm" className={brandButton} disabled={busy !== null} onClick={() => void runAction("retry")}>
-                <RotateCcwIcon data-icon="inline-start" aria-hidden /> Retry
-              </Button>
-            ) : null}
-            {live && !confirmCancel ? (
-              <Button variant="outline" size="sm" className="cursor-pointer text-destructive hover:text-destructive" disabled={busy !== null} onClick={() => setConfirmCancel(true)}>
-                <BanIcon data-icon="inline-start" aria-hidden /> Cancel
-              </Button>
-            ) : null}
-            {live && confirmCancel ? (
-              <div role="group" aria-label="Confirm cancel" className="flex flex-wrap items-center gap-2 border-l-[3px] border-destructive bg-destructive/5 px-2 py-1 text-xs text-ink">
-                <span>Cancel this import? Open rows are marked failed.</span>
-                <Button variant="destructive" size="sm" className="cursor-pointer" disabled={busy !== null} onClick={() => void runAction("cancel")}>
-                  Yes, cancel
-                </Button>
-                <Button variant="ghost" size="sm" className="cursor-pointer" disabled={busy !== null} onClick={() => setConfirmCancel(false)}>
-                  Keep running
-                </Button>
-              </div>
-            ) : null}
-          </div>
-        </div>
-        {actionError ? (
-          <p role="alert" className="mt-2 text-xs text-destructive">
-            {actionError}
-          </p>
-        ) : null}
-      </header>
+    <div className="flex flex-col gap-5">
+      <Reveal>
+        <ImportHeader storeSlug={storeSlug} imp={imp} now={now} elapsedMs={elapsedMs} live={live} conn={conn} busy={busy} confirmCancel={confirmCancel} actionError={actionError} onConfirmCancel={setConfirmCancel} onAction={(a) => void runAction(a)} />
+      </Reveal>
 
       {/* A banner that is already there on page load renders settled; one that arrives while watching slides in. */}
       <AnimatePresence initial={false}>
         {imp.status === "paused" ? (
-          <Banner key="paused" tone="warning" icon={PauseIcon} action={canResume ? <Button size="sm" className={brandButton} disabled={busy !== null} onClick={() => void runAction("resume")}>Resume now</Button> : null}>
+          <Banner key="paused" tone="warning" icon={PauseIcon} action={canResume ? <Button size="sm" className="cursor-pointer rounded-full" disabled={busy !== null} onClick={() => void runAction("resume")}>Resume now</Button> : null}>
             <strong className="font-medium">Paused</strong>
             {countdown === null ? (imp.pauseReason ? ` — ${imp.pauseReason}` : "") : countdown === "now" ? " — resuming now" : ` — resuming in ${countdown}`}
             <span className="block text-xs text-ink-muted" suppressHydrationWarning>
@@ -306,16 +224,18 @@ export function ImportLive({ storeSlug, initialImport, initialEvents, initialHyg
         ) : null}
       </AnimatePresence>
 
-      <LiveStageStepper status={imp.status} lastStage={lastStage} />
+      <Reveal index={1}>
+        <LiveStageStepper status={imp.status} lastStage={lastStage} />
+      </Reveal>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <StatTile index={0} label="Total rows" value={totalRows} format={formatNumber} icon={LayersIcon} context={totalRows > 0 ? `${formatNumber(finished)} finished` : "counting the sheet"} />
-        <StatTile index={1} label="Done" value={counts.done} format={formatNumber} icon={CheckIcon} tone="success" context={shareOfRows(counts.done, totalRows)} />
-        <StatTile index={2} label="Needs review" value={counts.needs_review} format={formatNumber} icon={EyeIcon} tone="warning" context={shareOfRows(counts.needs_review, totalRows)} contextTone={counts.needs_review > 0 ? "warning" : "muted"} />
-        <StatTile index={3} label="Failed" value={counts.failed} format={formatNumber} icon={CircleXIcon} tone="danger" context={shareOfRows(counts.failed, totalRows)} contextTone={counts.failed > 0 ? "danger" : "muted"} />
-        <StatTile index={4} label="Products" value={imp.productCount} format={formatNumber} icon={PackageIcon} tone="info" context={imp.productCount > 0 ? `about ${(totalRows / imp.productCount).toFixed(1)} rows each` : "grouped once rows are clean"} />
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-6">
+        <StatTile index={2} label="Total rows" value={totalRows} format={formatNumber} icon={LayersIcon} context={totalRows > 0 ? `${formatNumber(finished)} finished` : "counting the sheet"} />
+        <StatTile index={3} label="Done" value={counts.done} format={formatNumber} icon={CheckIcon} tone="success" context={shareOfRows(counts.done, totalRows)} />
+        <StatTile index={4} label="Needs review" value={counts.needs_review} format={formatNumber} icon={EyeIcon} tone="warning" context={shareOfRows(counts.needs_review, totalRows)} contextTone={counts.needs_review > 0 ? "warning" : "muted"} />
+        <StatTile index={5} label="Failed" value={counts.failed} format={formatNumber} icon={CircleXIcon} tone="danger" context={shareOfRows(counts.failed, totalRows)} contextTone={counts.failed > 0 ? "danger" : "muted"} />
+        <StatTile index={6} label="Products" value={imp.productCount} format={formatNumber} icon={PackageIcon} tone="info" context={imp.productCount > 0 ? `about ${(totalRows / imp.productCount).toFixed(1)} rows each` : "grouped once rows are clean"} />
         <StatTile
-          index={5}
+          index={7}
           label="Cost so far"
           value={imp.costMicros}
           format={formatMicrosUsd}
@@ -334,13 +254,19 @@ export function ImportLive({ storeSlug, initialImport, initialEvents, initialHyg
         />
       </div>
 
-      <RowsProgress counts={counts} totalRows={totalRows} finished={finished} fraction={fraction} rowsPerMin={rowsPerMin} />
+      <Reveal index={4}>
+        <RowsProgress counts={counts} totalRows={totalRows} finished={finished} fraction={fraction} rowsPerMin={rowsPerMin} />
+      </Reveal>
 
       <HygienePipeline storeSlug={storeSlug} importId={id} status={imp.status} active={live} initial={initialHygiene} />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <SheetCard imp={imp} />
-        <EventLog events={events} live={live} />
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <Reveal index={5} className="flex min-w-0">
+          <SheetCard imp={imp} />
+        </Reveal>
+        <Reveal index={6} className="flex min-w-0">
+          <EventLog events={events} live={live} />
+        </Reveal>
       </div>
 
       <RowsTable storeSlug={storeSlug} importId={id} counts={counts} totalRows={totalRows} />

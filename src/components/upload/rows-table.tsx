@@ -4,12 +4,10 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, SearchIcon } from "lucide-react";
 import { cn } from "cn";
 import type { Issue } from "@/core/types";
+import { CARD, PILL_OFF, PILL_ON, PILL_TOGGLE, TH } from "@/components/ext/surfaces";
 import { StatusBadge } from "@/components/ext/status-badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { api, ApiError, storeApi } from "@/lib/client/api";
 import { formatNumber, statusLabel } from "@/lib/format";
@@ -46,11 +44,8 @@ interface RowsResponse {
   rows: RowDto[];
 }
 
-function isFilter(v: unknown): v is Filter {
-  return typeof v === "string" && (FILTERS as readonly string[]).includes(v);
-}
-
-const SEVERITY_RULE: Record<Issue["severity"], string> = { info: "border-info", warn: "border-warning", error: "border-destructive" };
+const SEVERITY_RULE: Record<Issue["severity"], string> = { info: "border-brand", warn: "border-warning", error: "border-destructive" };
+const HEAD = cn(TH, "h-11 border-b border-border bg-card px-3 text-left whitespace-nowrap");
 
 export function RowsTable({ storeSlug, importId, counts, totalRows }: { storeSlug: string; importId: string; counts: RowCounts; totalRows: number }) {
   const base = `${storeApi(storeSlug)}/imports/${encodeURIComponent(importId)}/rows`;
@@ -110,6 +105,11 @@ export function RowsTable({ storeSlug, importId, counts, totalRows }: { storeSlu
   const from = total === 0 ? 0 : page * PAGE_SIZE + 1;
   const to = Math.min(total, (page + 1) * PAGE_SIZE);
   const countFor = (f: Filter): number => (f === "all" ? totalRows : counts[f]);
+  const pick = (f: Filter): void => {
+    setFilter(f);
+    setPage(0);
+    setExpanded(new Set());
+  };
   const toggle = (n: number): void =>
     setExpanded((prev) => {
       const next = new Set(prev);
@@ -120,7 +120,7 @@ export function RowsTable({ storeSlug, importId, counts, totalRows }: { storeSlu
 
   return (
     <section aria-labelledby="rows-heading" className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 px-1">
         <h2 id="rows-heading" className="font-display text-lg text-ink">
           Rows
         </h2>
@@ -128,127 +128,140 @@ export function RowsTable({ storeSlug, importId, counts, totalRows }: { storeSlu
           {loading && data ? "Refreshing…" : total > 0 ? `${formatNumber(total)} ${total === 1 ? "row" : "rows"}` : ""}
         </p>
       </div>
-      <Tabs
-        value={filter}
-        onValueChange={(v) => {
-          if (!isFilter(v)) return;
-          setFilter(v);
-          setPage(0);
-          setExpanded(new Set());
-        }}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <TabsList variant="line" className="max-w-full justify-start overflow-x-auto">
-            {FILTERS.map((f) => (
-              <TabsTrigger key={f} value={f} className="cursor-pointer gap-1.5 px-2">
-                {f === "all" ? "All" : statusLabel(f)}
-                <span className="num text-[11px] text-ink-muted">{formatNumber(countFor(f))}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          <div className="relative w-full sm:w-64">
-            <SearchIcon aria-hidden className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-ink-muted" />
-            <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search raw cells" aria-label="Search raw cells" className="bg-card pl-8" />
-          </div>
+      <div className={cn(CARD, "flex flex-wrap items-center justify-between gap-2 p-3")}>
+        <div role="group" aria-label="Row status" className="flex flex-wrap gap-1.5">
+          {FILTERS.map((f) => (
+            <button key={f} type="button" aria-pressed={filter === f} onClick={() => pick(f)} className={cn(PILL_TOGGLE, "outline-none focus-visible:ring-2 focus-visible:ring-brand", filter === f ? PILL_ON : PILL_OFF)}>
+              {f === "all" ? "All" : statusLabel(f)}
+              <span className={cn("num text-[11px]", filter === f ? "text-brand/70" : "text-ink-muted")}>{formatNumber(countFor(f))}</span>
+            </button>
+          ))}
         </div>
-        <TabsContent value={filter} className="bg-card hairline" aria-busy={loading}>
-          {error ? (
-            <div role="alert" className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm text-destructive">
-              <span>{error}</span>
-              <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => setRefreshKey((k) => k + 1)}>
-                Retry
-              </Button>
-            </div>
-          ) : data === null ? (
-            <div className="flex flex-col gap-3 px-4 py-4" aria-label="Loading rows">
-              {[0, 1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-4 w-full" />
-              ))}
-            </div>
-          ) : data.rows.length === 0 ? (
-            <p className="px-4 py-10 text-center text-sm text-ink-muted">
-              {totalRows === 0 ? "No rows yet; the sheet is still being parsed." : debouncedQ ? `No rows contain “${debouncedQ}”.` : "No rows with this status."}
-            </p>
-          ) : (
-            <TooltipProvider>
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="w-12 text-right text-[11px] font-medium uppercase tracking-wider text-ink-muted">#</TableHead>
-                    <TableHead className="text-[11px] font-medium uppercase tracking-wider text-ink-muted">Status</TableHead>
-                    <TableHead className="text-[11px] font-medium uppercase tracking-wider text-ink-muted">Product key</TableHead>
-                    <TableHead className="text-[11px] font-medium uppercase tracking-wider text-ink-muted">Issues</TableHead>
-                    <TableHead className="text-[11px] font-medium uppercase tracking-wider text-ink-muted">Why it failed</TableHead>
-                    <TableHead className="text-[11px] font-medium uppercase tracking-wider text-ink-muted">Duplicate of</TableHead>
-                    <TableHead className="w-10">
-                      <span className="sr-only">Raw cells</span>
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+        <div className="relative w-full sm:w-64">
+          <SearchIcon aria-hidden className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-ink-muted" />
+          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search raw cells" aria-label="Search raw cells" className="h-10 w-full rounded-full bg-card pr-4 pl-10 text-[13px] text-ink ring-1 ring-border outline-none placeholder:text-ink-muted/70 focus-visible:ring-2 focus-visible:ring-brand [&::-webkit-search-cancel-button]:hidden" />
+        </div>
+      </div>
+      {/* `relative` keeps the header's screen-reader-only text inside this scroll container; absolutely placed, it would otherwise widen the page. */}
+      <div className={cn(CARD, "relative overflow-x-auto")} aria-busy={loading}>
+        {error ? (
+          <div role="alert" className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-sm text-destructive">
+            <span>{error}</span>
+            <Button variant="outline" size="sm" className="cursor-pointer rounded-full" onClick={() => setRefreshKey((k) => k + 1)}>
+              Retry
+            </Button>
+          </div>
+        ) : data === null ? (
+          <div className="flex flex-col gap-3 px-5 py-5" aria-label="Loading rows">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-4 w-full" />
+            ))}
+          </div>
+        ) : data.rows.length === 0 ? (
+          <p className="px-5 py-12 text-center text-sm text-ink-muted">
+            {totalRows === 0 ? "No rows yet; the sheet is still being parsed." : debouncedQ ? `No rows contain “${debouncedQ}”.` : "No rows with this status."}
+          </p>
+        ) : (
+          <TooltipProvider>
+            {/* Fixed layout: a min-width auto table inside a scroll container still widens the phone's layout viewport. */}
+            <table className="w-full min-w-[880px] table-fixed border-separate border-spacing-0 text-[13px]">
+              <colgroup>
+                <col style={{ width: 56 }} />
+                <col style={{ width: 150 }} />
+                <col style={{ width: 150 }} />
+                <col />
+                <col style={{ width: 200 }} />
+                <col style={{ width: 110 }} />
+                <col style={{ width: 56 }} />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th scope="col" className={cn(HEAD, "rounded-tl-2xl pl-4 text-right")}>
+                    #
+                  </th>
+                  <th scope="col" className={HEAD}>
+                    Status
+                  </th>
+                  <th scope="col" className={HEAD}>
+                    Product key
+                  </th>
+                  <th scope="col" className={HEAD}>
+                    Issues
+                  </th>
+                  <th scope="col" className={HEAD}>
+                    Why it failed
+                  </th>
+                  <th scope="col" className={HEAD}>
+                    Duplicate of
+                  </th>
+                  <th scope="col" className={cn(HEAD, "rounded-tr-2xl")}>
+                    <span className="sr-only">Raw cells</span>
+                  </th>
+                </tr>
+              </thead>
+                <tbody>
                   {data.rows.map((r) => {
                     const open = expanded.has(r.rowNumber);
                     const panelId = `row-${r.rowNumber}-raw`;
                     return (
                       <Fragment key={r.id}>
-                        <TableRow>
-                          <TableCell className="num text-right text-ink-muted">{r.rowNumber}</TableCell>
-                          <TableCell>
+                        <tr className="transition-colors hover:bg-surface-2/60 [&>td]:border-b [&>td]:border-border/70">
+                          <td className="num py-2.5 pr-3 pl-4 text-right text-ink-muted">{r.rowNumber}</td>
+                          <td className="px-3 py-2.5">
                             <StatusBadge status={r.status} />
-                          </TableCell>
-                          <TableCell className="num text-xs">{r.productKey ?? <span className="text-ink-muted">—</span>}</TableCell>
-                          <TableCell className="max-w-[320px] whitespace-normal">
+                          </td>
+                          <td className="num truncate px-3 py-2.5 text-xs">{r.productKey ?? <span className="text-ink-muted">—</span>}</td>
+                          <td className="px-3 py-2.5 whitespace-normal">
                             <IssuesCell issues={r.issues} />
-                          </TableCell>
-                          <TableCell className="max-w-[260px] truncate text-xs text-destructive" title={r.failureReason ?? undefined}>
+                          </td>
+                          <td className="truncate px-3 py-2.5 text-xs text-destructive" title={r.failureReason ?? undefined}>
                             {r.failureReason ?? <span className="text-ink-muted">—</span>}
-                          </TableCell>
-                          <TableCell className="num text-xs text-ink-muted">{r.duplicateOfRow !== null ? `#${r.duplicateOfRow}` : "—"}</TableCell>
-                          <TableCell>
+                          </td>
+                          <td className="num px-3 py-2.5 text-xs text-ink-muted">{r.duplicateOfRow !== null ? `#${r.duplicateOfRow}` : "—"}</td>
+                          <td className="px-3 py-2.5">
                             <button
                               type="button"
                               aria-expanded={open}
                               aria-controls={panelId}
                               aria-label={`${open ? "Hide" : "Show"} raw cells for row ${r.rowNumber}`}
                               onClick={() => toggle(r.rowNumber)}
-                              className="cursor-pointer rounded-sm p-1 text-ink-muted transition-colors hover:text-ink focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
+                              className="flex size-8 cursor-pointer items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
                             >
-                              {open ? <ChevronDownIcon className="size-4" aria-hidden /> : <ChevronRightIcon className="size-4" aria-hidden />}
+                              <ChevronDownIcon className={cn("size-4 transition-transform duration-200", open ? "rotate-0" : "-rotate-90")} aria-hidden />
                             </button>
-                          </TableCell>
-                        </TableRow>
+                          </td>
+                        </tr>
                         {open ? (
-                          <TableRow id={panelId} className="bg-paper-deep/40 hover:bg-paper-deep/40">
-                            <TableCell colSpan={7} className="px-4 py-3 whitespace-normal">
+                          <tr id={panelId} className="bg-surface-2/50 [&>td]:border-b [&>td]:border-border/70">
+                            <td colSpan={7} className="px-5 py-4 whitespace-normal">
                               <RawCells row={r} />
-                            </TableCell>
-                          </TableRow>
+                            </td>
+                          </tr>
                         ) : null}
                       </Fragment>
                     );
                   })}
-                </TableBody>
-              </Table>
-            </TooltipProvider>
-          )}
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-2 text-xs text-ink-muted">
-            <span className="num">{total === 0 ? "No rows" : `Showing ${formatNumber(from)}–${formatNumber(to)} of ${formatNumber(total)}`}</span>
-            <div className="flex items-center gap-1">
-              <Button variant="outline" size="sm" className="cursor-pointer" disabled={page === 0 || loading} onClick={() => setPage((p) => Math.max(0, p - 1))} aria-label="Previous page">
-                <ChevronLeftIcon data-icon="inline-start" aria-hidden />
-                Prev
-              </Button>
-              <span className="num px-2">
-                Page {page + 1} of {pages}
-              </span>
-              <Button variant="outline" size="sm" className="cursor-pointer" disabled={page + 1 >= pages || loading} onClick={() => setPage((p) => p + 1)} aria-label="Next page">
-                Next
-                <ChevronRightIcon data-icon="inline-end" aria-hidden />
-              </Button>
-            </div>
+                </tbody>
+              </table>
+          </TooltipProvider>
+        )}
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-xs text-ink-muted">
+          <span className="num">{total === 0 ? "No rows" : `Showing ${formatNumber(from)}–${formatNumber(to)} of ${formatNumber(total)}`}</span>
+          <div className="flex items-center gap-1.5">
+            <Button variant="outline" size="sm" className="cursor-pointer rounded-full" disabled={page === 0 || loading} onClick={() => setPage((p) => Math.max(0, p - 1))} aria-label="Previous page">
+              <ChevronLeftIcon data-icon="inline-start" aria-hidden />
+              Prev
+            </Button>
+            <span className="num px-2">
+              Page {page + 1} of {pages}
+            </span>
+            <Button variant="outline" size="sm" className="cursor-pointer rounded-full" disabled={page + 1 >= pages || loading} onClick={() => setPage((p) => p + 1)} aria-label="Next page">
+              Next
+              <ChevronRightIcon data-icon="inline-end" aria-hidden />
+            </Button>
           </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </section>
   );
 }
@@ -263,9 +276,7 @@ function IssuesCell({ issues: unsorted }: { issues: Issue[] }) {
   const more = issues.length - 1;
   return (
     <Tooltip>
-      <TooltipTrigger
-        className={cn("cursor-help border-l-[3px] pl-2 text-left text-xs leading-snug text-ink focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none", SEVERITY_RULE[first.severity])}
-      >
+      <TooltipTrigger className={cn("cursor-help rounded-sm border-l-[3px] pl-2 text-left text-xs leading-snug text-ink focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none", SEVERITY_RULE[first.severity])}>
         <span className="line-clamp-2">{first.message}</span>
         {more > 0 ? <span className="num text-ink-muted"> +{more} more</span> : null}
       </TooltipTrigger>

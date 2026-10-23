@@ -9,8 +9,8 @@ export default async function StorefrontPreviewPage({ params }: { params: Promis
   // The preview iframe shares the visitor cookie, so the toolbar starts on the country the storefront will use.
   const country = (await cookies()).get("cf_country")?.value || null;
   return (
-    <div className="space-y-6">
-      <PageHeader eyebrow="Storefront" title="Storefront preview" description="Exactly what a visitor sees right now, rendered from the published snapshot." />
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Storefront preview" description="Exactly what a visitor sees right now, rendered from the published snapshot." />
       <StorefrontPreview storeSlug={store} initialCountry={country} />
     </div>
   );

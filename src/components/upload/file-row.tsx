@@ -39,11 +39,13 @@ export function FileRow({ icon: Icon, label, name, index, size, detail, disabled
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 10, transition: settle(reduce, 0.12) }}
       transition={settle(reduce, 0.22, Math.min(index, 8) * 0.03)}
-      className="flex items-center gap-3 px-3 py-2"
+      className="flex min-h-11 items-center gap-3 px-3 py-1.5"
     >
-      <Icon className="size-4 shrink-0 text-ink-muted" aria-hidden />
-      <span className="w-10 shrink-0 text-[10px] uppercase tracking-wide text-ink-muted">{label}</span>
-      <span className="min-w-0 flex-1 truncate text-ink" title={name}>
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
+        <Icon className="size-4" aria-hidden />
+      </span>
+      <span className="w-10 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">{label}</span>
+      <span className="min-w-0 flex-1 truncate text-[13px] text-ink" title={name}>
         {name}
       </span>
       <span className="num shrink-0 text-xs text-ink-muted">{size !== undefined ? formatBytes(size) : detail}</span>
@@ -52,7 +54,7 @@ export function FileRow({ icon: Icon, label, name, index, size, detail, disabled
         aria-label={`Remove ${name}`}
         disabled={disabled}
         onClick={onRemove}
-        className="cursor-pointer rounded-sm p-1 text-ink-muted transition-colors hover:text-destructive focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex size-8 cursor-pointer items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
       >
         <XIcon className="size-3.5" aria-hidden />
       </button>

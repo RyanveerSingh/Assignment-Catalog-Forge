@@ -3,47 +3,62 @@
 import { motion, useReducedMotion } from "motion/react";
 import { cn } from "cn";
 import { settle } from "@/components/ext/motion";
-import { PIPELINE_STEPS, STATE_CLASS, STATE_TEXT, sideState, StepGlyph, stepIndexFor, type StepState } from "./stage-stepper";
+import { CARD } from "@/components/ext/surfaces";
+import { PIPELINE_STEPS, STATE_TEXT, sideState, StepGlyph, stepIndexFor, type StepState } from "./stage-stepper";
+
+const DOT: Record<StepState, string> = {
+  done: "bg-brand text-brand-foreground ring-brand",
+  current: "bg-card text-brand ring-brand shadow-[0_0_0_6px_var(--brand-soft)]",
+  upcoming: "bg-card text-ink-muted ring-border",
+  paused: "bg-warning-soft text-warning ring-warning",
+  attention: "bg-warning-soft text-warning ring-warning",
+  failed: "bg-destructive/10 text-destructive ring-destructive",
+  cancelled: "bg-surface-2 text-ink-muted ring-line-strong",
+};
 
 /**
- * The pipeline stepper for the live import page. Each connector is drawn left to right as its
- * stage completes, so a watcher sees progress travel along the row.
- * `initial={false}` means an import opened when already half done renders settled, with no replay.
- * Side states (paused, failed, …) sit on the last pipeline stage the client saw (`lastStage`).
+ * The pipeline as a blue rail: a track between the first and last stage with a fill that eases to
+ * the current stage, and a dot with a label for each stage. `initial={false}` means an import opened
+ * when already half done renders settled, with no replay. Side states (paused, failed, …) sit on the
+ * last pipeline stage the client saw (`lastStage`).
  */
 export function LiveStageStepper({ status, lastStage, className }: { status: string; lastStage: string | null; className?: string }) {
   const reduce = useReducedMotion();
   const side = sideState(status);
   const currentIdx = side ? (lastStage ? stepIndexFor(lastStage) : -1) : stepIndexFor(status);
   const allDone = status === "completed";
+  const n = PIPELINE_STEPS.length;
+  const fill = allDone ? 1 : currentIdx <= 0 ? 0 : currentIdx / (n - 1);
+  const edge = `${100 / (n * 2)}%`;
 
   return (
-    <ol aria-label="Pipeline stages" className={cn("flex flex-wrap items-center gap-y-2 text-xs", className)}>
-      {PIPELINE_STEPS.map((step, i) => {
-        let state: StepState;
-        if (allDone) state = "done";
-        else if (currentIdx < 0) state = "upcoming";
-        else if (i < currentIdx) state = "done";
-        else if (i === currentIdx) state = (side ?? "current");
-        else state = "upcoming";
-        const isLast = i === PIPELINE_STEPS.length - 1;
-        return (
-          <li key={step.key} className="flex items-center" aria-current={state === "current" ? "step" : undefined}>
-            <span className={cn("flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-medium ring-1 ring-inset transition-colors duration-300", STATE_CLASS[state])}>
-              <StepGlyph state={state} index={i} />
-            </span>
-            <span className={cn("ml-1.5 transition-colors duration-300", state === "upcoming" ? "text-ink-muted" : "text-ink", state === "current" && "font-medium")}>
-              {step.label}
-              <span className="sr-only">, {STATE_TEXT[state]}</span>
-            </span>
-            {isLast ? null : (
-              <span aria-hidden className="relative mx-2 h-px w-3 overflow-hidden bg-border sm:w-5">
-                <motion.span className="absolute inset-0 origin-left bg-success/60" initial={false} animate={{ scaleX: state === "done" ? 1 : 0 }} transition={settle(reduce, 0.4, 0.1)} />
-              </span>
-            )}
-          </li>
-        );
-      })}
-    </ol>
+    <div className={cn(CARD, "overflow-x-auto px-4 py-5 no-scrollbar max-md:[mask-image:linear-gradient(to_right,black_88%,transparent)] md:px-6", className)}>
+      <div className="relative min-w-[640px]">
+        <div aria-hidden className="absolute top-3.5 h-1 rounded-full bg-surface-2" style={{ left: edge, right: edge }}>
+          <motion.div className="h-full w-full origin-left rounded-full bg-brand" initial={false} animate={{ scaleX: fill }} transition={settle(reduce, 0.6)} />
+        </div>
+        <ol aria-label="Pipeline stages" className="relative grid text-xs" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}>
+          {PIPELINE_STEPS.map((step, i) => {
+            let state: StepState;
+            if (allDone) state = "done";
+            else if (currentIdx < 0) state = "upcoming";
+            else if (i < currentIdx) state = "done";
+            else if (i === currentIdx) state = side ?? "current";
+            else state = "upcoming";
+            return (
+              <li key={step.key} className="flex flex-col items-center gap-2" aria-current={state === "current" ? "step" : undefined}>
+                <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ring-2 ring-inset transition-colors duration-300", DOT[state])}>
+                  <StepGlyph state={state} index={i} />
+                </span>
+                <span className={cn("whitespace-nowrap transition-colors duration-300", state === "upcoming" ? "text-ink-muted" : "text-ink", (state === "current" || side) && i === currentIdx && "font-semibold")}>
+                  {step.label}
+                  <span className="sr-only">, {STATE_TEXT[state]}</span>
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+    </div>
   );
 }

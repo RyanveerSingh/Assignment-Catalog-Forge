@@ -10,8 +10,8 @@ export default async function SettingsPage({ params }: { params: Promise<{ store
   const ctx = await optionalStore(store);
   if (!ctx) redirect("/login");
   return (
-    <div className="space-y-6">
-      <PageHeader eyebrow="Settings" title="Store settings" description="Languages, translation rules, the AI key and the import budget. Changes apply from the next import." />
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Store settings" description="Languages, translation rules, the AI key and the import budget. Changes apply from the next import." />
       <SettingsForm storeSlug={store} isOwner={ctx.store.role === "owner"} />
     </div>
   );

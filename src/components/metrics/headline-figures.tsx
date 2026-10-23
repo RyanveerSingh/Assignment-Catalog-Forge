@@ -1,7 +1,10 @@
 "use client";
 
+import { motion, useReducedMotion } from "motion/react";
 import { cn } from "cn";
 import { CountUp } from "@/components/ext/count-up";
+import { settle, stagger } from "@/components/ext/motion";
+import { CARD } from "@/components/ext/surfaces";
 import type { StoreMetrics } from "@/db/repositories/metrics";
 import { formatDuration, formatMicrosUsd, formatNumber } from "@/lib/format";
 
@@ -14,10 +17,11 @@ interface Figure {
 }
 
 /**
- * The six numbers that answer "what has this done for me" before any chart: the ink band at the top
- * of the metrics page. Every figure is already in the metrics payload; nothing is queried for it.
+ * The six numbers that answer "what has this done for me" before any chart: a white raised band
+ * with the figures in blue. Every figure is already in the metrics payload; nothing is queried for it.
  */
 export function HeadlineFigures({ data }: { data: StoreMetrics }) {
+  const reduce = useReducedMotion();
   const translationsMade = data.translations.reduce((n, t) => n + t.fresh + t.outdated, 0);
   const languages = data.translations.length;
   const medianMs = data.speed.medianImportMs;
@@ -30,18 +34,17 @@ export function HeadlineFigures({ data }: { data: StoreMetrics }) {
     { key: "median", label: "Median import time", value: medianMs ?? 0, format: (n) => (medianMs === null ? "—" : formatDuration(n)), hint: medianMs === null ? "no completed imports yet" : "first row in to last row out" },
   ];
   return (
-    <section aria-label="Headline figures" className="relative overflow-hidden bg-ink px-5 py-5 text-paper md:px-6 md:py-6">
-      <span aria-hidden className="pointer-events-none absolute -top-24 -right-16 size-72 rounded-full border border-paper/10" />
-      <span aria-hidden className="pointer-events-none absolute -top-10 -right-4 size-40 rounded-full border border-paper/10" />
+    <section aria-label="Headline figures" className={cn(CARD, "relative overflow-hidden px-5 py-5 md:px-6")}>
+      <span aria-hidden className="glow-top pointer-events-none absolute inset-x-0 -top-10 h-40" />
       <dl className="relative grid grid-cols-2 gap-x-5 gap-y-6 md:grid-cols-3 xl:grid-cols-6">
         {figures.map((f, i) => (
-          <div key={f.key} className={cn("flex min-w-0 flex-col gap-2 border-l pl-3 md:pl-4", i === 0 ? "border-brand" : "border-paper/15")}>
-            <dt className="text-[11px] font-medium uppercase tracking-wider text-paper/60">{f.label}</dt>
-            <dd className="font-display text-3xl leading-none text-paper tabular xl:text-[2.25rem]">
+          <motion.div key={f.key} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={settle(reduce, 0.45, stagger(i, 0.06))} className="flex min-w-0 flex-col gap-1.5 border-l border-border pl-4 first:border-brand">
+            <dt className="text-[12px] font-medium text-ink-muted">{f.label}</dt>
+            <dd className="font-display text-[1.9rem] leading-none text-brand tabular xl:text-[2.1rem]">
               <CountUp value={f.value} format={f.format} />
             </dd>
-            <dd className="text-xs leading-4 text-paper/60">{f.hint}</dd>
-          </div>
+            <dd className="text-xs leading-4 text-ink-muted">{f.hint}</dd>
+          </motion.div>
         ))}
       </dl>
     </section>

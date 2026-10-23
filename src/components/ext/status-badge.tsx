@@ -8,10 +8,12 @@ const TONE_BY_STATUS: Record<string, Tone> = {
   completed: "success",
   done: "success",
   approved: "success",
+  fresh: "success",
   draft: "info",
   needs_review: "warning",
   needs_attention: "warning",
   paused: "warning",
+  outdated: "warning",
   failed: "danger",
   rejected: "danger",
   cancelled: "neutral",
@@ -31,12 +33,12 @@ const TONE_BY_STATUS: Record<string, Tone> = {
 };
 
 const TONE_CLASS: Record<Tone, string> = {
-  neutral: "bg-muted text-ink-muted ring-border",
-  brand: "bg-brand-soft text-brand ring-brand/25",
-  success: "bg-success-soft text-success ring-success/25",
+  neutral: "bg-surface-2 text-ink-muted ring-border",
+  brand: "bg-brand-soft text-brand ring-brand/20",
+  success: "bg-success-soft text-success ring-success/20",
   warning: "bg-warning-soft text-warning ring-warning/25",
-  danger: "bg-destructive/10 text-destructive ring-destructive/25",
-  info: "bg-info-soft text-info ring-info/25",
+  danger: "bg-destructive/10 text-destructive ring-destructive/20",
+  info: "bg-brand-soft/60 text-brand ring-brand/15",
 };
 
 const ACTIVE = new Set(["queued", "parsing", "cleaning", "grouping", "enriching", "validating", "translating", "finalizing", "processing", "uploading", "pending_ai"]);
@@ -65,12 +67,12 @@ const ICON_BY_STATUS: Record<string, LucideIcon> = {
 };
 
 /** Status pill with a dot, an icon AND a label, never colour alone. Active statuses pulse their dot. */
-export function StatusBadge({ status, className, label }: { status: string; className?: string; label?: string }) {
+export function StatusBadge({ status, className, label, size = "sm" }: { status: string; className?: string; label?: string; size?: "sm" | "md" }) {
   const tone = TONE_BY_STATUS[status] ?? "neutral";
   const active = ACTIVE.has(status);
   const Icon = ICON_BY_STATUS[status] ?? (active ? ActivityIcon : null);
   return (
-    <span className={cn("inline-flex h-5 items-center gap-1 rounded-sm px-1.5 text-[11px] font-medium uppercase tracking-wide ring-1 ring-inset", TONE_CLASS[tone], className)}>
+    <span className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full font-semibold whitespace-nowrap ring-1 ring-inset", size === "sm" ? "h-6 px-2 text-[11px]" : "h-7 px-2.5 text-xs", TONE_CLASS[tone], className)}>
       <span aria-hidden className={cn("size-1.5 shrink-0 rounded-full bg-current", active && "animate-pulse")} />
       {Icon ? <Icon className="size-3 shrink-0" aria-hidden /> : null}
       {label ?? statusLabel(status)}

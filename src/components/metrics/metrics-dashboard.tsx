@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertCircle, CircleXIcon, EyeIcon, LayersIcon, ListChecksIcon, RefreshCw, SparklesIcon, UploadIcon } from "lucide-react";
 import { cn } from "cn";
 import { EmptyState } from "@/components/ext/page-header";
+import { Reveal } from "@/components/ext/reveal";
 import { StatTile } from "@/components/ext/stat-tile";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -68,11 +69,11 @@ export function MetricsDashboard({ storeSlug }: { storeSlug: string }) {
   }, [load]);
 
   const toolbar = (
-    <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="flex flex-wrap items-center justify-between gap-3 px-1">
       <p className="text-xs text-ink-muted" aria-live="polite">
         {updatedAt ? `Updated ${formatRelative(new Date(updatedAt).toISOString())} · refreshes every 30 s` : "Loading metrics…"}
       </p>
-      <Button variant="outline" size="sm" onClick={() => void load()} disabled={refreshing}>
+      <Button variant="outline" onClick={() => void load()} disabled={refreshing} className="h-9 cursor-pointer rounded-full">
         <RefreshCw aria-hidden className={cn(refreshing && "animate-spin")} />
         Refresh
       </Button>
@@ -81,28 +82,27 @@ export function MetricsDashboard({ storeSlug }: { storeSlug: string }) {
 
   if (!data) {
     return (
-      <div className="space-y-6">
+      <div className="flex flex-col gap-6">
         {toolbar}
         {error ? (
-          <div role="alert" className="flex items-start gap-2 rounded-sm bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <div role="alert" className="flex items-start gap-2 rounded-2xl bg-destructive/5 px-4 py-3 text-sm text-destructive ring-1 ring-destructive/20">
             <AlertCircle aria-hidden className="mt-0.5 size-4 shrink-0" />
             <span>{error}</span>
-            <Button variant="outline" size="xs" className="ml-auto" onClick={() => void load()}>
+            <Button variant="outline" size="xs" className="ml-auto cursor-pointer rounded-full" onClick={() => void load()}>
               Retry
             </Button>
           </div>
         ) : (
-          <div aria-busy="true" aria-label="Loading metrics" className="space-y-6">
-            <Skeleton className="h-32 rounded-sm" />
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          <div aria-busy="true" aria-label="Loading metrics" className="flex flex-col gap-6">
+            <Skeleton className="h-36 rounded-2xl" />
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
               {Array.from({ length: 6 }, (_, i) => (
-                <Skeleton key={i} className="h-24 rounded-sm" />
+                <Skeleton key={i} className="h-32 rounded-2xl" />
               ))}
             </div>
-            <Skeleton className="h-40 rounded-sm" />
             <div className="grid gap-4 lg:grid-cols-2">
-              <Skeleton className="h-64 rounded-sm" />
-              <Skeleton className="h-64 rounded-sm" />
+              <Skeleton className="h-72 rounded-2xl" />
+              <Skeleton className="h-72 rounded-2xl" />
             </div>
           </div>
         )}
@@ -113,13 +113,13 @@ export function MetricsDashboard({ storeSlug }: { storeSlug: string }) {
   const { products: p, imports: i } = data;
   if (i.total === 0 && p.total === 0) {
     return (
-      <div className="space-y-6">
+      <div className="flex flex-col gap-6">
         {toolbar}
         <EmptyState
           title="Run an import to see metrics"
           description="Cost, speed and translation coverage appear here as soon as the first sheet has been processed."
           action={
-            <Link href={`/app/${encodeURIComponent(storeSlug)}/upload`} className={cn(buttonVariants({ size: "sm" }), "cursor-pointer")}>
+            <Link href={`/app/${encodeURIComponent(storeSlug)}/upload`} className={cn(buttonVariants({ size: "lg" }), "cursor-pointer rounded-full")}>
               Upload a file
             </Link>
           }
@@ -130,10 +130,10 @@ export function MetricsDashboard({ storeSlug }: { storeSlug: string }) {
 
   const decided = p.total - (p.byStatus.pending_ai ?? 0);
   return (
-    <div className={cn("space-y-8 transition-opacity", refreshing && "opacity-80")}>
+    <div className={cn("flex flex-col gap-8 transition-opacity", refreshing && "opacity-80")}>
       {toolbar}
       {error ? (
-        <p role="alert" className="flex items-center gap-2 rounded-sm bg-warning-soft px-3 py-2 text-xs text-warning">
+        <p role="alert" className="flex items-center gap-2 rounded-2xl bg-warning-soft px-4 py-3 text-xs text-warning">
           <AlertCircle aria-hidden className="size-3.5" />
           Showing the last successful refresh. {error}
         </p>
@@ -141,14 +141,14 @@ export function MetricsDashboard({ storeSlug }: { storeSlug: string }) {
 
       <HeadlineFigures data={data} />
 
-      <section aria-labelledby="overview-heading" className="space-y-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 id="overview-heading" className="font-display text-xl text-ink">
+      <section aria-labelledby="overview-heading" className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2 px-1">
+          <h2 id="overview-heading" className="font-display text-lg text-ink">
             Overview
           </h2>
           <p className="text-xs text-ink-muted">How many products were written cleanly, how many needed a person and how much came through</p>
         </div>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-6">
           <StatTile index={0} label="Success rate" value={tenths(p.successRate)} format={formatTenths} icon={ListChecksIcon} tone="success" context={`${formatNumber((p.byStatus.draft ?? 0) + (p.byStatus.approved ?? 0))} of ${formatNumber(decided)} decided`} />
           <StatTile index={1} label="Review rate" value={tenths(p.reviewRate)} format={formatTenths} icon={EyeIcon} tone="warning" context={`${formatNumber(p.byStatus.needs_review ?? 0)} need review`} />
           <StatTile index={2} label="Failure rate" value={tenths(p.failureRate)} format={formatTenths} icon={CircleXIcon} tone="danger" context={`${formatNumber(p.byStatus.failed ?? 0)} failed`} />
@@ -158,32 +158,53 @@ export function MetricsDashboard({ storeSlug }: { storeSlug: string }) {
         </div>
       </section>
 
-      <CostSection cost={data.cost} />
+      <Reveal index={1}>
+        <CostSection cost={data.cost} />
+      </Reveal>
 
-      <CostStrategies strategies={data.strategies} />
-
-      <section aria-label="Charts" className="grid gap-4 lg:grid-cols-2">
-        <ChartCard title="AI cost over time" subtitle="What the last 30 days of writing and translating cost, per day">
-          <CostOverTimeChart data={data.costOverTime} />
-        </ChartCard>
-        <ChartCard title="Which models did the work" subtitle="Cost by model; hover a bar for the token counts">
-          <ModelUsageChart models={data.models} />
-        </ChartCard>
-        <ChartCard title="Who wrote what" subtitle="Products per model tier: cheaper models where the rows are simple, stronger ones where they are not">
-          <RoutingChart routing={data.routing} />
-        </ChartCard>
-        <ChartCard title="Translation coverage" subtitle="How many product titles exist in each language" legend={<CoverageLegend />}>
-          <TranslationCoverageChart translations={data.translations} />
-        </ChartCard>
+      {/* The bento: the cost curve takes the wide slot, the three breakdowns share the rest. */}
+      <section aria-label="Charts" className="grid gap-4 lg:grid-cols-6">
+        <Reveal index={0} className="lg:col-span-4">
+          <ChartCard title="AI cost over time" subtitle="What the last 30 days of writing and translating cost, per day">
+            <CostOverTimeChart data={data.costOverTime} />
+          </ChartCard>
+        </Reveal>
+        <Reveal index={1} className="lg:col-span-2">
+          <ChartCard title="Who wrote what" subtitle="Products per model tier">
+            <RoutingChart routing={data.routing} />
+          </ChartCard>
+        </Reveal>
+        <Reveal index={2} className="lg:col-span-3">
+          <ChartCard title="Which models did the work" subtitle="Cost by model; hover a bar for the token counts">
+            <ModelUsageChart models={data.models} />
+          </ChartCard>
+        </Reveal>
+        <Reveal index={3} className="lg:col-span-3">
+          <ChartCard title="Translation coverage" subtitle="How many product titles exist in each language" legend={<CoverageLegend />}>
+            <TranslationCoverageChart translations={data.translations} />
+          </ChartCard>
+        </Reveal>
       </section>
 
-      <TranslationTable translations={data.translations} />
+      <Reveal>
+        <CostStrategies strategies={data.strategies} />
+      </Reveal>
 
-      <SpeedSection speed={data.speed} storeSlug={storeSlug} />
+      <Reveal>
+        <TranslationTable translations={data.translations} />
+      </Reveal>
 
-      <ModelTable models={data.models} />
+      <Reveal>
+        <SpeedSection speed={data.speed} storeSlug={storeSlug} />
+      </Reveal>
 
-      <EvalTable evals={data.evals} />
+      <Reveal>
+        <ModelTable models={data.models} />
+      </Reveal>
+
+      <Reveal>
+        <EvalTable evals={data.evals} />
+      </Reveal>
     </div>
   );
 }
