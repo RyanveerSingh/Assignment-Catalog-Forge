@@ -126,7 +126,8 @@ Local machine, Docker Postgres, demo provider (deterministic stand-in, zero cost
 | 120-row messy sample with 56-file photo ZIP over HTTP (upload → finished) | 8 s first time; 2 s when re-uploaded unchanged (no AI calls) |
 | 10,000-row sample, Fast mode, two workers (one embedded in the web process, one standalone), AI concurrency 4 each | 7.2 min end to end (434 s) ≈ 1,380 rows/min including translation of 4,758 products into DE and FR; parse → clean → group → AI finished at 194 s (≈ 3,100 rows/min); 10,000/10,000 rows terminal (4,746 done, 5,254 need review, 0 failed) |
 | Storefront during the 10k import (autocannon, 50 connections, 30 s, two workers busy on the same laptop) | collection page 145 req/s, p50 341 ms, p99 448 ms; product page 154 req/s, p50 320 ms, p99 410 ms; 0 errors, 0 non-2xx |
-| Storefront idle (same settings) | _(filled below once the 10k run finishes)_ |
+| Storefront idle (same settings) | collection 100 req/s, p50 469 ms, p99 694 ms; product 107 req/s, p50 465 ms, p99 540 ms; 0 errors. Throughput is the same with or without an import running: the ceiling is one Node render process on a laptop, not the database |
+| Storefront idle, 10 connections | collection 116 req/s, p50 85 ms, p99 128 ms; product 116 req/s, p50 85 ms, p99 120 ms |
 | Eval, messy-120, demo provider | product recall 98.3%, variant recall 99.1%, price exactness 99.1%, title keywords 93.0%, category 75.4%, negated violations 0, duplicate precision/recall 100% |
 | Estimated cost per 1,000 products, routed + batched (Haiku/Sonnet list prices) | ≈ $1.20, versus ≈ $21 for Sonnet-everywhere realtime; the Metrics tab reports the measured figure |
 
