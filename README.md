@@ -3,8 +3,8 @@
 Drop in a messy supplier spreadsheet and a folder of photos; get a clean, reviewed, three-language product catalog with a live storefront. Built for the CatalogForge assignment by Ryanveer Singh.
 
 - **Live demo:** _(URL added at deployment; see "Deploying" below)_ · sign in with `demo@catalogforge.dev` / `demo1234`
-- **Sample files:** downloadable from the Upload tab (or `samples/`), from a 10-row happy path to a 10,000-row bulk sheet and a deliberately broken photo ZIP
-- **Edge cases:** [EDGE-CASES.md](EDGE-CASES.md) (first commit, 139 entries, statuses kept current) · **Plan:** [docs/PLAN.md](docs/PLAN.md) · **Eval harness:** [eval/README.md](eval/README.md)
+- **Sample files:** downloadable from the Upload tab (or `samples/`), from a 10-row happy path to a 10,000-row bulk sheet, a deliberately broken photo ZIP and a mysqldump with a `DROP TABLE` in it
+- **Edge cases:** [EDGE-CASES.md](EDGE-CASES.md) (first commit, 148 entries, statuses kept current) · **Plan:** [docs/PLAN.md](docs/PLAN.md) · **Eval harness:** [eval/README.md](eval/README.md)
 
 ![Import detail](docs/screenshots/03-import-detail.png)
 
@@ -50,7 +50,7 @@ Folder layout: `src/core` is pure TypeScript (no I/O) and holds parsing, cleanin
 
 ## Setup
 
-Prerequisites: Node 22, Docker Desktop (for local Postgres), an Anthropic API key (optional: without one the app runs in demo mode with a deterministic stand-in provider).
+Prerequisites: Node 22, Docker Desktop (for local Postgres), an Anthropic API key (optional: without one the app runs in demo mode with a deterministic stand-in provider whose calls are free but priced at Haiku and Sonnet list rates, so every cost figure is a realistic estimate).
 
 ```bash
 git clone https://github.com/RyanveerSingh/Assignment-Catalog-Forge.git catalogforge
@@ -118,7 +118,7 @@ A DB-driven driver (`src/jobs/drive.ts`) looks at the tables after every job, on
 
 ## Measured numbers
 
-Local machine, Docker Postgres. The first block uses the demo provider (deterministic stand-in, zero cost); the second block is the real models (Haiku 5.5 cheap tier, Sonnet 5.5 for photos and escalation) on the same scripts.
+Local machine, Docker Postgres. The first block uses the demo provider (deterministic stand-in; free to run, with costs reported as estimates at list rates); the second block is the real models (Haiku 5.5 cheap tier, Sonnet 5.5 for photos and escalation) on the same scripts.
 
 | Measurement | Value |
 |---|---|
@@ -141,12 +141,12 @@ Local machine, Docker Postgres. The first block uses the demo provider (determin
 ![Metrics](docs/screenshots/06-metrics.png)
 ![Storefront](docs/screenshots/10-storefront-product.png)
 
-- **Upload:** drag-and-drop sheet + photos/ZIP, Fast vs Economy, budget, live SSE progress with a stage stepper, KPIs, sheet mapping, event log and a filterable per-row table with issues and reasons.
-- **Products:** server-side paginated table (10/25/50/100), sorting, search, status and confidence filters, colour-coded confidence with the number always shown, bulk approve with an explicit opt-in for products that need review, CSV / JSON / Shopify CSV export.
-- **Review drawer:** source rows and photos beside the editable listing; claim chips highlight the cell they came from; optimistic-version saves; translations per locale with manual fixes and Out-of-date flags; approve, send back, reject, re-run with a different model or prompt version, delete/restore.
+- **Upload:** drag-and-drop sheet + photos/ZIP, Fast vs Economy, budget, live SSE progress with a stage stepper, KPIs, sheet mapping, event log and a filterable per-row table with issues and reasons. Also accepts a `mysqldump` / `pg_dump` of a product table (`.sql`, parsed in memory, never executed) and a pasted public Google Sheets link, fetched from docs.google.com only, which then follows the exact same path as an uploaded file. The import page draws a data-hygiene flow: per stage, what the deterministic pipeline did (duplicates collapsed, mojibake and unsafe HTML repaired, prices and units normalised, conflicts and possible duplicates, routing by tier, response-cache hits, claims verified or blocked), every count taken from the tables of record.
+- **Products:** server-side paginated table (10/25/50/100), sorting, search, status and confidence filters, colour-coded confidence with the number always shown, bulk approve with an explicit opt-in for products that need review, CSV / JSON / Shopify CSV export. An "Unmatched photos" tray above the table lets the merchant assign an orphan photo to any product (search by title, handle or SKU) or dismiss it; assignment is audited and updates a live product's storefront images at once.
+- **Review drawer:** source rows and photos beside the editable listing; every verified claim is a chip that, on hover or pin, marks the exact quoted words in the source cell; everything the grounding validator blocked is a Guardrail badge ("Blocked 'frost-proof' — source says 'not frost-proof', Row 14 · Notes") pointing at the negation as the supplier wrote it; a "Show cleaning" toggle lists what the cleaner changed before the AI saw the row (raw price cell → cents, units → cm and g, HTML → text, mojibake repairs, colour matches); photos carry their match method and score; optimistic-version saves; translations per locale with manual fixes and Out-of-date flags; approve, send back, reject, re-run with a different model or prompt version, delete/restore.
 - **Storefront:** collection and product pages in the visitor's language (country switcher; DE/AT → German, FR → French, else English), per-field English fallback with a notice, mobile-first.
-- **Metrics:** processed counts and rates, cost over time, model usage, routing, savings meter, translation coverage and Out-of-date counts, speed (fastest and slowest import, AI latency), eval runs.
-- **Settings:** store, languages and country map, glossary, API key, budget, chaos panel, crash button.
+- **Metrics:** processed counts and rates, cost over time, model usage, routing, savings meter, a cost-strategies table that prices the same recorded calls four ways (Sonnet everywhere, routed without the prompt cache, actual, actual through the Batch API) with cost per 1,000 products, translation coverage and Out-of-date counts, speed (fastest and slowest import, AI latency), eval runs.
+- **Settings:** store, languages and country map, glossary, API key, budget, chaos panel (inject rate limits, timeouts or invalid JSON at a chosen rate) and a crash button that kills the worker mid-batch: in-flight jobs lose their leases, a fresh worker starts two seconds later and the reaper hands it the abandoned work, while the storefront keeps serving.
 
 ## Public API
 
@@ -156,6 +156,8 @@ Create a key in Settings, then:
 curl -X POST https://<host>/api/v1/imports -H "Authorization: Bearer cf_live_…" -F sheet=@samples/messy-120.csv -F photos=@samples/photos-messy.zip -F mode=fast
 curl https://<host>/api/v1/imports/<id> -H "Authorization: Bearer cf_live_…"
 curl https://<host>/api/v1/products?status=approved -H "Authorization: Bearer cf_live_…"
+# a public Google Sheet instead of a file
+curl -X POST https://<host>/api/v1/imports -H "Authorization: Bearer cf_live_…" -H "Content-Type: application/json" -d '{"sheetUrl":"https://docs.google.com/spreadsheets/d/<id>/edit","mode":"fast"}'
 ```
 
 ## Deploying (free tier)
@@ -166,7 +168,7 @@ curl https://<host>/api/v1/products?status=approved -H "Authorization: Bearer cf
 
 ## Not built, and why
 
-Nothing in the required feature list is missing. Six items from the "beyond" list were cut, in the order the plan set out, to protect the four non-negotiables (resume after restart, never duplicate, never invent, storefront stays fast). Each is listed with its reason and its fix in `EDGE-CASES.md` → "Not built (and why)": webhooks on import completion (tables and hook point exist, delivery job not written), image URL download (needs an SSRF allow-list before it is safe to ship), manual photo assignment (automatic matching covers 48 of 53 photos in the messy sample), an output-language guard (no non-English output observed in any run), locale back-fill and translation chunking (a too-long field falls back to English with a visible flag), an orphan-blob sweep and per-key API rate limiting.
+Nothing in the required feature list is missing. Five items from the "beyond" list were cut, in the order the plan set out, to protect the four non-negotiables (resume after restart, never duplicate, never invent, storefront stays fast). Each is listed with its reason and its fix in `EDGE-CASES.md` → "Not built (and why)": webhooks on import completion (tables and hook point exist, delivery job not written), image URL download (needs an SSRF allow-list before it is safe to ship), an output-language guard (no non-English output observed in any run), locale back-fill and translation chunking (a too-long field falls back to English with a visible flag), an orphan-blob sweep and per-key API rate limiting.
 
 ## Technical write-up
 

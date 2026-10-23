@@ -12,7 +12,7 @@ Status legend
 | ❌ | Not handled: with the reason and what it would take |
 | ⬜ | Planned: not built yet |
 
-Counts (kept current by hand, last pass 2026-10-23 08:00 IST): ✅ 79 · 🟡 47 · ❌ 9 · ⬜ 4
+Counts (148 entries, last pass 2026-10-23 12:30 IST): ✅ 87 · 🟡 54 · ❌ 7 · ⬜ 0
 
 Tests reference these IDs by name (for example `EC-B5: parses "1.299,00 €" as 129900 EUR`), so a status is flipped to ✅ only when such a test exists. Run `npx vitest run` and grep for `EC-` to see them all.
 
@@ -48,7 +48,12 @@ Tests reference these IDs by name (for example `EC-B5: parses "1.299,00 €" as 
 | A16 | Header-only sheet (zero data rows) | Import completes with 0 rows and a clear message instead of hanging in "processing". | ✅ |
 | A17 | ZIP bomb, nested ZIPs, path traversal names (`../../x.jpg`), non-image files inside | Streaming extraction with a decompression-ratio limit and an entry cap; only files whose magic bytes say image are kept; folder prefixes and dot-files are stripped; everything else is listed in the import log. | ✅ matching of sub-folder names tested; extraction limits 🟡 |
 | A18 | Upload interrupted halfway | Files are only attached to an import after they are fully received and validated; a half-received request creates nothing. Orphaned blobs from a crash between "blob stored" and "import created" are not swept. | ❌ no cleanup job (time); impact is wasted storage, never a broken import |
-| A19 | Photos uploaded without a sheet | Rejected with "Attach a CSV or XLSX file as 'sheet'". Adding photos to an existing import later is not built. | 🟡 |
+| A19 | Photos uploaded without a sheet | Rejected with "Attach a CSV, XLSX or SQL dump as 'sheet', or send a Google Sheets link as 'sheetUrl'". Adding photos to an existing import later is not built. | 🟡 |
+| A20 | A supplier sends a mysqldump / pg_dump instead of a sheet | Parsed in memory, never executed (nothing in the parser can reach a database): `INSERT … VALUES` tuples in MySQL and Postgres quoting (multi-row, `''` and `\'` escapes, NULL → empty, numbers, commas/parentheses/semicolons inside strings) and `COPY … FROM stdin` blocks (`\N`, tab escapes, `\.`) become the same rows a CSV would. Column names come from the INSERT list, else the CREATE TABLE, else `column_N`. CRLF and BOM are fine; junk yields "No INSERT or COPY statements with rows were found", never a crash. Detected by content or a `.sql` extension; same 10,000-row cap. | ✅ 43 cases |
+| A21 | The dump holds several tables | The table with the most rows is used (its name is the sheet name in the import log); the others are named in an info issue. | ✅ |
+| A22 | The dump contains `DROP TABLE`, `DELETE`, `SET`, `LOCK TABLES` or other non-INSERT statements | Skipped and counted in one info issue naming the kinds ("4 statements that do not insert rows were ignored (DROP TABLE, …)"). COPY blocks in CSV format are refused with a message instead of producing garbage. | ✅ |
+| A23 | A Google Sheets link is pasted instead of a file | Sheet id and tab (gid) are parsed from edit, share, export and publish-to-web links; only `https://docs.google.com/spreadsheets/d/<id>/export?format=csv[&gid=]` is fetched (fixed host, 20 s timeout, size cap, redirects refused unless they stay on docs.google.com / googleusercontent.com). The CSV then takes the exact upload path: blob, import, file hash and the duplicate-upload rule. | ✅ URL parsing and fetch (fake fetch); live Google 🟡 |
+| A24 | The Google Sheet is private | Google answers with a login page or 401/403; the import fails before anything is stored with "This sheet is not shared publicly. In Google Sheets choose Share → Anyone with the link → Viewer and try again." | ✅ |
 
 ## B. Columns and values
 
@@ -90,7 +95,7 @@ Tests reference these IDs by name (for example `EC-B5: parses "1.299,00 €" as 
 | C10 | The same file, or an updated version, is uploaded again | Products are upserted by `(store, product_key)`, variants by `(store, sku)`; unchanged products skip the AI entirely; any changed cell re-runs it; manual edits win. Zero duplicates by construction. | ✅ pipeline test (re-upload: same product count, zero AI calls) |
 | C11 | A re-upload no longer contains some products | They are kept and marked "missing from latest import" for the merchant to decide. | 🟡 |
 | C12 | Photo filename matches a SKU, a handle or an image column value (`TC-PL-20_2.jpg`, `tc-pl-20 (2).png`) | Matching ladder: image column → SKU → SKU stem → handle → fuzzy; the sequence number sets the position. | ✅ |
-| C13 | A photo matches no row | Stays "unmatched" with the import; never sent to the AI. Manual assignment is not built. | ✅ detection; manual assign ❌ |
+| C13 | A photo matches no row | Stays "unmatched" with the import; never sent to the AI. The Products page shows an "Unmatched photos" tray: assign to any product (search by title, handle, key or SKU) or dismiss (restorable). Assignment records match method `manual`, score 100, position after the product's photos, is audited, and rebuilds a live product's storefront images at once. | ✅ `src/core/photos/manual.test.ts` |
 | C14 | A row references an image URL | Not downloaded: fetching arbitrary URLs from the worker needs an SSRF allow-list, timeouts and size caps that were not built in time. The reference is kept as a missing photo. | ❌ |
 | C15 | A row references a filename that is not in the ZIP | Reported as a missing reference; the product is still created. | ✅ |
 | C16 | Corrupt, 0-byte, SVG or HEIC images | Validated by magic bytes then decoded by sharp; SVG is rejected (script vector); undecodable files are listed in the import log with the reason. | 🟡 |
@@ -98,13 +103,14 @@ Tests reference these IDs by name (for example `EC-B5: parses "1.299,00 €" as 
 | C18 | Identical photos under different names | SHA-256 dedupe: one processed blob, many photo rows. | 🟡 |
 | C19 | A product has photos but no usable text | Routed to the vision tier; every field low confidence; review. | ✅ routing; vision call path 🟡 |
 | C20 | 2,000 photos in one ZIP | Streamed extraction, entry cap, progress in the import log. | 🟡 not yet run at that size |
+| C21 | The merchant wants to know why a photo sits on a product | Every photo in the review drawer carries a badge with its match method and score ("SKU · 100", "Stem · 85", a fuzzy match below 70 in warning tone, "Manual") and a tooltip with the file name. | ✅ `photo-match-label.test.ts` |
 
 ## D. AI
 
 | ID | What happens | What CatalogForge does (and why) | Status |
 |---|---|---|---|
 | D1 | The model returns invalid JSON or violates the schema | Structured outputs + Zod validation; the second attempt escalates to the strong model; the third splits the batch into single products; then Failed with the error as the reason. | 🟡 chaos injection exists; escalation path untested |
-| D2 | The model invents a claim ("organic", "handmade") | The grounding validator checks every marketing/regulatory term against the product's source text; unsupported terms are removed from claims and text and the product is flagged "Listing says X but the source does not". | ✅ |
+| D2 | The model invents a claim ("organic", "handmade") | The grounding validator checks every marketing/regulatory term against the product's source text; unsupported terms are removed from claims and text and the product is flagged "Listing says X but the source does not". Every removal is persisted on the product as `guardrails` and shown in the review drawer as a Guardrail badge pointing at the source cell. | ✅ |
 | D3 | The model outputs a category outside the taxonomy | Nearest taxonomy path by trigram similarity, otherwise fallback + review. | ✅ |
 | D4 | The model changes a number (20 cm becomes 25 cm) | Number audit against the source, including unit conversions; unsupported numbers are flagged, two or more send the product to review. | ✅ |
 | D5 | The model "corrects" a SKU or price | Impossible by construction: the output schema has no money or identity fields. | 🟡 by construction |
@@ -144,7 +150,7 @@ Tests reference these IDs by name (for example `EC-B5: parses "1.299,00 €" as 
 | E13 | Memory pressure parsing 10k rows × 30 columns | Rows are written in 500-row chunks and cleaned per chunk; the parser is bounded by the 10k row cap and the 50 MB file cap. The 10,000-row sample (2.7 MB, 15 columns) ran end to end in 7.2 min with every row terminal; the driver enqueues missing work with one statement per stage so large imports stay linear. | ✅ measured |
 | E14 | A deploy happens during an import | SIGTERM → stop claiming, finish in-flight for ≤ 30 s, exit; migrations are additive; the new version resumes. | 🟡 |
 | E15 | "Resuming in X minutes" across time zones | `paused_until` is stored as an absolute timestamp; the client computes the delta. | 🟡 |
-| E16 | Embedded-worker mode: a worker crash is also a web crash | The host restarts the process; resume path is E1. Locally the worker is a separate container. | 🟡 |
+| E16 | Embedded-worker mode: a worker crash is also a web crash | A real crash: the host restarts the process and the resume path is E1. The chaos panel's "Crash worker now" deliberately does not exit the process (a Render free instance takes a minute to cold-start, during which the storefront would 502): it aborts every handler mid-flight without reporting back, abandons their leases for the reaper, and starts a fresh worker two seconds later while HTTP keeps serving. | 🟡 |
 | E17 | The host throttles CPU (0.1 vCPU on the free tier) | Image work runs at concurrency 2; parsing is streamed; AI stages are I/O-bound. | 🟡 |
 | E18 | The free database suspends after 5 minutes idle | The worker stops polling when nothing is pending and sleeps until an enqueue or a 10-minute timer. | ✅ |
 | E19 | The free database storage cap (1 GB) is approached | Photos are stored resized only (≈ 40 KB each). A projected-size refusal was not built. | 🟡 partial |
@@ -160,6 +166,8 @@ Tests reference these IDs by name (for example `EC-B5: parses "1.299,00 €" as 
 | F5 | Bulk approve includes products that need review | Excluded by default; "approve anyway" is explicit. | 🟡 |
 | F6 | The merchant re-runs AI on an approved product | Results go to the draft only; the published version is untouched until re-approved. | 🟡 |
 | F7 | Two browser tabs edit the same product | Optimistic `version` check; the second save gets 409 and is told to reload. | 🟡 |
+| F8 | The reviewer wants to see which source words a claim rests on, and what was blocked | Every verified claim is a chip ("frost-resistant · Row 14 · Notes"); hovering or pinning it marks the exact quoted substring in the source cell. Everything the validator removed is persisted as `guardrails` and shown as Guardrail badges ("Blocked 'frost-proof' — source says 'not frost-proof' (Row 14 · Notes)") that mark the negation as the supplier wrote it. | ✅ `quote.test.ts`, grounding tests |
+| F9 | The reviewer wants to know what the cleaner changed before the AI saw the row | "Show cleaning" in the drawer lists, per source row, only the fields the deterministic cleaner changed or flagged: raw price cell → cents + currency, weight → g, lengths → cm, HTML → text with the count of unsafe tags removed, mojibake raw → repaired, colour fuzzy matches, size and SKU normalisation, detected language. | ✅ `xray.test.ts` (B1, B2, B5, B7, B9–B14, B18, C6, A4) |
 
 ## G. Translation
 
@@ -205,7 +213,7 @@ Tests reference these IDs by name (for example `EC-B5: parses "1.299,00 €" as 
 
 | ID | What happens | What CatalogForge does (and why) | Status |
 |---|---|---|---|
-| J1 | No API key is configured | The app runs in demo mode with a deterministic stand-in provider and a banner; a key can be added in Settings per store. | 🟡 |
+| J1 | No API key is configured | The app runs in demo mode with a deterministic stand-in provider and a banner; a key can be added in Settings per store. The stand-in's calls cost nothing but are priced at the real tiers' list rates and labelled as estimates, so the cost tracking, savings meter and budget cap behave exactly as they would with a key instead of showing zeros. | 🟡 |
 | J2 | Migrations must run on deploy | They run at boot under an advisory lock and are additive. | 🟡 |
 | J3 | The host's health check | `/api/health` reports DB latency and queue depth; 503 when the database is down. | 🟡 |
 | J4 | Debugging a failed import | Structured logs with import/job ids; every import has a visible event log. | 🟡 |
@@ -213,14 +221,15 @@ Tests reference these IDs by name (for example `EC-B5: parses "1.299,00 €" as 
 | J6 | The free host's monthly instance hours or bandwidth run out | Nothing in-app can fix this; documented in the README. | 🟡 |
 | J7 | An export of 10,000 products | Streamed in pages of 50 products; never buffered. | ✅ |
 | J8 | Shopify CSV specifics (handle repetition, option columns, image rows) | Dedicated exporter following Shopify's layout. | ✅ |
+| J9 | A merchant asks what the deterministic pipeline actually did to a sheet | The import page draws the five stages (ingest, cleaning, grouping, routing, grounding gate) with counts and stacked bars, every number taken from `import_rows`, `products`, `ai_requests` and the grounding events, never from the import's own counters; a stage that has not run shows zero, and it refreshes every 10 s while the worker owns the import. Ragged rows are not shown because the parser's per-row issues are not persisted. | ✅ `core/metrics/hygiene.test.ts` |
+| J10 | "What would this have cost without routing, caching or batching?" | The Metrics tab prices the store's recorded calls four ways (Sonnet everywhere, routed without the prompt cache, actual, actual through the Batch API) with per-1,000-product figures and savings; the demo provider is priced at Haiku/Sonnet list rates and labelled as an estimate. | ✅ `core/metrics/cost-strategies.test.ts` |
 
 ## Not built (and why)
 
 None of these is in the required feature list; each was cut by the plan's cut order (`docs/PLAN.md` §12) to protect the four non-negotiables: resume after restart, never duplicate, never invent, storefront stays fast.
 
 - **Webhook on import completion.** The `webhooks` and `webhook_deliveries` tables exist and the finalize job has the hook point. Delivery (HMAC-SHA256 signature, three retries with backoff, delivery log, a Settings panel) is about two hours of work and was the first "beyond" item cut.
-- **Image URL download (C14, I4).** Fetching merchant-supplied URLs from the worker needs an SSRF allow-list (block private ranges and DNS rebinding), per-host timeouts, size caps, content sniffing and retries. Half-built, it is a security hole; left out rather than shipped unsafe. URL references are kept as "missing photo" so nothing is lost.
-- **Manual photo assignment (C13).** Unmatched photos are listed with the import; assigning one to a product by hand needs a picker in the review drawer plus a product-photo write. Automatic matching covers 48 of the 53 files in the messy sample; the five left are the ones built to be unmatched.
+- **Image URL download (C14, I4).** Fetching merchant-supplied URLs from the worker needs an SSRF allow-list (block private ranges and DNS rebinding), per-host timeouts, size caps, content sniffing and retries. Half-built, it is a security hole; left out rather than shipped unsafe. URL references are kept as "missing photo" so nothing is lost. (The Google Sheets link import, A23, is different: the host is fixed to docs.google.com, so there is no arbitrary URL to abuse.)
 - **Output-language check (D21).** The prompt demands English and both real-model eval runs produced English for every German and French source product (title keyword rate 100%); a `franc` check on the output would be a guard against a regression, not a fix for an observed problem.
 - **Translation chunking and locale back-fill (G5, G7).** A field that exceeds the output limit fails verification and falls back to English with a visible flag. Adding a locale later needs a back-fill pass (clear `translated_at` for approved products so the existing translate job picks them up); not wired to the Settings save.
 - **Orphan-blob sweep (A18).** A crash between "blob stored" and "import created" leaves an unreferenced blob: wasted storage, never a broken import. A maintenance job that deletes blobs unreferenced for an hour is the fix.

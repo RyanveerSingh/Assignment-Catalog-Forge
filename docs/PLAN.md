@@ -420,11 +420,14 @@ Cut order if we fall behind (last cut first): Shopify CSV → public API → web
 - [ ] Measured numbers: rows/min (1k and 10k, Fast and Economy, local and hosted), storefront p50/p95/p99 with and without an import, cost per 1,000 products per scenario, eval accuracy per field
 
 **Recording shot list (each scene is one click thanks to the chaos panel):**
-1. Upload `messy-120.csv` + `photos.zip` → pre-flight (issues, estimate) → run → review drawer (claims with source chips, a stripped invented claim, a negated claim caught).
-2. Upload `bulk-10000.csv` → live progress → open storefront in another tab, switch country to DE/FR, mobile view → run autocannon in a terminal while importing.
-3. Restart: locally, kill the separate worker container mid-import and start it again; on Render, press "Crash worker now" and watch the host restart it. Import resumes, counts unchanged.
-4. Chaos: 429 at 50% → "Paused — resuming in X" → auto-resume; invalid JSON injection → repair retry visible in the event log.
-5. Metrics: throughput, cost, savings meter, translation coverage, outdated count; Products: edit a translation, change English, see Out of date.
+1. Upload `messy-120.csv` + `photos-messy.zip` → pre-flight (issues, estimate) → run → the data-hygiene flow fills in stage by stage (duplicates collapsed, mojibake and HTML repaired, prices and units normalised, routing split, grounding gate).
+2. Review drawer on a German-source product: hover a claim chip and watch the exact quoted words light up in the source cell; a Guardrail badge for a blocked claim ("source says 'not frost-proof'"); toggle "Show cleaning" to see `1.299,00 €` become 129900 cents EUR and `3.96 lbs` become grams; photo badges showing SKU / stem / manual matches.
+3. Products tab: the "Unmatched photos" tray → assign an orphan photo to a product → open the storefront page and the image is there.
+4. Upload `dump-mysql.sql` (a mysqldump with a `DROP TABLE` in it) and show it parses to the same rows; paste a public Google Sheets link and show it imports.
+5. Upload `bulk-10000.csv` → live progress → open the storefront in another tab, switch country to DE/FR, mobile view → run autocannon in a terminal while importing.
+6. Settings → "Crash worker now" mid-import: the event log shows the reaper reclaiming the abandoned jobs, the import resumes with counts unchanged, the storefront tab never stopped responding.
+7. Chaos: 429 at 50% → "Paused — resuming in X" → auto-resume; invalid JSON injection → retry visible in the event log.
+8. Metrics: throughput, the cost-strategies table (Sonnet everywhere vs routed vs actual vs Batch), savings meter, translation coverage and outdated count; Products: edit a translation, change the English, see Out of date.
 
 ---
 
