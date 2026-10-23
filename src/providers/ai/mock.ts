@@ -47,7 +47,8 @@ export function createMockProvider(): AiProvider {
     name: "mock",
     complete: run,
     async createBatch<T>(reqs: Array<AiRequest<T> & { customId: string }>): Promise<AiBatchHandle> {
-      const id = `mock-batch-${++batchSeq}`;
+      // Unique per process: an id from before a restart must look unknown, not collide with a new batch.
+      const id = `mock-batch-${process.pid}-${Date.now().toString(36)}-${++batchSeq}`;
       const results: Array<AiBatchResult<unknown>> = [];
       for (const r of reqs) {
         try {

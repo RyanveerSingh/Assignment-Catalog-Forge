@@ -79,39 +79,46 @@ export async function driveImport(db: Db, importId: string): Promise<void> {
     }
 
     case "enriching": {
-      const batches = await listPendingBatchKeys(db, importId);
-      if (batches.length === 0) {
-        const byStatus = await countProductsByStatus(db, importId);
-        if ((byStatus.pending_ai ?? 0) === 0) {
-          if (await transitionImport(db, importId, "enriching", "translating")) await appendImportEvent(db, importId, "info", "Translating");
-          return driveImport(db, importId);
-        }
-        // Products pending but without a batch key: the group job assigns keys; ask it to run again.
-        specs.push({ key: jobKeys.group(importId), type: JOB_TYPES.group, ...base });
-        break;
+      const byStatus = await countProductsByStatus(db, importId);
+      if ((byStatus.pending_ai ?? 0) === 0) {
+        if (await transitionImport(db, importId, "enriching", "translating")) await appendImportEvent(db, importId, "info", "Translating");
+        return driveImport(db, importId);
       }
       if (imp.mode === "economy") {
+        const batches = await listPendingBatchKeys(db, importId);
+        if (batches.length === 0) {
+          // Products pending but without a batch key: the group job assigns keys; ask it to run again.
+          specs.push({ key: jobKeys.group(importId), type: JOB_TYPES.group, ...base });
+          break;
+        }
         // Batch API per tier; anything explicitly sent back to realtime (rt:…) or split after an error runs as a normal job.
         const realtime = batches.filter((b) => b.key.startsWith("rt:") || b.key.includes(":single:"));
         const batched = batches.filter((b) => !realtime.includes(b));
         for (const tier of new Set(batched.map((b) => b.tier))) specs.push({ key: jobKeys.batchSubmit(importId, tier), type: JOB_TYPES.batchSubmit, payload: { tier }, ...base, queue: "ai" });
         for (const b of realtime) specs.push({ key: jobKeys.enrich(b.key), type: JOB_TYPES.enrich, payload: { productIds: b.productIds, tier: b.tier }, ...base, queue: "ai" });
-      } else {
-        for (const b of batches) specs.push({ key: jobKeys.enrich(b.key), type: JOB_TYPES.enrich, payload: { productIds: b.productIds, tier: b.tier }, ...base, queue: "ai" });
+        break;
+      }
+      // Fast mode: one statement enqueues every missing batch, however many products are pending (EC-E13).
+      const inserted = await enqueueEnrichBatches(db, imp);
+      if (inserted > 0) wakeWorker();
+      else {
+        const keyed = await listPendingBatchKeys(db, importId);
+        if (keyed.length === 0) specs.push({ key: jobKeys.group(importId), type: JOB_TYPES.group, ...base });
       }
       break;
     }
 
     case "translating": {
-      const pending = await db
-        .select({ id: products.id })
+      const [pendingCount] = await db
+        .select({ n: sql<number>`count(*)::int` })
         .from(products)
         .where(and(eq(products.lastImportId, importId), sql`${products.status} in ('draft','needs_review')`, sql`${products.translatedAt} is null`));
-      if (pending.length === 0) {
+      if ((pendingCount?.n ?? 0) === 0) {
         if (await transitionImport(db, importId, "translating", "finalizing")) await appendImportEvent(db, importId, "info", "Finalizing");
         specs.push({ key: jobKeys.finalize(importId), type: JOB_TYPES.finalize, ...base });
       } else {
-        for (const p of pending) specs.push({ key: jobKeys.translate(p.id), type: JOB_TYPES.translate, payload: { productId: p.id }, ...base, queue: "translate" });
+        const inserted = await enqueueTranslateJobs(db, imp);
+        if (inserted > 0) wakeWorker();
       }
       break;
     }
@@ -129,6 +136,49 @@ export async function driveImport(db: Db, importId: string): Promise<void> {
       wakeWorker();
     }
   }
+}
+
+/**
+ * Bulk enqueue of enrich batches for an import: one INSERT … SELECT grouped by batch key. Keys that are
+ * already queued or running are left alone; finished keys are revived (same semantics as `enqueue`).
+ */
+async function enqueueEnrichBatches(db: Db, imp: ImportRow): Promise<number> {
+  const priority = priorityFor(imp.totalRows);
+  const result = await db.execute<{ key: string }>(sql`
+    insert into jobs (key, queue, type, payload, status, priority, run_at, attempts, max_attempts, store_id, import_id)
+    select p.ai_batch_key, 'ai', ${JOB_TYPES.enrich},
+           jsonb_build_object('productIds', jsonb_agg(p.id order by p.id), 'tier', coalesce(min(p.ai_tier), 'cheap')),
+           'queued', ${priority}, now(), 0, 5, ${imp.storeId}::uuid, ${imp.id}::uuid
+      from products p
+     where p.last_import_id = ${imp.id} and p.status = 'pending_ai' and p.ai_batch_key is not null
+     group by p.ai_batch_key
+    on conflict (key) do update
+       set status = 'queued', payload = excluded.payload, priority = excluded.priority, run_at = now(),
+           attempts = 0, locked_until = null, worker_id = null, last_error = null, completed_at = null,
+           import_id = excluded.import_id, store_id = excluded.store_id, updated_at = now()
+     where jobs.status in ('completed', 'failed', 'dead')
+    returning key
+  `);
+  return result.rows.length;
+}
+
+/** Bulk enqueue of translate jobs for every product of an import that still needs translation. */
+async function enqueueTranslateJobs(db: Db, imp: ImportRow): Promise<number> {
+  const priority = priorityFor(imp.totalRows);
+  const result = await db.execute<{ key: string }>(sql`
+    insert into jobs (key, queue, type, payload, status, priority, run_at, attempts, max_attempts, store_id, import_id)
+    select 'product:' || p.id || ':translate', 'translate', ${JOB_TYPES.translate},
+           jsonb_build_object('productId', p.id), 'queued', ${priority}, now(), 0, 5, ${imp.storeId}::uuid, ${imp.id}::uuid
+      from products p
+     where p.last_import_id = ${imp.id} and p.status in ('draft', 'needs_review') and p.translated_at is null
+    on conflict (key) do update
+       set status = 'queued', payload = excluded.payload, priority = excluded.priority, run_at = now(),
+           attempts = 0, locked_until = null, worker_id = null, last_error = null, completed_at = null,
+           import_id = excluded.import_id, store_id = excluded.store_id, updated_at = now()
+     where jobs.status in ('completed', 'failed', 'dead')
+    returning key
+  `);
+  return result.rows.length;
 }
 
 /** Safety tick: advance every active import and reset rows stuck in processing (EC-E10). */

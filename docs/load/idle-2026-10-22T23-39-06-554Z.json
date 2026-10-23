@@ -1,0 +1,36 @@
+{
+  "label": "idle",
+  "at": "2026-10-22T23:38:06.023Z",
+  "duration": 30,
+  "connections": 50,
+  "targets": {
+    "collection": {
+      "requestsPerSecond": 58.34,
+      "latencyMs": {
+        "p50": 832,
+        "p95": 1114,
+        "p99": 1173,
+        "max": 1206,
+        "mean": 859.23
+      },
+      "non2xx": 0,
+      "errors": 0,
+      "timeouts": 0,
+      "totalRequests": 1750
+    },
+    "product": {
+      "requestsPerSecond": 59.6,
+      "latencyMs": {
+        "p50": 839,
+        "p95": 1269,
+        "p99": 1513,
+        "max": 1540,
+        "mean": 831.94
+      },
+      "non2xx": 0,
+      "errors": 0,
+      "timeouts": 0,
+      "totalRequests": 1788
+    }
+  }
+}

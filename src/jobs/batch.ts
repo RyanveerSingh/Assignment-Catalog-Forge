@@ -119,9 +119,11 @@ export const batchPollHandler: JobHandler = async ({ job, db, log }) => {
   let totalCost = 0;
   let applied = 0;
   const fallback: string[] = [];
+  const seen = new Set<string>();
   for await (const result of provider.batchResults(batchId, aiEnrichBatchSchema)) {
     const row = rows.find((r) => r.customId === result.customId);
     if (!row) continue;
+    seen.add(result.customId);
     const productIds = productIdsByKey.get(result.customId) ?? [];
     if (result.result.type === "succeeded") {
       const response = result.result.response;
@@ -139,6 +141,13 @@ export const batchPollHandler: JobHandler = async ({ job, db, log }) => {
       await db.update(aiRequests).set({ status: "failed", error: reason }).where(eq(aiRequests.id, row.id));
       fallback.push(...productIds);
     }
+  }
+  // A request the provider never answered (or a batch id this process cannot see any more) must not
+  // leave its products pending forever: close the request and send them to the realtime path (EC-D14).
+  for (const row of rows) {
+    if (!row.customId || seen.has(row.customId)) continue;
+    await db.update(aiRequests).set({ status: "failed", error: "no result returned for this request" }).where(eq(aiRequests.id, row.id));
+    fallback.push(...(productIdsByKey.get(row.customId) ?? []));
   }
   if (fallback.length > 0) {
     await sendToRealtime(db, fallback, "batch item failed");
