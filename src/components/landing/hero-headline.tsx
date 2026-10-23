@@ -11,11 +11,15 @@ interface Word {
 
 /* Kept as data so each word can rise into place one after another; the browser balances the lines. */
 const WORDS: readonly Word[] = [
-  { text: "Messy" },
-  { text: "sheet" },
-  { text: "in." },
-  { text: "Shop", accent: true },
-  { text: "out.", accent: true },
+  { text: "From" },
+  { text: "a" },
+  { text: "supplier's" },
+  { text: "spreadsheet" },
+  { text: "to" },
+  { text: "a", accent: true },
+  { text: "shop", accent: true },
+  { text: "that", accent: true },
+  { text: "sells.", accent: true },
 ];
 
 /** The headline, word by word: each one rises 0.4 em and fades in, 40 ms after the last. */
@@ -24,7 +28,7 @@ export function HeroHeadline() {
   return (
     <>
       {WORDS.map((word, i) => (
-        <motion.span key={`${i}-${word.text}`} className={cn("inline-block whitespace-pre", word.accent && "text-brand")} initial={{ opacity: 0, y: "0.4em" }} animate={{ opacity: 1, y: 0 }} transition={settle(reduce, 0.55, 0.1 + i * 0.04)}>
+        <motion.span key={`${i}-${word.text}`} className={cn("inline-block whitespace-pre", word.accent && "text-brand italic")} initial={{ opacity: 0, y: "0.4em" }} animate={{ opacity: 1, y: 0 }} transition={settle(reduce, 0.55, 0.1 + i * 0.04)}>
           {word.text}
           {i < WORDS.length - 1 ? " " : ""}
         </motion.span>

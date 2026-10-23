@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -14,7 +14,7 @@ import { cn } from "cn";
 export const LANGS = [
   { code: "en", label: "EN", title: "Hand-Turned Stoneware Vase", colours: "4 colours", size: "22 cm tall" },
   { code: "de", label: "DE", title: "Handgedrehte Steinzeugvase", colours: "4 Farben", size: "22 cm hoch" },
-  { code: "fr", label: "FR", title: "Vase en grès tourné à la main", colours: "4 couleurs", size: "22 cm de haut" },
+  { code: "fr", label: "FR", title: "Vase en grÃ¨s tournÃ© Ã  la main", colours: "4 couleurs", size: "22 cm de haut" },
 ] as const;
 export type Lang = (typeof LANGS)[number]["code"];
 
@@ -64,7 +64,7 @@ export function RawSheet({ className }: { className?: string }) {
           <i className="size-2 rounded-full bg-line-strong" />
           <i className="size-2 rounded-full bg-line-strong" />
         </span>
-        <span className="num text-[11px] text-ink-muted">new-12.csv · row 8 of 26</span>
+        <span className="num text-[11px] text-ink-muted">new-12.csv Â· row 8 of 26</span>
       </div>
       <table className="w-full table-fixed border-collapse text-[11px] leading-tight break-words">
         <thead>
@@ -81,19 +81,19 @@ export function RawSheet({ className }: { className?: string }) {
             <td className="px-2 py-1.5 font-sans">Steinzeug-Vase</td>
             <td className="px-2 py-1.5">24,00</td>
             <td className="px-2 py-1.5 font-sans">
-              <Mojibake>salbeigrÃ¼n</Mojibake>
+              <Mojibake>salbeigrÃƒÂ¼n</Mojibake>
             </td>
           </tr>
           <tr className="border-t border-border">
             <td className="px-2 py-1.5 align-top text-ink-muted">Descr.</td>
             <td colSpan={3} className="px-2 py-1.5 font-sans text-ink-muted">
-              <Mojibake>FlaschenfÃ¶rmige</Mojibake> Vase aus Steinzeug, handgedreht, mit reaktiver Glasur, die <Mojibake>Ã¼ber</Mojibake> den Rillen dunkler aufbricht. Auch innen glasiert und daher wasserdicht…
+              <Mojibake>FlaschenfÃƒÂ¶rmige</Mojibake> Vase aus Steinzeug, handgedreht, mit reaktiver Glasur, die <Mojibake>ÃƒÂ¼ber</Mojibake> den Rillen dunkler aufbricht. Auch innen glasiert und daher wasserdichtâ€¦
             </td>
           </tr>
           <tr className="border-t border-border">
             <td className="px-2 py-1.5 text-ink-muted">Dims</td>
             <td colSpan={3} className="px-2 py-1.5 font-sans">
-              <Mojibake>Ã˜</Mojibake> 10 cm, H 22 cm · 650 g · EUR
+              <Mojibake>ÃƒËœ</Mojibake> 10 cm, H 22 cm Â· 650 g Â· EUR
             </td>
           </tr>
         </tbody>
@@ -115,7 +115,7 @@ export function ProductCard({ lang, onLang, className }: CardProps) {
   return (
     <div className={cn("rounded-[24px] bg-card p-2 text-left shadow-[var(--shadow-pop)] ring-1 ring-border/70", className)}>
       <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-surface-2">
-        <Image src="/landing/hero-vase.jpg" alt="Sage-green hand-turned stoneware vase, the product photo the supplier sent" fill priority sizes="300px" className="object-cover" />
+        <Image src="/landing/hero-vase.jpg" alt="Sage-green hand-turned stoneware vase, the product photo the supplier sent" fill sizes="300px" className="object-cover" />
         <span className="absolute top-2.5 left-2.5 rounded-full bg-card px-2 py-0.5 text-[10px] font-medium text-ink shadow-[var(--shadow-card)]">Published</span>
       </div>
       <div className="flex flex-col gap-3 p-3 pt-3.5">
@@ -142,16 +142,16 @@ export function ProductCard({ lang, onLang, className }: CardProps) {
             </motion.h3>
           </AnimatePresence>
           <p className="mt-1 text-xs text-ink-muted">
-            {current.colours} · {current.size}
+            {current.colours} Â· {current.size}
           </p>
         </div>
         <div className="flex items-center justify-between">
-          <span className="num text-lg text-ink">€24.00</span>
+          <span className="num text-lg text-ink">â‚¬24.00</span>
           <span className="rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-medium text-success">5 claims verified</span>
         </div>
         <ul className="flex flex-wrap gap-1.5" aria-label="Verified claims and the cell each one came from">
           {CLAIMS.map((c) => (
-            <li key={c.text} title={`“${c.quote}” · row 8, ${c.column}`} className="cursor-help rounded-lg bg-brand-soft/70 px-2 py-1 text-[11px] text-ink">
+            <li key={c.text} title={`â€œ${c.quote}â€ Â· row 8, ${c.column}`} className="cursor-help rounded-lg bg-brand-soft/70 px-2 py-1 text-[11px] text-ink">
               {c.text}
             </li>
           ))}
