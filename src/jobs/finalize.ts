@@ -6,6 +6,7 @@ import { aiRequests, imports, type ImportCostSummary } from "@/db/schema";
 import { naiveCostMicros } from "@/providers/ai";
 import { JobError } from "@/queue/errors";
 import type { JobHandler } from "@/worker/loop";
+import { enqueueImportWebhooks } from "./webhook";
 
 /**
  * Stage 8: assert the count invariant, summarise cost and savings, flag products that vanished
@@ -48,6 +49,19 @@ export const finalizeHandler: JobHandler = async ({ job, db, log }) => {
     await appendImportEvent(db, importId, "error", `Needs attention: ${terminal} rows reached a final state but the sheet has ${imp.totalRows}`, { counts });
   }
   log.info({ counts, consistent, costMicros: cost.totalMicros }, "finalized");
+
+  // Webhooks see the row as it now stands; a re-run cannot queue a second delivery for the same event (EC-I10).
+  // The import is finished either way: a failure here is written to its log, not turned into a failed job.
+  const finished = await getImportById(db, importId);
+  if (finished && (finished.status === "completed" || finished.status === "needs_attention")) {
+    try {
+      const queued = await enqueueImportWebhooks(db, finished, finished.status === "completed" ? "import.completed" : "import.needs_attention");
+      if (queued > 0) log.info({ queued }, "webhook deliveries queued");
+    } catch (err) {
+      log.error({ err }, "webhook deliveries could not be queued");
+      await appendImportEvent(db, importId, "warn", `Webhooks could not be queued: ${err instanceof Error ? err.message.slice(0, 300) : "unknown error"}`);
+    }
+  }
 };
 
 export async function summariseCost(db: Parameters<JobHandler>[0]["db"], importId: string): Promise<ImportCostSummary> {

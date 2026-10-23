@@ -12,6 +12,7 @@ import { JOB_TYPES } from "./keys";
 import { photosHandler } from "./photos";
 import { publishHandler } from "./publish";
 import { translateHandler } from "./translate";
+import { failWebhookDelivery, webhookHandler } from "./webhook";
 
 /**
  * Every job type the worker knows about. Keep the map explicit (no dynamic imports) so a typo in a
@@ -32,6 +33,7 @@ export function buildHandlers(): Record<string, JobHandler> {
     [JOB_TYPES.translate]: translateHandler,
     [JOB_TYPES.finalize]: finalizeHandler,
     [JOB_TYPES.publish]: publishHandler,
+    [JOB_TYPES.webhook]: webhookHandler,
   };
 }
 
@@ -53,6 +55,10 @@ export const QUEUE_LAYOUT: Array<{ name: QueueName; concurrency: number }> = [
 export async function onJobDead(job: Job, error: string, db: Db): Promise<void> {
   if (job.type === JOB_TYPES.enrich) {
     await failEnrichBatch(db, job, error);
+    return;
+  }
+  if (job.type === JOB_TYPES.webhook) {
+    await failWebhookDelivery(db, job, error);
     return;
   }
   if (job.importId) {
