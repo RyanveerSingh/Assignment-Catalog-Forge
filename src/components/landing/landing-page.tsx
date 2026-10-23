@@ -1,5 +1,5 @@
 import { LandingBeforeAfter } from "./landing-before-after";
-import { LandingCta } from "./landing-cta";
+import { LandingCta, LandingExplore } from "./landing-cta";
 import { LandingFeatures } from "./landing-features";
 import { LandingHero } from "./landing-hero";
 import { LandingNumbers } from "./landing-numbers";
@@ -7,8 +7,10 @@ import { LandingPromises } from "./landing-promises";
 import { LandingShopStrip } from "./landing-shop-strip";
 import { LandingSteps } from "./landing-steps";
 import { LandingTryIt } from "./landing-try-it";
+import { LandingWorksWith } from "./landing-works-with";
 import { ScrollPathAnimator } from "./scroll-path";
-import { SiteFooter, SiteHeader } from "./site-chrome";
+import { SiteHeader } from "./site-chrome";
+import { SiteFooter } from "./site-footer";
 
 interface Props {
   /** Where a signed-in merchant's dashboard is; null for a visitor. */
@@ -22,18 +24,20 @@ export function LandingPage({ dashboardHref }: Props) {
       <SiteHeader dashboardHref={dashboardHref} />
       <main className="flex-1 overflow-x-clip">
         <LandingHero dashboardHref={dashboardHref} />
-        <LandingShopStrip />
         <ScrollPathAnimator>
+          <LandingFeatures />
           <LandingSteps />
           <LandingBeforeAfter />
           <LandingTryIt />
           <LandingNumbers />
-          <LandingFeatures />
+          <LandingWorksWith />
           <LandingPromises />
+          <LandingShopStrip />
           <LandingCta dashboardHref={dashboardHref} />
         </ScrollPathAnimator>
+        <LandingExplore dashboardHref={dashboardHref} />
       </main>
-      <SiteFooter />
+      <SiteFooter dashboardHref={dashboardHref} />
     </div>
   );
 }

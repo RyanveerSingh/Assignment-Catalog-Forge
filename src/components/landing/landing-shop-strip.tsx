@@ -4,7 +4,10 @@ import { ArrowRightIcon } from "lucide-react";
 import { cn } from "cn";
 import { cachedProducts, cachedStore } from "@/app/store/[slug]/storefront-context";
 import { storefrontImageUrl } from "@/components/storefront/image-url";
+import { buttonVariants } from "@/components/ui/button";
 import { formatMoney } from "@/core/i18n/locale";
+import { SHOP_HREF } from "./landing-links";
+import { Reveal } from "./reveal";
 import { CONTAINER } from "./site-chrome";
 
 const STORE_SLUG = "demo";
@@ -25,41 +28,42 @@ export async function LandingShopStrip() {
   const track = [...products, ...products];
 
   return (
-    <section aria-labelledby="shop-strip-heading" className="overflow-hidden border-b border-border bg-paper-deep/40">
-      <div className={cn(CONTAINER, "flex flex-wrap items-end justify-between gap-4 pt-14 pb-8 md:pt-20")}>
-        <div>
-          <h2 id="shop-strip-heading" className="text-[11px] font-medium tracking-[0.18em] text-brand uppercase">
-            The shop it built
-          </h2>
-          <p className="font-display mt-3 max-w-2xl text-3xl leading-tight text-ink md:text-4xl">
-            {total} real products, published from one supplier sheet.
-          </p>
+    <section id="shop" aria-labelledby="shop-strip-heading" className="scroll-mt-24 py-6 md:py-10">
+      <div className={CONTAINER}>
+        <div className="overflow-hidden rounded-[32px] bg-surface-2 pt-12 pb-10 md:pt-16 md:pb-14">
+          <Reveal className="flex flex-col items-center gap-5 px-6 text-center">
+            <p className="text-sm font-medium text-brand">The shop it built</p>
+            <h2 id="shop-strip-heading" className="font-display max-w-[22ch] text-[34px] leading-[1.05] text-balance text-ink sm:text-[40px] md:text-[48px]">
+              {total} real products, published from one supplier sheet
+            </h2>
+            <Link href={SHOP_HREF} className={cn(buttonVariants({ size: "lg" }), "rounded-full px-6")}>
+              Open the shop
+              <ArrowRightIcon aria-hidden className="size-4" />
+            </Link>
+          </Reveal>
+          <div className="relative mt-10 [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]">
+            <ul className="animate-marquee flex w-max gap-4 px-4 hover:[animation-play-state:paused] md:px-6" aria-label="Products in the demo shop">
+              {track.map((p, i) => {
+                const img = p.images[0];
+                if (!img) return null;
+                const duplicate = i >= products.length;
+                return (
+                  <li key={`${p.handle}-${i}`} className="w-[200px] shrink-0 sm:w-[230px]" aria-hidden={duplicate || undefined}>
+                    <Link href={`/store/${STORE_SLUG}/p/${p.handle}`} tabIndex={duplicate ? -1 : undefined} className="group block rounded-2xl bg-card p-2 shadow-[var(--shadow-card)] ring-1 ring-border/70 transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:shadow-[var(--shadow-float)] focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none">
+                      <div className="relative aspect-[4/5] overflow-hidden rounded-xl bg-paper">
+                        <Image src={storefrontImageUrl(STORE_SLUG, img.id)} alt={img.alt || p.title} fill sizes="230px" loading="lazy" className="object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
+                      </div>
+                      <div className="px-2 pt-2.5 pb-1.5">
+                        <p className="font-display truncate text-[15px] leading-tight text-ink">{p.title}</p>
+                        <p className="num mt-1 text-xs text-ink-muted">{p.priceFromCents !== null && p.currency ? formatMoney(p.priceFromCents, p.currency, "en") : "Price on request"}</p>
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         </div>
-        <Link href={`/store/${STORE_SLUG}`} className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-md border border-input bg-card px-4 text-sm text-ink transition-colors hover:bg-paper focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none">
-          Open the shop
-          <ArrowRightIcon className="size-4" aria-hidden />
-        </Link>
-      </div>
-      <div className="relative pb-14 md:pb-20 [mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent)]">
-        <ul className="animate-marquee flex w-max gap-4 px-4 hover:[animation-play-state:paused] md:px-6" aria-label="Products in the demo shop">
-          {track.map((p, i) => {
-            const img = p.images[0]!;
-            const duplicate = i >= products.length;
-            return (
-              <li key={`${p.handle}-${i}`} className="w-[200px] shrink-0 sm:w-[230px]" aria-hidden={duplicate || undefined}>
-                <Link href={`/store/${STORE_SLUG}/p/${p.handle}`} tabIndex={duplicate ? -1 : undefined} className="group block bg-card hairline focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none">
-                  <div className="relative aspect-[4/5] overflow-hidden bg-paper-deep">
-                    <Image src={storefrontImageUrl(STORE_SLUG, img.id)} alt={img.alt || p.title} fill sizes="230px" loading="lazy" className="object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
-                  </div>
-                  <div className="px-3 py-2.5">
-                    <p className="font-display truncate text-base leading-tight text-ink">{p.title}</p>
-                    <p className="num mt-1 text-xs text-ink-muted">{p.priceFromCents !== null && p.currency ? formatMoney(p.priceFromCents, p.currency, "en") : "Price on request"}</p>
-                  </div>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
       </div>
     </section>
   );

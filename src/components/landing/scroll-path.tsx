@@ -2,7 +2,7 @@
 
 import { motion, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { buildPath, type PathSize } from "./path-geometry";
+import { buildPath, type ContentBox, type PathSize } from "./path-geometry";
 
 /** The dot stays hidden until the reader has scrolled a little into the section. */
 const DOT_VISIBLE_FROM = 0.02;
@@ -14,6 +14,35 @@ interface Geometry {
   mobile: boolean;
   /** The raw scroll progress reachable at the very bottom of the page; the dot must land at 1 there. */
   maxProgress: number;
+  boxes: ContentBox[];
+}
+
+/**
+ * Each section's content box (its children, without the section's own padding), relative to the
+ * overlay, so the line can cross the page in the empty bands between them. Read at layout time
+ * only, never per frame; reveals move by transform, which does not change these boxes.
+ */
+function contentBoxes(root: HTMLElement, content: HTMLElement | null): ContentBox[] {
+  if (!content) return [];
+  const origin = root.getBoundingClientRect();
+  const boxes: ContentBox[] = [];
+  for (const section of Array.from(content.children)) {
+    const parts = section.children.length > 0 ? Array.from(section.children) : [section];
+    let top = Infinity;
+    let bottom = -Infinity;
+    let left = Infinity;
+    let right = -Infinity;
+    for (const part of parts) {
+      const r = part.getBoundingClientRect();
+      if (r.height === 0) continue;
+      top = Math.min(top, r.top);
+      bottom = Math.max(bottom, r.bottom);
+      left = Math.min(left, r.left);
+      right = Math.max(right, r.right);
+    }
+    if (top < bottom) boxes.push({ top: top - origin.top, bottom: bottom - origin.top, left: left - origin.left, right: right - origin.left });
+  }
+  return boxes;
 }
 
 interface Props {
@@ -35,6 +64,7 @@ function clamp01(n: number): number {
 export function ScrollPathAnimator({ children, className }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const maxRef = useRef(1);
   const reduce = useReducedMotion();
   const glowId = useId();
@@ -56,7 +86,7 @@ export function ScrollPathAnimator({ children, className }: Props) {
       // Raw progress at max scroll: (maxScrollY + eyeLine·vh − top) / height.
       const reachable = height > 0 ? (docHeight - vh + EYE_LINE * vh - top) / height : 1;
       maxRef.current = Math.max(0.05, Math.min(1, reachable));
-      setGeom({ size: { width: el.clientWidth, height }, mobile: window.innerWidth < 768, maxProgress: maxRef.current });
+      setGeom({ size: { width: el.clientWidth, height }, mobile: window.innerWidth < 768, maxProgress: maxRef.current, boxes: contentBoxes(el, contentRef.current) });
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -78,12 +108,12 @@ export function ScrollPathAnimator({ children, className }: Props) {
     dotOpacity.set(p > DOT_VISIBLE_FROM ? 1 : 0);
   });
 
-  const d = geom ? buildPath(geom.size, geom.mobile) : null;
+  const d = geom ? buildPath(geom.size, geom.mobile, geom.boxes) : null;
 
   return (
     <div ref={ref} className={className} style={{ position: "relative" }}>
       {d && geom ? (
-        <svg aria-hidden className="pointer-events-none absolute inset-0 h-full w-full" viewBox={`0 0 ${geom.size.width} ${geom.size.height}`} preserveAspectRatio="none" style={{ zIndex: 0 }}>
+        <svg aria-hidden className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" viewBox={`0 0 ${geom.size.width} ${geom.size.height}`} preserveAspectRatio="none" style={{ zIndex: 0 }}>
           <defs>
             <filter id={glowId} x="-100%" y="-100%" width="300%" height="300%">
               <feGaussianBlur stdDeviation="5" />
@@ -101,7 +131,9 @@ export function ScrollPathAnimator({ children, className }: Props) {
           )}
         </svg>
       ) : null}
-      <div style={{ position: "relative", zIndex: 1 }}>{children}</div>
+      <div ref={contentRef} style={{ position: "relative", zIndex: 1 }}>
+        {children}
+      </div>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { parsePrice } from "@/core/clean/price";
 import { repairMojibake } from "@/core/clean/text";
 import { parseDimensions, parseWeight } from "@/core/clean/units";
 import { Reveal } from "./reveal";
+import { SectionHeading } from "./section-heading";
 import { CONTAINER } from "./site-chrome";
 
 /*
@@ -100,12 +101,12 @@ function TryCell({ cell }: { cell: Cell }) {
   const result = cell.run(raw);
   const id = `try-${cell.key}`;
   return (
-    <div className="flex flex-col gap-2 bg-card px-4 py-4">
+    <div className="flex h-full flex-col gap-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)] ring-1 ring-border/70 focus-within:ring-brand/40">
       <label htmlFor={id} className="flex items-baseline justify-between gap-2">
         <span className="text-[11px] font-medium tracking-wider text-ink-muted uppercase">{cell.label}</span>
         <span className="truncate text-[11px] text-ink-muted/80">{cell.hint}</span>
       </label>
-      <input id={id} value={raw} onChange={(e) => setRaw(e.target.value)} spellCheck={false} autoComplete="off" className="num h-9 w-full rounded-sm border border-input bg-paper px-2.5 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-brand" />
+      <input id={id} value={raw} onChange={(e) => setRaw(e.target.value)} spellCheck={false} autoComplete="off" className="num h-11 w-full rounded-xl border border-input bg-paper px-3 text-sm text-ink transition-[box-shadow,border-color] outline-none focus-visible:border-brand focus-visible:ring-3 focus-visible:ring-brand/25" />
       <div className="min-h-[3.5rem]">
         <p className={cn("num text-base font-medium", result.ok ? "text-ink" : "text-brand")}>{result.value}</p>
         <p className="mt-0.5 text-xs leading-snug text-ink-muted">{result.note}</p>
@@ -116,17 +117,11 @@ function TryCell({ cell }: { cell: Cell }) {
 
 export function LandingTryIt() {
   return (
-    <section aria-labelledby="try-heading" className="border-b border-border">
-      <div className={cn(CONTAINER, "py-14 md:py-20")}>
-        <Reveal>
-          <h2 id="try-heading" className="text-[11px] font-medium tracking-[0.18em] text-brand uppercase">
-            Try the cleaner on your own cells
-          </h2>
-          <p className="font-display mt-3 max-w-2xl text-3xl leading-tight text-ink md:text-4xl">Type a value the way your supplier writes it.</p>
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-muted">This is the same code the import runs on every row, running here in your browser. Nothing you type is sent anywhere.</p>
-        </Reveal>
+    <section id="try" aria-labelledby="try-heading" className="scroll-mt-24 pt-10 pb-20 md:pt-12 md:pb-28">
+      <div className={CONTAINER}>
+        <SectionHeading id="try-heading" eyebrow="Try the cleaner" title="Type a value the way your supplier writes it" text="This is the same code the import runs on every row, running here in your browser. Nothing you type is sent anywhere." />
         <Reveal delay={0.1}>
-          <div className="mt-8 grid gap-px bg-border hairline sm:grid-cols-2 lg:grid-cols-5">
+          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {CELLS.map((c) => (
               <TryCell key={c.key} cell={c} />
             ))}

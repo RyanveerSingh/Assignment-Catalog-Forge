@@ -2,8 +2,9 @@
 
 import { animate, useInView, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import { cn } from "cn";
+import { EASE_OUT } from "@/components/ext/motion";
 import { Reveal } from "./reveal";
+import { SectionHeading } from "./section-heading";
 import { CONTAINER } from "./site-chrome";
 
 interface Stat {
@@ -35,46 +36,47 @@ function CountUp({ stat }: { stat: Stat }) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: "0px 0px -15% 0px" });
   const reduce = useReducedMotion();
-  const [shown, setShown] = useState(reduce ? stat.value : 0);
+  const [shown, setShown] = useState(0);
 
   useEffect(() => {
-    if (!inView || reduce) return;
-    const controls = animate(0, stat.value, { duration: 1.4, ease: [0.22, 1, 0.36, 1], onUpdate: (v) => setShown(v) });
+    if (!inView) return;
+    if (reduce) {
+      setShown(stat.value);
+      return;
+    }
+    const controls = animate(0, stat.value, { duration: 1.4, ease: EASE_OUT, onUpdate: (v) => setShown(v) });
     return () => controls.stop();
   }, [inView, reduce, stat.value]);
 
   return (
-    <span ref={ref} className="num block text-4xl leading-none text-brand md:text-5xl">
-      {format(reduce ? stat.value : shown, stat)}
+    <span ref={ref} className="font-display tabular block text-[40px] leading-none text-brand md:text-[48px]">
+      {format(shown, stat)}
     </span>
   );
 }
 
-/** The figures band: ink ground, amber numbers, eight things that were measured or counted rather than claimed. */
+/** The figures band: white cards on ice, big blue numbers that count up, eight things that were measured rather than claimed. */
 export function LandingNumbers() {
   return (
-    <section aria-labelledby="numbers-heading" className="border-b border-border bg-ink text-paper">
-      <div className={cn(CONTAINER, "py-16 md:py-24")}>
-        <Reveal>
-          <h2 id="numbers-heading" className="text-[11px] font-medium tracking-[0.18em] text-brand uppercase">
-            Measured, not promised
-          </h2>
-          <p className="font-display mt-3 max-w-2xl text-3xl leading-tight text-paper md:text-4xl">Every number here comes from a run you can repeat.</p>
-        </Reveal>
-        <dl className="mt-10 grid gap-px bg-paper/10 sm:grid-cols-2 lg:grid-cols-4">
-          {STATS.map((s, i) => (
-            <div key={s.label} className="bg-ink">
-              <Reveal delay={Math.min(i, 7) * 0.05} className="flex h-full flex-col gap-2 px-5 py-6">
-                <dt className="order-2 text-sm font-medium text-paper">{s.label}</dt>
-                <dd className="order-1">
-                  <CountUp stat={s} />
-                </dd>
-                <dd className="order-3 text-xs leading-relaxed text-paper/60">{s.detail}</dd>
+    <section id="numbers" aria-labelledby="numbers-heading" className="scroll-mt-24 py-6 md:py-10">
+      <div className={CONTAINER}>
+        <div className="rounded-[32px] bg-surface-2 px-4 py-14 sm:px-6 md:py-20 lg:px-10">
+          <SectionHeading id="numbers-heading" eyebrow="Measured, not promised" title="Every number here comes from a run you can repeat" />
+          <dl className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {STATS.map((s, i) => (
+              <Reveal key={s.label} delay={Math.min(i, 7) * 0.05} className="h-full">
+                <div className="flex h-full flex-col gap-2 rounded-2xl bg-card p-5 shadow-[var(--shadow-card)] ring-1 ring-border/70 transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:shadow-[var(--shadow-float)]">
+                  <dd className="order-1">
+                    <CountUp stat={s} />
+                  </dd>
+                  <dt className="font-display order-2 mt-1 text-[15px] text-ink">{s.label}</dt>
+                  <dd className="order-3 text-xs leading-relaxed text-ink-muted">{s.detail}</dd>
+                </div>
               </Reveal>
-            </div>
-          ))}
-        </dl>
-        <p className="mt-5 text-xs text-paper/50">Runs against the sample files in the repository, with the request log as the source; the README shows how each one is taken.</p>
+            ))}
+          </dl>
+          <p className="mt-6 text-center text-xs text-ink-muted">Runs against the sample files in the repository, with the request log as the source; the README shows how each one is taken.</p>
+        </div>
       </div>
     </section>
   );

@@ -1,6 +1,6 @@
 import { ArrowRightIcon } from "lucide-react";
-import { cn } from "cn";
 import { Reveal } from "./reveal";
+import { SectionHeading } from "./section-heading";
 import { CONTAINER } from "./site-chrome";
 
 /* Each pair is a mess the sample sheets really contain and what the deterministic cleaner makes of it. */
@@ -17,26 +17,25 @@ const PAIRS: ReadonlyArray<{ before: string; after: string; why: string }> = [
 
 export function LandingBeforeAfter() {
   return (
-    <section aria-labelledby="clean-heading" className="border-b border-border">
-      <div className={cn(CONTAINER, "py-14 md:py-20")}>
-        <Reveal>
-          <h2 id="clean-heading" className="text-[11px] font-medium tracking-[0.18em] text-brand uppercase">
-            Fixed before any AI sees a row
-          </h2>
-          <p className="font-display mt-3 max-w-2xl text-3xl leading-tight text-ink md:text-4xl">The cleaner owns prices, units, encodings and markup. The model only ever writes words.</p>
-        </Reveal>
-        <ul className="mt-10 grid gap-px bg-border hairline sm:grid-cols-2 lg:grid-cols-4">
+    <section aria-labelledby="clean-heading" className="scroll-mt-24 pt-20 pb-10 md:pt-28 md:pb-12">
+      <div className={CONTAINER}>
+        <SectionHeading id="clean-heading" eyebrow="Fixed before any AI sees a row" title="The cleaner owns prices, units, encodings and markup" text="The model only ever writes words. Everything with a number in it is handled by code you can read, and tested." />
+        <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {PAIRS.map((p, i) => (
-            <li key={p.before} className="bg-card">
-              <Reveal delay={Math.min(i, 7) * 0.05} className="flex h-full flex-col gap-3 px-4 py-4">
-                <div className="flex items-center gap-2">
-                  <span className="num min-w-0 flex-1 truncate rounded-sm bg-paper-deep px-2 py-1 text-xs text-ink-muted line-through decoration-ink-muted/50" title={p.before}>
-                    {p.before}
-                  </span>
-                  <ArrowRightIcon aria-hidden className="size-3.5 shrink-0 text-brand" />
+            <li key={p.before} className="h-full">
+              <Reveal delay={Math.min(i, 7) * 0.05} className="h-full">
+                <div className="flex h-full flex-col gap-3 rounded-2xl bg-card p-5 shadow-[var(--shadow-card)] ring-1 ring-border/70 transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:shadow-[var(--shadow-float)]">
+                  <div className="flex items-center gap-2">
+                    <span className="num min-w-0 flex-1 truncate rounded-lg bg-paper px-2.5 py-1.5 text-xs text-ink-muted line-through decoration-ink-muted/50" title={p.before}>
+                      {p.before}
+                    </span>
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+                      <ArrowRightIcon aria-hidden className="size-3" />
+                    </span>
+                  </div>
+                  <span className="num text-[15px] font-medium text-ink">{p.after}</span>
+                  <span className="text-xs leading-relaxed text-ink-muted">{p.why}</span>
                 </div>
-                <span className="num text-sm font-medium text-ink">{p.after}</span>
-                <span className="text-xs leading-relaxed text-ink-muted">{p.why}</span>
               </Reveal>
             </li>
           ))}
