@@ -3,7 +3,7 @@
 Drop in a messy supplier spreadsheet and a folder of photos; get a clean, reviewed, three-language product catalog with a live storefront. Built for the CatalogForge assignment by Ryanveer Singh.
 
 - **Live demo:** _(URL added at deployment; see "Deploying" below)_ · sign in with `demo@catalogforge.dev` / `demo1234`
-- **Sample files:** downloadable from the Upload tab (or `samples/`), from a 10-row happy path to a 10,000-row bulk sheet, a deliberately broken photo ZIP, a mysqldump with a `DROP TABLE` in it, and `new-12` + `photos-new-12.zip`: 12 products seen in no other sample (26 rows, 18 photos) with German and French rows, six price formats, a weight in lbs, a `<script>` description, a SKU conflict, a duplicate, a row without a SKU and a negated claim
+- **Sample files:** downloadable from the Upload tab (or `samples/`), from a 10-row happy path to a 10,000-row bulk sheet, a deliberately broken photo ZIP, a mysqldump with a `DROP TABLE` in it, and `new-12` + `photos-new-12.zip`: 12 products seen in no other sample (26 rows, 18 real openly licensed photos, credits in `samples/photos-src/new-12/CREDITS.md`) with German and French rows, six price formats, a weight in lbs, a `<script>` description, a SKU conflict, a duplicate, a row without a SKU and a negated claim
 - **Edge cases:** [EDGE-CASES.md](EDGE-CASES.md) (first commit, 154 entries, statuses kept current) · **Plan:** [docs/PLAN.md](docs/PLAN.md) · **Eval harness:** [eval/README.md](eval/README.md)
 
 ![Import detail](docs/screenshots/03-import-detail.png)
@@ -138,11 +138,13 @@ Local machine, Docker Postgres. The first block uses the demo provider (determin
 
 ## Dashboard
 
-![Data hygiene pipeline on the import page](docs/screenshots/03b-hygiene.png)
+![Landing page for signed-out visitors](docs/screenshots/00-landing.png)
+![What we fixed in your sheet, on the import page](docs/screenshots/03b-hygiene.png)
 ![Products with the unmatched-photos tray](docs/screenshots/04-products.png)
 ![Review drawer: claims, guardrails and the cleaning X-ray](docs/screenshots/05c-cleaning-xray.png)
 ![Metrics with the cost strategies table](docs/screenshots/06-metrics.png)
-![Storefront](docs/screenshots/10-storefront-product.png)
+![The shop: collection page with real product photos](docs/screenshots/09-storefront.png)
+![The shop: product page](docs/screenshots/10-storefront-product.png)
 
 - **Upload:** drag-and-drop sheet + photos/ZIP, Fast vs Economy, budget, live SSE progress with a stage stepper, KPIs, sheet mapping, event log and a filterable per-row table with issues and reasons. Also accepts a `mysqldump` / `pg_dump` of a product table (`.sql`, parsed in memory, never executed) and a pasted public Google Sheets link, fetched from docs.google.com only, which then follows the exact same path as an uploaded file. The import page draws a data-hygiene flow: per stage, what the deterministic pipeline did (duplicates collapsed, mojibake and unsafe HTML repaired, prices and units normalised, conflicts and possible duplicates, routing by tier, response-cache hits, claims verified or blocked), every count taken from the tables of record.
 - **Products:** server-side paginated table (10/25/50/100), sorting, search, status and confidence filters, colour-coded confidence with the number always shown, bulk approve with an explicit opt-in for products that need review, bulk "Re-run AI" on a selection with a chosen model tier and prompt version (one audited job per product; products without source rows are skipped and counted), CSV / JSON / Shopify CSV export. An "Unmatched photos" tray above the table lets the merchant assign an orphan photo to any product (search by title, handle or SKU) or dismiss it; assignment is audited and updates a live product's storefront images at once.
@@ -157,6 +159,7 @@ Create a key in Settings, then:
 
 ```bash
 curl -X POST https://<host>/api/v1/imports -H "Authorization: Bearer cf_live_…" -F sheet=@samples/messy-120.csv -F photos=@samples/photos-messy.zip -F mode=fast
+# add -F autoPublish=true to publish every product that passes all checks as soon as the import finishes
 curl https://<host>/api/v1/imports/<id> -H "Authorization: Bearer cf_live_…"
 curl https://<host>/api/v1/products?status=approved -H "Authorization: Bearer cf_live_…"
 # a public Google Sheet instead of a file
@@ -172,7 +175,7 @@ curl -X POST https://<host>/api/v1/imports -H "Authorization: Bearer cf_live_…
 ## Deploying (free tier)
 
 1. **Neon:** create a free project, copy the direct connection string.
-2. **Render:** New → Blueprint → this repository (`render.yaml` defines one free web service with the worker embedded). Set `DATABASE_URL`, `ANTHROPIC_API_KEY` (optional), `APP_BASE_URL` (the Render URL). `APP_SECRET` is generated; `SEED_DEMO=true` creates the demo accounts at boot.
+2. **Render:** New → Blueprint → this repository (`render.yaml` defines one free web service with the worker embedded). Set `DATABASE_URL`, `ANTHROPIC_API_KEY` (optional), `APP_BASE_URL` (the Render URL). `APP_SECRET` is generated; `SEED_DEMO=true` creates the demo accounts at boot and, on the first boot only, imports the new-12 sample with its photos into the demo store and publishes everything that passes the checks, so the shop at `/store/demo` is never empty.
 3. Migrations run at boot under an advisory lock. The free instance spins down after 15 minutes without traffic and wakes in about a minute; a watched import keeps it awake, and an unwatched one resumes on the next request exactly like a restart.
 
 ## Not built, and why

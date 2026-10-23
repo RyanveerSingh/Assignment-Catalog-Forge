@@ -45,6 +45,6 @@ export function modelForTier(tier: "cheap" | "strong" | "vision" | "escalation",
   }
 }
 
-export type { AiBatchHandle, AiBatchResult, AiImage, AiProvider, AiPurpose, AiRequest, AiResponse, AiUsage } from "./types";
-export { AiError, isAiError } from "./errors";
-export { costMicros, naiveCostMicros } from "./pricing";
+export type { AiImage, AiProvider, AiRequest, AiResponse } from "./types";
+export { isAiError } from "./errors";
+export { naiveCostMicros } from "./pricing";

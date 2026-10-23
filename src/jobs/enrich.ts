@@ -10,7 +10,7 @@ import type { JobHandler } from "@/worker/loop";
 import { driveImport } from "./drive";
 import { applyEnrichResponse, chargeImport, halveBatch, prepareEnrichRequest, splitBatch, translateAiFailure, type RequestedTier } from "./enrich-shared";
 
-export { failEnrichBatch, translateAiFailure } from "./enrich-shared";
+export { failEnrichBatch } from "./enrich-shared";
 
 /**
  * Fast mode, stage 5+6: one realtime model call for up to eight products of the same tier, then

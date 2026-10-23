@@ -23,4 +23,4 @@ export function getStorage(): StorageDriver {
   return driver;
 }
 
-export type { BlobContent, StorageDriver, StoredBlob } from "./types";
+export type { StorageDriver } from "./types";
