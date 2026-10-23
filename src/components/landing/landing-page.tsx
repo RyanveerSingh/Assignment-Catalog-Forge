@@ -1,14 +1,8 @@
-import { LandingBeforeAfter } from "./landing-before-after";
-import { LandingCta, LandingExplore } from "./landing-cta";
-import { LandingFeatures } from "./landing-features";
+import { loadDemoShop } from "./demo-shop";
+import { LandingFacts } from "./landing-facts";
 import { LandingHero } from "./landing-hero";
 import { LandingNumbers } from "./landing-numbers";
-import { LandingPromises } from "./landing-promises";
 import { LandingShopStrip } from "./landing-shop-strip";
-import { LandingSteps } from "./landing-steps";
-import { LandingTryIt } from "./landing-try-it";
-import { LandingWorksWith } from "./landing-works-with";
-import { ScrollPathAnimator } from "./scroll-path";
 import { SiteHeader } from "./site-chrome";
 import { SiteFooter } from "./site-footer";
 
@@ -17,25 +11,17 @@ interface Props {
   dashboardHref: string | null;
 }
 
-/** What a visitor sees at `/`. Every sentence here is true of the product; there is no copy beyond that. */
-export function LandingPage({ dashboardHref }: Props) {
+/** What a visitor sees at `/`: the product working, the shop it built, why it stays right, and the measured numbers. */
+export async function LandingPage({ dashboardHref }: Props) {
+  const shop = await loadDemoShop();
   return (
     <div className="flex min-h-dvh flex-col">
       <SiteHeader dashboardHref={dashboardHref} />
       <main className="flex-1 overflow-x-clip">
-        <LandingHero dashboardHref={dashboardHref} />
-        <ScrollPathAnimator>
-          <LandingFeatures />
-          <LandingSteps />
-          <LandingBeforeAfter />
-          <LandingTryIt />
-          <LandingNumbers />
-          <LandingWorksWith />
-          <LandingPromises />
-          <LandingShopStrip />
-          <LandingCta dashboardHref={dashboardHref} />
-        </ScrollPathAnimator>
-        <LandingExplore dashboardHref={dashboardHref} />
+        <LandingHero tiles={shop.tiles} />
+        <LandingShopStrip shop={shop} />
+        <LandingFacts />
+        <LandingNumbers />
       </main>
       <SiteFooter dashboardHref={dashboardHref} />
     </div>
