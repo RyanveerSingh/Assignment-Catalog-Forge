@@ -2,14 +2,18 @@ import { CLAIM_LEXICON } from "@/core/ai/lexicon";
 import type { EnrichInput, EnrichProductInput, TranslateInput } from "@/core/ai/prompts";
 import type { AiEnrichBatch, AiProductOutput, AiTranslateBatch } from "@/core/ai/schema";
 import { resolveSourceCategory, TAXONOMY, TAXONOMY_FALLBACK } from "@/core/ai/taxonomy";
+import { isNegated, tokenizeClauses } from "@/core/ai/negation";
+import { locateQuote } from "@/core/ai/quote";
+import { foldForMatch } from "@/core/clean/text";
+import { CATEGORY_KEYWORDS } from "./mock-categories";
 import { AiError } from "./errors";
 import { costMicros } from "./pricing";
 import type { AiBatchHandle, AiBatchResult, AiProvider, AiRequest, AiResponse, AiUsage } from "./types";
 
 /**
  * Demo-mode provider: a deterministic, rule-based stand-in so the whole pipeline runs with no API key.
- * It is intentionally naive about negation (it will claim "frost-proof" when the source says
- * "not frost-proof") so that the grounding validator has something real to catch in demos (EC-D2, B15).
+ * It writes like a careful model (claims cite the cell's own words and never assert what the cell
+ * negates); the chaos panel's "invented claim" knob is how a demo makes the grounding validator fire.
  */
 export function createMockProvider(): AiProvider {
   const batches = new Map<string, Array<AiBatchResult<unknown>>>();
@@ -77,110 +81,6 @@ export function createMockProvider(): AiProvider {
 
 // --- enrichment rules ---------------------------------------------------------
 
-const CATEGORY_KEYWORDS: Array<[RegExp, string]> = [
-  [/\b(planter|plant pot|übertopf|ubertopf|blumentopf|cache[- ]?pot|jardini[eè]re)\b/i, "Home & Garden > Decor > Planters"],
-  [/\b(mug|cup|tasse|becher)\b/i, "Home & Garden > Kitchen & Dining > Tableware > Drinkware > Mugs"],
-  [/\b(tumbler|glass|glas|verre)\b/i, "Home & Garden > Kitchen & Dining > Tableware > Drinkware > Tumblers"],
-  [/\b(water bottle|trinkflasche|gourde)\b/i, "Home & Garden > Kitchen & Dining > Tableware > Drinkware > Water Bottles"],
-  [/\b(cushion|pillow|kissen|coussin)\b/i, "Home & Garden > Decor > Throw Pillows"],
-  [/\b(candle holder|kerzenhalter|bougeoir)\b/i, "Home & Garden > Decor > Candle Holders"],
-  [/\b(candle|kerze|bougie)\b/i, "Home & Garden > Decor > Candles"],
-  [/\b(vase)\b/i, "Home & Garden > Decor > Vases"],
-  [/\b(basket|korb|panier)\b/i, "Home & Garden > Decor > Baskets"],
-  [/\b(rug|teppich|tapis)\b/i, "Home & Garden > Decor > Rugs"],
-  [/\b(mirror|spiegel|miroir)\b/i, "Home & Garden > Decor > Mirrors"],
-  [/\b(frame|bilderrahmen|cadre)\b/i, "Home & Garden > Decor > Picture Frames"],
-  [/\b(clock|uhr|horloge)\b/i, "Home & Garden > Decor > Clocks"],
-  [/\b(bath towel|badetuch|serviette de bain)\b/i, "Home & Garden > Linens & Bedding > Towels > Bath Towels"],
-  [/\b(tea towel|kitchen towel|geschirrtuch|torchon)\b/i, "Home & Garden > Linens & Bedding > Towels > Kitchen Towels"],
-  [/\b(blanket|throw|decke|plaid|couverture)\b/i, "Home & Garden > Linens & Bedding > Bedding > Blankets"],
-  [/\b(duvet cover|bettbezug|housse de couette)\b/i, "Home & Garden > Linens & Bedding > Bedding > Duvet Covers"],
-  [/\b(apron|schürze|schurze|tablier)\b/i, "Home & Garden > Linens & Bedding > Kitchen Linens > Aprons"],
-  [/\b(oven mitt|pot holder|topflappen|manique)\b/i, "Home & Garden > Linens & Bedding > Kitchen Linens > Oven Mitts & Pot Holders"],
-  [/\b(table lamp|tischlampe|lampe de table)\b/i, "Home & Garden > Lighting > Lamps > Table Lamps"],
-  [/\b(floor lamp|stehlampe|lampadaire)\b/i, "Home & Garden > Lighting > Lamps > Floor Lamps"],
-  [/\b(pendant|hängeleuchte|suspension)\b/i, "Home & Garden > Lighting > Lighting Fixtures > Pendant Lights"],
-  [/\b(string lights|lichterkette|guirlande)\b/i, "Home & Garden > Lighting > String Lights"],
-  [/\b(lamp|leuchte|lampe)\b/i, "Home & Garden > Lighting > Lamps > Table Lamps"],
-  [/\b(dining chair|esszimmerstuhl|chaise de salle)\b/i, "Furniture > Chairs > Dining Chairs"],
-  [/\b(armchair|sessel|fauteuil)\b/i, "Furniture > Chairs > Armchairs"],
-  [/\b(stool|hocker|tabouret)\b/i, "Furniture > Chairs > Stools"],
-  [/\b(chair|stuhl|chaise)\b/i, "Furniture > Chairs > Dining Chairs"],
-  [/\b(coffee table|couchtisch|table basse)\b/i, "Furniture > Tables > Coffee Tables"],
-  [/\b(side table|beistelltisch|table d'appoint)\b/i, "Furniture > Tables > Side Tables"],
-  [/\b(desk|schreibtisch|bureau)\b/i, "Furniture > Tables > Desks"],
-  [/\b(table|tisch)\b/i, "Furniture > Tables > Dining Tables"],
-  [/\b(shelf|shelving|regal|étagère|etagere)\b/i, "Furniture > Cabinets & Storage > Shelving"],
-  [/\b(bowl|schüssel|schussel|schale|bol)\b/i, "Home & Garden > Kitchen & Dining > Tableware > Dinnerware > Bowls"],
-  [/\b(plate|teller|assiette)\b/i, "Home & Garden > Kitchen & Dining > Tableware > Dinnerware > Plates"],
-  [/\b(teapot|teekanne|théière|theiere)\b/i, "Home & Garden > Kitchen & Dining > Tableware > Serveware > Teapots"],
-  [/\b(platter|servierplatte|plateau)\b/i, "Home & Garden > Kitchen & Dining > Tableware > Serveware > Serving Platters"],
-  [/\b(cutting board|chopping board|schneidebrett|planche à découper)\b/i, "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils > Cutting Boards"],
-  [/\b(knife|knives|messer|couteau)\b/i, "Home & Garden > Kitchen & Dining > Cutlery > Knives"],
-  [/\b(spatula|whisk|ladle|utensil|kochlöffel|pfannenwender|spatule)\b/i, "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils > Cooking Utensils"],
-  [/\b(grater|peeler|reibe|sparschäler|râpe|éplucheur)\b/i, "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils > Graters & Peelers"],
-  [/\b(skillet|saucepan|frying pan|stockpot|dutch oven|pot|topf|pfanne|bratpfanne|casserole|poêle|cocotte)\b/i, "Home & Garden > Kitchen & Dining > Cookware > Pots & Pans"],
-  [/\b(baking dish|auflaufform|plat à gratin)\b/i, "Home & Garden > Kitchen & Dining > Cookware > Baking Dishes"],
-  [/\b(food container|storage jar|vorratsdose|vorratsglas|boîte de conservation|bocal)\b/i, "Home & Garden > Kitchen & Dining > Food Storage > Food Containers"],
-  [/\b(lunch box|brotdose|boîte à lunch)\b/i, "Home & Garden > Kitchen & Dining > Food Storage > Lunch Boxes"],
-  [/\b(napkin|serviette|serviettes)\b/i, "Home & Garden > Kitchen & Dining > Tableware > Table Linens > Napkins"],
-  [/\b(placemat|tischset|set de table)\b/i, "Home & Garden > Kitchen & Dining > Tableware > Table Linens > Placemats"],
-  [/\b(tablecloth|tischdecke|nappe)\b/i, "Home & Garden > Kitchen & Dining > Tableware > Table Linens > Tablecloths"],
-  [/\b(trowel|handschaufel|transplantoir)\b/i, "Home & Garden > Lawn & Garden > Gardening > Gardening Tools > Hand Trowels"],
-  [/\b(pruner|pruning shears|secateurs|gartenschere|sécateur)\b/i, "Home & Garden > Lawn & Garden > Gardening > Gardening Tools > Pruning Shears"],
-  [/\b(rake|rechen|harke|râteau)\b/i, "Home & Garden > Lawn & Garden > Gardening > Gardening Tools > Rakes"],
-  [/\b(watering can|gießkanne|giesskanne|arrosoir)\b/i, "Home & Garden > Lawn & Garden > Gardening > Gardening Tools > Watering Cans"],
-  [/\b(garden gloves|gartenhandschuhe|gants de jardin)\b/i, "Home & Garden > Lawn & Garden > Gardening > Gardening Gloves"],
-  [/\b(seeds?|samen|graines)\b/i, "Home & Garden > Lawn & Garden > Gardening > Seeds & Bulbs"],
-  [/\b(soap dish|seifenschale|porte-savon)\b/i, "Home & Garden > Bathroom Accessories > Soap Dishes & Dispensers"],
-  [/\b(bath mat|badematte|tapis de bain)\b/i, "Home & Garden > Bathroom Accessories > Bath Mats & Rugs"],
-  [/\b(toothbrush holder|zahnbürstenhalter|porte-brosse)\b/i, "Home & Garden > Bathroom Accessories > Toothbrush Holders"],
-  [/\b(towel rack|towel holder|handtuchhalter|porte-serviette)\b/i, "Home & Garden > Bathroom Accessories > Towel Racks & Holders"],
-  [/\b(soap|seife|savon)\b/i, "Health & Beauty > Personal Care > Bath & Body > Bar Soap"],
-  [/\b(lotion|body cream|körperlotion|crème corps)\b/i, "Health & Beauty > Personal Care > Bath & Body > Body Lotion"],
-  [/\b(dog)\b/i, "Animals & Pet Supplies > Pet Supplies > Dog Supplies"],
-  [/\b(cat|katze|chat)\b/i, "Animals & Pet Supplies > Pet Supplies > Cat Supplies"],
-  [/\b(pet bed|hundebett|katzenbett|panier pour chien)\b/i, "Animals & Pet Supplies > Pet Supplies > Pet Beds"],
-  [/\b(pet bowl|napf|gamelle)\b/i, "Animals & Pet Supplies > Pet Supplies > Pet Bowls & Feeders"],
-  [/\b(pet toy|hundespielzeug|jouet pour chien)\b/i, "Animals & Pet Supplies > Pet Supplies > Pet Toys"],
-  [/\b(puzzle)\b/i, "Toys & Games > Games > Puzzles"],
-  [/\b(board game|brettspiel|jeu de société)\b/i, "Toys & Games > Games > Board Games"],
-  [/\b(wooden toy|holzspielzeug|jouet en bois)\b/i, "Toys & Games > Toys > Wooden Toys"],
-  [/\b(plush|stuffed|kuscheltier|peluche|doll|puppe|poupée)\b/i, "Toys & Games > Toys > Dolls & Stuffed Animals"],
-  [/\b(building blocks|bauklötze|blocs de construction)\b/i, "Toys & Games > Toys > Building Toys"],
-  [/\b(toy|spielzeug|jouet)\b/i, "Toys & Games > Toys > Educational Toys"],
-  [/\b(notebook|notizbuch|cahier|carnet|notepad)\b/i, "Office Supplies > General Office Supplies > Paper > Notebooks & Notepads"],
-  [/\b(pen|kugelschreiber|stylo)\b/i, "Office Supplies > Writing Instruments > Pens"],
-  [/\b(pencil|bleistift|crayon)\b/i, "Office Supplies > Writing Instruments > Pencils"],
-  [/\b(pen holder|stiftehalter|pot à crayons)\b/i, "Office Supplies > Desk Accessories > Pen Holders"],
-  [/\b(yoga mat|yogamatte|tapis de yoga)\b/i, "Sporting Goods > Exercise & Fitness > Yoga & Pilates > Yoga Mats"],
-  [/\b(backpack|rucksack|sac à dos)\b/i, "Luggage & Bags > Backpacks"],
-  [/\b(tote|einkaufstasche|cabas)\b/i, "Luggage & Bags > Shopping Totes"],
-  [/\b(scarf|schal|écharpe)\b/i, "Apparel & Accessories > Clothing Accessories > Scarves & Shawls"],
-  [/\b(hat|beanie|mütze|bonnet)\b/i, "Apparel & Accessories > Clothing Accessories > Hats"],
-  [/\b(gloves|handschuhe|gants)\b/i, "Apparel & Accessories > Clothing Accessories > Gloves & Mittens"],
-  [/\b(t-shirt|shirt|top|bluse|chemise)\b/i, "Apparel & Accessories > Clothing > Shirts & Tops"],
-  [/\b(earrings?|ohrringe|boucles)\b/i, "Apparel & Accessories > Jewelry > Earrings"],
-  [/\b(necklace|kette|collier)\b/i, "Apparel & Accessories > Jewelry > Necklaces"],
-  [/\b(bracelet|armband)\b/i, "Apparel & Accessories > Jewelry > Bracelets"],
-  [/\b(ring)\b/i, "Apparel & Accessories > Jewelry > Rings"],
-  [/\b(headphones|kopfhörer|casque)\b/i, "Electronics > Audio > Headphones"],
-  [/\b(speaker|lautsprecher|enceinte)\b/i, "Electronics > Audio > Speakers"],
-  [/\b(cable|kabel|câble)\b/i, "Electronics > Electronics Accessories > Cables"],
-  [/\b(charger|ladegerät|chargeur)\b/i, "Electronics > Electronics Accessories > Chargers & Power Adapters"],
-  [/\b(phone case|handyhülle|coque)\b/i, "Electronics > Electronics Accessories > Phone Cases"],
-  [/\b(coffee|kaffee|café)\b/i, "Food, Beverages & Tobacco > Beverages > Coffee"],
-  [/\b(tea|tee|thé)\b/i, "Food, Beverages & Tobacco > Beverages > Tea"],
-  [/\b(chocolate|schokolade|chocolat)\b/i, "Food, Beverages & Tobacco > Food Items > Candy & Chocolate"],
-  [/\b(storage box|bin|aufbewahrungsbox|boîte de rangement)\b/i, "Home & Garden > Household Supplies > Storage & Organization > Storage Boxes & Bins"],
-  [/\b(hook|haken|crochet)\b/i, "Home & Garden > Household Supplies > Storage & Organization > Hooks & Hangers"],
-  [/\b(hammer)\b/i, "Hardware > Tools > Hand Tools > Hammers"],
-  [/\b(screwdriver|schraubendreher|tournevis)\b/i, "Hardware > Tools > Hand Tools > Screwdrivers"],
-  [/\b(wrench|spanner|schraubenschlüssel|clé)\b/i, "Hardware > Tools > Hand Tools > Wrenches"],
-  [/\b(tape measure|maßband|mètre)\b/i, "Hardware > Tools > Measuring Tools"],
-  [/\b(drill|bohrer|perceuse)\b/i, "Hardware > Tools > Power Tools"],
-];
-
 // A size token must be its own word ("Bowl" is not "Bow" + size L): require a separator or space before it.
 const OPTION_TAIL = /(?:\s+|\s*[-–,|/(]\s*)(\d+([.,]\d+)?\s?(cm|mm|m|in|inch|"|l|ml|kg|g)\b|xs|s|m|l|xl|xxl|small|medium|large)\s*\)?\s*$/i;
 
@@ -195,6 +95,37 @@ function titleCase(s: string): string {
     .replace(/\bWith\b/g, "with");
 }
 
+/** Common home-goods nouns and connectives in German and French, so a demo listing reads in English like a real one would. */
+const TITLE_WORDS: Readonly<Record<string, string>> = {
+  kerze: "candle", kerzen: "candles", stumpenkerze: "pillar candle", teelicht: "tealight", teelichter: "tealights", bienenwachs: "beeswax",
+  tasse: "cup", tassen: "cups", becher: "mug", teekanne: "teapot", kanne: "pot", schale: "bowl", schussel: "bowl", teller: "plate",
+  giesskanne: "watering can", teppich: "rug", kissen: "cushion", decke: "blanket", handtuch: "towel", vase: "vase", korb: "basket",
+  spiegel: "mirror", uhr: "clock", lampe: "lamp", leuchte: "lamp", tisch: "table", stuhl: "chair", hocker: "stool", regal: "shelf",
+  topf: "pot", pfanne: "pan", messer: "knife", brett: "board", notizbuch: "notebook", stift: "pen", bleistift: "pencil",
+  hund: "dog", katze: "cat", spielzeug: "toy", holz: "wood", leinen: "linen", baumwolle: "cotton", wolle: "wool", keramik: "ceramic",
+  glas: "glass", stahl: "steel", eiche: "oak", ubertopf: "planter", blumentopf: "plant pot",
+  bougie: "candle", bougies: "candles", tasses: "cups", tapis: "rug", coussin: "cushion", couverture: "blanket", table: "table", chaise: "chair",
+  tabouret: "stool", etagere: "shelf", bol: "bowl", assiette: "plate", theiere: "teapot", arrosoir: "watering can", serviette: "towel",
+  panier: "basket", miroir: "mirror", horloge: "clock", casserole: "saucepan", poele: "pan", couteau: "knife", planche: "board",
+  chien: "dog", chat: "cat", jouet: "toy", carnet: "notebook", stylo: "pen", crayon: "pencil", cire: "wax", bois: "wood", lin: "linen",
+  coton: "cotton", laine: "wool", ceramique: "ceramic", verre: "glass", acier: "steel", chene: "oak", expresso: "espresso",
+  de: "of", des: "of", en: "in", et: "and", avec: "with", pour: "for", mit: "with", und: "and", aus: "in",
+};
+const TITLE_DROP = new Set(["a", "la", "le", "les", "der", "die", "das", "au", "aux", "du"]);
+
+/** Word-by-word rendering of a German or French title into English; unknown words pass through. */
+function anglicizeTitle(raw: string): string {
+  return raw
+    .split(/[\s-]+/)
+    .map((word) => {
+      const key = foldForMatch(word);
+      if (TITLE_DROP.has(key)) return "";
+      return TITLE_WORDS[key] ?? word;
+    })
+    .filter(Boolean)
+    .join(" ");
+}
+
 function deriveTitle(p: EnrichProductInput): { title: string; confidence: number; reason: string | null } {
   let raw = (p.source_title ?? "").trim();
   if (!raw) {
@@ -205,18 +136,22 @@ function deriveTitle(p: EnrichProductInput): { title: string; confidence: number
   let guard = 0;
   while (OPTION_TAIL.test(raw) && guard++ < 3) raw = raw.replace(OPTION_TAIL, "").trim();
   raw = raw.replace(/\s{2,}/g, " ").replace(/[-–,|/]+$/g, "").trim();
-  return { title: titleCase(raw), confidence: 95, reason: null };
+  const english = p.language === "de" || p.language === "fr" ? anglicizeTitle(raw) : raw;
+  return { title: titleCase(english), confidence: 95, reason: null };
 }
 
 function deriveCategory(p: EnrichProductInput, title: string): { category: string; confidence: number; reason: string | null } {
-  // The supplier's own category column, when it maps to the taxonomy, beats any keyword guess.
+  // The supplier's own category column, when it maps to the taxonomy, beats any keyword guess; a
+  // keyword may only refine it to a leaf beneath it ("Vaisselle" → Tableware, "cup set" → Coffee & Tea Sets).
   const fromSource = p.category_hint ? resolveSourceCategory(p.category_hint) : null;
-  if (fromSource) return { category: fromSource, confidence: 80, reason: null };
   // The title names the product; the description only disambiguates, so it is searched second.
   const titleHay = `${title} ${p.category_hint ?? ""}`.toLowerCase();
-  for (const [re, path] of CATEGORY_KEYWORDS) {
-    if (re.test(titleHay)) return { category: path, confidence: 88, reason: null };
+  const fromTitle = CATEGORY_KEYWORDS.find(([re]) => re.test(titleHay))?.[1] ?? null;
+  if (fromSource) {
+    const refined = fromTitle && !TAXONOMY.includes(fromSource) && fromTitle.startsWith(`${fromSource} > `) ? fromTitle : fromSource;
+    return { category: refined, confidence: 80, reason: null };
   }
+  if (fromTitle) return { category: fromTitle, confidence: 88, reason: null };
   const descHay = (p.source_description ?? "").toLowerCase();
   for (const [re, path] of CATEGORY_KEYWORDS) {
     if (re.test(descHay)) return { category: path, confidence: 72, reason: null };
@@ -253,10 +188,12 @@ function findClaims(p: EnrichProductInput): AiProductOutput["claims"] {
       for (const entry of CLAIM_LEXICON) {
         if (seen.has(entry.term)) continue;
         const hit = entry.variants.find((v) => folded.includes(` ${v} `));
-        if (hit) {
+        // A careful writer never asserts what the cell negates; the chaos panel can inject that on purpose.
+        if (hit && !isNegated(tokenizeClauses(value), [hit])) {
           seen.add(entry.term);
-          const idx = fold(value).indexOf(hit);
-          const quote = idx >= 0 ? value.slice(Math.max(0, idx - 10), Math.min(value.length, idx + hit.length + 25)).trim() : value.slice(0, 60);
+          // Quote the words as the supplier wrote them, exactly as a careful model would.
+          const span = locateQuote(value, hit);
+          const quote = span ? value.slice(span.start, span.end) : value.slice(0, 60);
           claims.push({ text: entry.term, source_row: r.row, source_column: column, quote });
         }
       }

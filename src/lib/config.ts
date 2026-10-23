@@ -42,6 +42,7 @@ const schema = z.object({
   CHAOS_RATE_LIMIT_PCT: z.coerce.number().min(0).max(100).default(0),
   CHAOS_TIMEOUT_PCT: z.coerce.number().min(0).max(100).default(0),
   CHAOS_INVALID_JSON_PCT: z.coerce.number().min(0).max(100).default(0),
+  CHAOS_INVENTED_CLAIM_PCT: z.coerce.number().min(0).max(100).default(0),
 });
 
 export type Config = z.infer<typeof schema>;

@@ -11,6 +11,7 @@ const SLIDERS: ReadonlyArray<{ key: keyof ChaosDto; label: string; hint: string 
   { key: "rateLimitPct", label: "Rate limit (429)", hint: "share of AI calls that come back rate-limited; the worker backs off and retries" },
   { key: "timeoutPct", label: "Timeout", hint: "share of AI calls that hang past the deadline; retried, then the product is marked for review" },
   { key: "invalidJsonPct", label: "Invalid JSON", hint: "share of AI replies that are malformed; the repair prompt runs once before giving up" },
+  { key: "inventedClaimPct", label: "Invented claim", hint: "share of listings that get a claim the supplier negated slipped in; the grounding validator must block it and send the product to review" },
 ];
 
 type CrashState = { kind: "idle" } | { kind: "confirm" } | { kind: "sending" } | { kind: "sent"; message: string } | { kind: "error"; message: string };
@@ -33,7 +34,7 @@ export function ChaosPanel({ chaos, onApplied }: { chaos: ChaosDto | null; onApp
       {draft === null ? (
         <p className="text-sm text-ink-muted">Chaos settings are unavailable right now.</p>
       ) : (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {SLIDERS.map((s) => {
             const id = `chaos-${s.key}`;
             const value = draft[s.key];

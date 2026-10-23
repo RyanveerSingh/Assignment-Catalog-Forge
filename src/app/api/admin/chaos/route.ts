@@ -13,6 +13,7 @@ const schema = z.object({
   rateLimitPct: z.number().min(0).max(100),
   timeoutPct: z.number().min(0).max(100),
   invalidJsonPct: z.number().min(0).max(100),
+  inventedClaimPct: z.number().min(0).max(100).default(0),
 });
 
 export const GET = withApi(async () => {
@@ -23,7 +24,7 @@ export const GET = withApi(async () => {
 export const PATCH = withApi(async (req: Request) => {
   if (!(await currentUser())) throw new HttpError(401, "unauthenticated", "Sign in to continue");
   const parsed = schema.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) throw new HttpError(400, "invalid_body", "Percentages 0–100 for rateLimitPct, timeoutPct, invalidJsonPct");
+  if (!parsed.success) throw new HttpError(400, "invalid_body", "Percentages 0–100 for rateLimitPct, timeoutPct, invalidJsonPct, inventedClaimPct");
   await setChaos(getDb(), parsed.data);
   getLogger({ component: "chaos" }).warn(parsed.data, "chaos settings changed");
   return json(parsed.data);

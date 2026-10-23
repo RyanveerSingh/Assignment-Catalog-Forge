@@ -33,7 +33,7 @@ export const CHAOS_KEY = "chaos";
 
 export function chaosFromEnv(): ChaosSettings {
   const cfg = getConfig();
-  return { rateLimitPct: cfg.CHAOS_RATE_LIMIT_PCT, timeoutPct: cfg.CHAOS_TIMEOUT_PCT, invalidJsonPct: cfg.CHAOS_INVALID_JSON_PCT };
+  return { rateLimitPct: cfg.CHAOS_RATE_LIMIT_PCT, timeoutPct: cfg.CHAOS_TIMEOUT_PCT, invalidJsonPct: cfg.CHAOS_INVALID_JSON_PCT, inventedClaimPct: cfg.CHAOS_INVENTED_CLAIM_PCT };
 }
 
 let chaosSnapshot: ChaosSettings | null = null;
@@ -44,7 +44,8 @@ export function currentChaos(): ChaosSettings {
 }
 
 export async function refreshChaos(db: DbOrTx): Promise<ChaosSettings> {
-  chaosSnapshot = await getSetting<ChaosSettings>(db, CHAOS_KEY, chaosFromEnv());
+  // Settings saved before a knob existed lack its key; the env default fills it in.
+  chaosSnapshot = { ...chaosFromEnv(), ...(await getSetting<Partial<ChaosSettings>>(db, CHAOS_KEY, {})) };
   return chaosSnapshot;
 }
 

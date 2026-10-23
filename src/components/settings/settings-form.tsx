@@ -10,6 +10,7 @@ import { ChaosPanel } from "./chaos-panel";
 import { LanguagesSection } from "./languages-section";
 import { StoreSection } from "./store-section";
 import { TranslationSection } from "./translation-section";
+import { WebhooksSection } from "./webhooks-section";
 
 export interface StoreSettingsDto {
   id: string;
@@ -32,6 +33,7 @@ export interface ChaosDto {
   rateLimitPct: number;
   timeoutPct: number;
   invalidJsonPct: number;
+  inventedClaimPct: number;
 }
 
 export interface SectionProps {
@@ -108,6 +110,7 @@ export function SettingsForm({ storeSlug, isOwner }: { storeSlug: string; isOwne
       <LanguagesSection settings={settings} disabled={disabled} onSave={onSave} />
       <TranslationSection settings={settings} disabled={disabled} onSave={onSave} />
       <AiSection settings={settings} disabled={disabled} onSave={onSave} />
+      <WebhooksSection storeSlug={storeSlug} disabled={disabled} />
       <ChaosPanel chaos={chaos} onApplied={setChaos} />
     </div>
   );

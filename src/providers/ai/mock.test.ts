@@ -51,8 +51,8 @@ describe("mock AI provider", () => {
     expect(p.title).toBe("Terracotta Planter");
     expect(p.category).toBe("Home & Garden > Decor > Planters");
     expect(p.claims.map((c) => c.text)).toEqual(expect.arrayContaining(["hand-thrown", "frost-resistant"]));
-    // Deliberately naive: the mock also claims frost-proof, which the grounding validator must strip.
-    expect(p.claims.map((c) => c.text)).toContain("frost-proof");
+    // A careful writer: the cell says "not frost-proof", so frost-proof is never claimed.
+    expect(p.claims.map((c) => c.text)).not.toContain("frost-proof");
     expect(p.claims.every((c) => c.source_row === 14 || c.source_row === 15)).toBe(true);
     expect(p.status).toBe("ok");
     // Free to run, priced at Haiku list rates so the cost tracking behaves as it would with a key.
@@ -65,6 +65,30 @@ describe("mock AI provider", () => {
     const input: EnrichInput = { products: [{ ...planter.products[0]!, product_key: "K", source_title: "Stumpenkerze", material: "Bienenwachs", color: null, category_hint: "Haus & Garten > Dekoration > Kerzen", source_description: "Handgegossen, brennt langsam.", rows: [] }] };
     const res = await provider.complete({ purpose: "enrich", model: "mock-cheap", system: "", userText: renderEnrichUserText(input), input, schema: aiEnrichBatchSchema, maxTokens: 1000 });
     expect(res.output.products[0]!.category).toBe("Home & Garden > Decor > Candles");
+  });
+
+  it("EC-B15: the invented-claim chaos knob slips in the negated term for the validator to catch", async () => {
+    const provider = withChaos(createMockProvider(), () => ({ rateLimitPct: 0, timeoutPct: 0, invalidJsonPct: 0, inventedClaimPct: 100 }), () => 0);
+    const res = await provider.complete({ purpose: "enrich", model: "mock-cheap", system: "", userText: renderEnrichUserText(planter), input: planter, schema: aiEnrichBatchSchema, maxTokens: 4000 });
+    const p = res.output.products[0]!;
+    expect(p.claims.map((c) => c.text)).toContain("frost-proof");
+    expect(p.claims.find((c) => c.text === "frost-proof")?.quote).toMatch(/not frost-proof/);
+    expect(p.description_html).toMatch(/Frost-proof\./);
+  });
+
+  it("EC-B10: renders a German or French source title in English word by word", async () => {
+    const provider = createMockProvider();
+    const input: EnrichInput = {
+      products: [
+        { ...planter.products[0]!, product_key: "DE", source_title: "Bienenwachs-Stumpenkerze", language: "de", category_hint: null, rows: [] },
+        { ...planter.products[0]!, product_key: "FR", source_title: "Set de Tasses à Expresso", language: "fr", category_hint: null, rows: [] },
+      ],
+    };
+    const res = await provider.complete({ purpose: "enrich", model: "mock-cheap", system: "", userText: renderEnrichUserText(input), input, schema: aiEnrichBatchSchema, maxTokens: 2000 });
+    const [de, fr] = res.output.products.map((p) => p.title);
+    expect(de).toBe("Beeswax Pillar Candle");
+    expect(fr).toMatch(/^Set of Cups/);
+    expect(fr).toMatch(/Espresso$/);
   });
 
   it("flags products with no usable title for review", async () => {
@@ -90,7 +114,7 @@ describe("mock AI provider", () => {
   });
 
   it("EC-D9: chaos wrapper injects a rate limit", async () => {
-    const provider = withChaos(createMockProvider(), () => ({ rateLimitPct: 100, timeoutPct: 0, invalidJsonPct: 0 }));
+    const provider = withChaos(createMockProvider(), () => ({ rateLimitPct: 100, timeoutPct: 0, invalidJsonPct: 0, inventedClaimPct: 0 }));
     await expect(
       provider.complete({ purpose: "enrich", model: "mock-cheap", system: "", userText: "", input: planter, schema: aiEnrichBatchSchema, maxTokens: 10 }),
     ).rejects.toMatchObject({ kind: "rate_limit", retryAfterMs: 20_000 });
