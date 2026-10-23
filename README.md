@@ -124,7 +124,7 @@ Local machine, Docker Postgres, demo provider (deterministic stand-in, zero cost
 |---|---|
 | 1,000-row sample, Fast mode, AI concurrency 4 | 33 s end to end, ≈ 1,800 rows/min, 477 products, counts 1000/1000 |
 | 120-row messy sample with 56-file photo ZIP over HTTP (upload → finished) | 8 s first time; 2 s when re-uploaded unchanged (no AI calls) |
-| 10,000-row sample | _(pending; run `npx tsx scripts/run-import.ts --file samples/bulk-10000.csv`)_ |
+| 10,000-row sample, Fast mode, two workers (one embedded in the web process, one standalone), AI concurrency 4 each | 7.2 min end to end (434 s) ≈ 1,380 rows/min including translation of 4,758 products into DE and FR; parse → clean → group → AI finished at 194 s (≈ 3,100 rows/min); 10,000/10,000 rows terminal (4,746 done, 5,254 need review, 0 failed) |
 | Storefront during the 10k import (autocannon, 50 connections, 30 s, two workers busy on the same laptop) | collection page 145 req/s, p50 341 ms, p99 448 ms; product page 154 req/s, p50 320 ms, p99 410 ms; 0 errors, 0 non-2xx |
 | Storefront idle (same settings) | _(filled below once the 10k run finishes)_ |
 | Eval, messy-120, demo provider | product recall 98.3%, variant recall 99.1%, price exactness 99.1%, title keywords 93.0%, category 75.4%, negated violations 0, duplicate precision/recall 100% |

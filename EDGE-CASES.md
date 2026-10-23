@@ -12,7 +12,7 @@ Status legend
 | ❌ | Not handled: with the reason and what it would take |
 | ⬜ | Planned: not built yet |
 
-Counts (kept current by hand, last pass 2026-10-23 05:10 IST): ✅ 78 · 🟡 48 · ❌ 9 · ⬜ 4
+Counts (kept current by hand, last pass 2026-10-23 08:00 IST): ✅ 79 · 🟡 47 · ❌ 9 · ⬜ 4
 
 Tests reference these IDs by name (for example `EC-B5: parses "1.299,00 €" as 129900 EUR`), so a status is flipped to ✅ only when such a test exists. Run `npx vitest run` and grep for `EC-` to see them all.
 
@@ -141,7 +141,7 @@ Tests reference these IDs by name (for example `EC-B5: parses "1.299,00 €" as 
 | E10 | A job is stuck in `processing` because its worker died without releasing it | Lease expiry + reaper; rows stuck > 10 min are reset by the tick. | ✅ |
 | E11 | The import is rate-limited for hours | It stays `paused` with an ETA; cancel marks remaining rows Failed "cancelled by user" so counts still add up. | 🟡 |
 | E12 | Queue backlog grows across many merchants | Workers are stateless; concurrency is config; the same code runs embedded (free tier) or as separate replicas. | 🟡 |
-| E13 | Memory pressure parsing 10k rows × 30 columns | Rows are written in 500-row chunks and cleaned per chunk; the parser is bounded by the 10k row cap and the 50 MB file cap. | 🟡 (10k run pending) |
+| E13 | Memory pressure parsing 10k rows × 30 columns | Rows are written in 500-row chunks and cleaned per chunk; the parser is bounded by the 10k row cap and the 50 MB file cap. The 10,000-row sample (2.7 MB, 15 columns) ran end to end in 7.2 min with every row terminal; the driver enqueues missing work with one statement per stage so large imports stay linear. | ✅ measured |
 | E14 | A deploy happens during an import | SIGTERM → stop claiming, finish in-flight for ≤ 30 s, exit; migrations are additive; the new version resumes. | 🟡 |
 | E15 | "Resuming in X minutes" across time zones | `paused_until` is stored as an absolute timestamp; the client computes the delta. | 🟡 |
 | E16 | Embedded-worker mode: a worker crash is also a web crash | The host restarts the process; resume path is E1. Locally the worker is a separate container. | 🟡 |
