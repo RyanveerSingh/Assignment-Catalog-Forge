@@ -280,6 +280,15 @@ describe("groundProductOutput", () => {
     expect(r.issues.some((i) => i.code === "category.source")).toBe(false);
   });
 
+  it("EC-D2: an origin is supported by any cell that names the place, whatever the supplier's verb", () => {
+    const frRows = [{ row: 3, cells: { Titre: "Grotte pour chat", Description: "Grotte feutrée à la main au Népal en laine mérinos." } }];
+    const fr: ProductGroup = { ...group, productKey: "FC-CV", title: "Grotte pour chat", language: { lang: "fr", confidence: 95 }, sourceRows: [3], sourceCorpus: `Titre: Grotte pour chat\nDescription: ${frRows[0]!.cells.Description}` };
+    const r = groundProductOutput({ output: output({ product_key: "FC-CV", title: "Felted Cat Cave", description_html: "<p>Hand-felted merino cat cave. Made in Nepal.</p>", attributes: [], claims: [] }), group: fr, rows: frRows });
+    expect(r.reviewReasons.some((x) => x.includes("made in"))).toBe(false);
+    expect(r.content.descriptionHtml).toMatch(/Made in Nepal/);
+    expect(r.claims.map((c) => c.text)).toContain("made in Nepal");
+  });
+
   it("EC-D2: 'hand-made in natural jute' is not an origin claim, 'Made in Portugal' without a source is", () => {
     const fine = groundProductOutput({ output: output({ description_html: "<p>Hand-made in natural jute, hand-thrown look.</p>" }), group, rows });
     expect(fine.reviewReasons.some((x) => x.includes("made in"))).toBe(false);

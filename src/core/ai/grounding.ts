@@ -145,7 +145,18 @@ export function groundProductOutput(input: GroundingInput): GroundingResult {
     const text = ` ${foldForMatch(listingText)} `;
     const hit = entry.variants.find((v) => text.includes(` ${v} `));
     if (!hit) continue;
-    if (entry.placeAfter && !PLACE_AFTER_RE.test(listingText)) continue;
+    if (entry.placeAfter) {
+      const origin = PLACE_AFTER_RE.exec(listingText);
+      if (!origin) continue;
+      // "Made in Nepal" is backed by any source cell that names Nepal ("feutrée à la main au Népal"),
+      // whatever verb the supplier used; only an origin the source never mentions is invented.
+      const place = foldForMatch(origin[1] ?? "");
+      if (place && corpus.includes(` ${place} `)) {
+        const found = findTermInRows(sourceRows, [place]);
+        if (found) claims.push({ text: `made in ${origin[1]}`, source: `row ${found.row}, column ${found.column}`, row: found.row, column: found.column, quote: found.quote, verified: true });
+        continue;
+      }
+    }
     // Supporting evidence ("solid oak") proves presence; only the term's own spellings decide negation.
     const evidence = evidenceFor(entry);
     const inSource = evidence.some((v) => corpus.includes(` ${v} `));

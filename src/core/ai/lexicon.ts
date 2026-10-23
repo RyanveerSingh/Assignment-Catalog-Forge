@@ -27,8 +27,8 @@ export function evidenceFor(entry: ClaimTerm): string[] {
   return entry.supports ? [...entry.variants, ...entry.supports] : entry.variants;
 }
 
-/** Origin phrases followed by a capitalised word: the shape of a real "Made in <Place>" statement. */
-export const PLACE_AFTER_RE = /\b(?:[Mm]ade in|[Hh]ergestellt in|[Ff]abriqu[ée] en|[Pp]roduit en)\s+\p{Lu}/u;
+/** Origin phrases followed by a capitalised word: the shape of a real "Made in <Place>" statement. The place is captured. */
+export const PLACE_AFTER_RE = /\b(?:[Mm]ade in|[Hh]ergestellt in|[Ff]abriqu[ée]e? (?:en|au|aux|à|a)|[Pp]roduite? (?:en|au|aux))\s+(\p{Lu}\p{L}+)/u;
 
 export const CLAIM_LEXICON: ReadonlyArray<ClaimTerm> = [
   { term: "organic", variants: ["organic", "bio", "biologisch", "biologique", "oeko", "öko"] },
@@ -39,10 +39,11 @@ export const CLAIM_LEXICON: ReadonlyArray<ClaimTerm> = [
     supports: [
       "hand poured", "hand woven", "hand knotted", "hand thrown", "hand carved", "hand stitched", "hand sewn", "hand blown", "hand dipped", "hand turned", "hand forged", "hand cast", "wheel thrown", "thrown by hand",
       "handgegossen", "handgegossene", "handgewebt", "handgeknupft", "handgedreht", "handgeschnitzt", "handgenaht", "mundgeblasen", "handgeschmiedet",
+      "von hand gefertigt", "von hand gemacht", "von hand geflochten", "von hand genaht", "von hand gegossen", "von hand bemalt", "in handarbeit",
       "coulee a la main", "tisse a la main", "noue a la main", "tourne a la main", "sculpte a la main", "cousu a la main", "souffle a la bouche", "forge a la main",
     ],
   },
-  { term: "hand-thrown", variants: ["hand thrown", "handthrown", "thrown by hand", "wheel thrown", "handgedreht", "tourne a la main"] },
+  { term: "hand-thrown", variants: ["hand thrown", "handthrown", "thrown by hand", "wheel thrown", "handgedreht", "handgedrehte", "handgedrehtem", "handgedrehten", "handgedrehter", "tourne a la main", "tournee a la main"] },
   { term: "hand-painted", variants: ["hand painted", "handpainted", "painted by hand", "handbemalt", "peint a la main"] },
   { term: "frost-proof", variants: ["frost proof", "frostproof", "frostsicher", "resistant au gel garanti", "frostfest"] },
   { term: "frost-resistant", variants: ["frost resistant", "frostresistant", "frostbestandig", "resistant au gel", "frost hardy"] },
@@ -95,7 +96,7 @@ export const CLAIM_LEXICON: ReadonlyArray<ClaimTerm> = [
       "chene massif", "hetre massif", "frene massif", "pin massif", "noyer massif", "teck massif",
     ],
   },
-  { term: "made in", variants: ["made in", "hergestellt in", "fabrique en", "produit en", "aus deutschland", "aus portugal", "aus italien"], placeAfter: true },
+  { term: "made in", variants: ["made in", "hergestellt in", "hergestellt im", "fabrique en", "fabriquee en", "fabriques en", "produit en", "produite en", "aus deutschland", "aus portugal", "aus italien"], placeAfter: true },
   { term: "limited edition", variants: ["limited edition", "limitierte auflage", "edition limitee"], soft: true },
   { term: "award-winning", variants: ["award winning", "preisgekront", "prime"], soft: true },
   { term: "bestseller", variants: ["bestseller", "best seller", "meilleure vente"], soft: true },

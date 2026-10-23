@@ -270,9 +270,9 @@ export function ImportLive({ storeSlug, initialImport, initialEvents, initialHyg
       {imp.status === "paused" ? (
         <Banner tone="warning" icon={PauseIcon} action={canResume ? <Button size="sm" className={brandButton} disabled={busy !== null} onClick={() => void runAction("resume")}>Resume now</Button> : null}>
           <strong className="font-medium">Paused</strong>
-          {imp.pauseReason ? ` — ${imp.pauseReason}` : ""}
+          {countdown === null ? (imp.pauseReason ? ` — ${imp.pauseReason}` : "") : countdown === "now" ? " — resuming now" : ` — resuming in ${countdown}`}
           <span className="block text-xs text-ink-muted" suppressHydrationWarning>
-            {countdown === null ? "Waiting for you to resume" : countdown === "now" ? "Resuming now" : `Resumes automatically in ${countdown}`}
+            {countdown === null ? "Waiting for you to resume" : (imp.pauseReason ?? "Resumes automatically")}
           </span>
         </Banner>
       ) : null}
