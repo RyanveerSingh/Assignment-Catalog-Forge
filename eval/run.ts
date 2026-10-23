@@ -9,98 +9,23 @@
  * Exit code 1 when a listing asserts a claim the source negates (EC-B15), the one hard rule.
  */
 import "@/lib/env";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { groundProductOutput } from "@/core/ai/grounding";
-import { buildEnrichSystemPrompt, PROMPT_VERSION, renderEnrichUserText, type EnrichInput, type EnrichProductInput } from "@/core/ai/prompts";
+import { PROMPT_VERSION } from "@/core/ai/prompts";
 import { routeTier, type AiTier } from "@/core/ai/routing";
-import { aiEnrichBatchSchema, type AiProductOutput } from "@/core/ai/schema";
 import { htmlToText } from "@/core/clean/html";
-import { buildCleanRowContext, cleanRow } from "@/core/clean/row";
-import { groupRows } from "@/core/group/group";
-import { mapColumns } from "@/core/parse/headers";
-import { parseSheet } from "@/core/parse/sheet";
-import type { DuplicateRow, GroundTruthFile, ProductGroup } from "@/core/types";
 import { buildEnrichProductInput } from "@/jobs/enrich-input";
 import { getConfig } from "@/lib/config";
-import { getAiProvider, isAiError, modelForTier, type AiProvider, type AiResponse } from "@/providers/ai";
+import { getAiProvider, modelForTier, type AiProvider } from "@/providers/ai";
 import { createMockProvider } from "@/providers/ai/mock";
+import { DEFAULT_CURRENCY, loadSample, runDeterministic } from "./deterministic";
+import { type Candidate, enrichAll, errorMessage, type Logger, type ModelAnswer } from "./enrich-loop";
 import { aggregate, matchProducts, scoreDuplicates, scorePair, type DerivedProduct } from "./metrics";
 import { formatReport } from "./report";
 import type { CallRecord, CostSummary, EvalOptions, EvalProvider, EvalRunResult, EvalTier } from "./types";
 
-const BATCH_SIZE = 8;
-const MAX_ATTEMPTS = 3;
-const BACKOFF_MS = 2_000;
-const MAX_TOKENS = 16_000;
-const MAPPING_SAMPLE_ROWS = 50;
-const DEFAULT_CURRENCY = "EUR";
-const SAMPLES_DIR = path.join(process.cwd(), "samples");
 const DEFAULT_OUT_DIR = path.join(process.cwd(), "eval", "out");
-
-type RowCells = { row: number; cells: Record<string, string> };
-type Logger = (message: string) => void;
-type ModelAnswer = { output: AiProductOutput } | { error: string };
-
-interface Candidate {
-  group: ProductGroup;
-  rows: RowCells[];
-  input: EnrichProductInput;
-  tier: AiTier;
-  model: string;
-}
-
-// ---------------------------------------------------------------------------
-// Loading
-// ---------------------------------------------------------------------------
-
-function isGroundTruthFile(value: unknown): value is GroundTruthFile {
-  if (typeof value !== "object" || value === null) return false;
-  const v = value as Record<string, unknown>;
-  return Array.isArray(v.products) && Array.isArray(v.duplicateRows);
-}
-
-function loadSample(sample: string): { file: string; buffer: Buffer; truth: GroundTruthFile } {
-  const file = [path.join(SAMPLES_DIR, `${sample}.csv`), path.join(SAMPLES_DIR, `${sample}.xlsx`)].find((p) => existsSync(p));
-  if (!file) throw new Error(`no samples/${sample}.csv or samples/${sample}.xlsx`);
-  const truthPath = path.join(SAMPLES_DIR, "ground-truth", `${sample}.json`);
-  if (!existsSync(truthPath)) throw new Error(`no ground truth at samples/ground-truth/${sample}.json`);
-  const parsed: unknown = JSON.parse(readFileSync(truthPath, "utf8"));
-  if (!isGroundTruthFile(parsed)) throw new Error(`${truthPath} is not a GroundTruthFile`);
-  return { file, buffer: readFileSync(file), truth: parsed };
-}
-
-// ---------------------------------------------------------------------------
-// Deterministic stages (parse → map → clean → group), exactly as the jobs do it
-// ---------------------------------------------------------------------------
-
-interface Deterministic {
-  rows: number;
-  groups: ProductGroup[];
-  duplicates: DuplicateRow[];
-  keptRows: Set<number>;
-  cellsByRow: Map<number, Record<string, string>>;
-}
-
-function runDeterministic(buffer: Buffer, file: string, limit: number | null): Deterministic {
-  const sheet = parseSheet(buffer, { filename: path.basename(file), maxRows: getConfig().MAX_ROWS_PER_IMPORT });
-  if (sheet.rows.length === 0) throw new Error(`no rows parsed from ${file}: ${sheet.issues.map((i) => i.message).join("; ") || "empty sheet"}`);
-  const sampleRows = sheet.rows.slice(0, MAPPING_SAMPLE_ROWS).map((r) => sheet.headers.map((h) => r.cells[h] ?? ""));
-  const mappings = mapColumns(sheet.originalHeaders, sampleRows);
-  const ctx = buildCleanRowContext(sheet, mappings, DEFAULT_CURRENCY);
-  const grouped = groupRows(
-    sheet.rows.map((r) => cleanRow(r, ctx)),
-    { storeDefaultCurrency: DEFAULT_CURRENCY },
-  );
-
-  // Sheet order, so --limit N means "the first N products a merchant would see".
-  let groups = [...grouped.groups].sort((a, b) => (a.sourceRows[0] ?? 0) - (b.sourceRows[0] ?? 0));
-  if (limit !== null) groups = groups.slice(0, limit);
-  const keptRows = new Set(groups.flatMap((g) => g.sourceRows));
-  const duplicates = grouped.duplicateRows.filter((d) => keptRows.has(d.of));
-  for (const d of duplicates) keptRows.add(d.row);
-  return { rows: sheet.rows.length, groups, duplicates, keptRows, cellsByRow: new Map(sheet.rows.map((r) => [r.rowNumber, r.cells])) };
-}
 
 // ---------------------------------------------------------------------------
 // Provider
@@ -128,116 +53,6 @@ function resolveProvider(requested: EvalProvider): ProviderChoice {
 function mockProvider(): { provider: AiProvider; mode: "mock" } {
   if (getConfig().AI_PROVIDER === "anthropic") return { provider: createMockProvider(), mode: "mock" };
   return { provider: getAiProvider(null).provider, mode: "mock" };
-}
-
-// ---------------------------------------------------------------------------
-// AI stage: the enrich job's request shape, batches of eight, retry, split once
-// ---------------------------------------------------------------------------
-
-interface CallOutcome {
-  outputs: Map<string, AiProductOutput>;
-  error: string | null;
-  /** Retrying or splitting cannot help (auth, billing, refusal, bad request). */
-  fatal: boolean;
-}
-
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function record(id: string, batch: Candidate[], attempt: number, res: AiResponse<unknown> | null, error: string | null, latencyMs: number): CallRecord {
-  return {
-    batch: id,
-    tier: batch[0].tier,
-    model: batch[0].model,
-    products: batch.length,
-    attempt,
-    ok: res !== null,
-    error,
-    inputTokens: res?.usage.inputTokens ?? 0,
-    outputTokens: res?.usage.outputTokens ?? 0,
-    cacheReadTokens: res?.usage.cacheReadTokens ?? 0,
-    cacheWriteTokens: res?.usage.cacheWriteTokens ?? 0,
-    costMicros: res?.costMicros ?? 0,
-    latencyMs,
-  };
-}
-
-async function callWithRetry(provider: AiProvider, batch: Candidate[], promptVersion: string, id: string, calls: CallRecord[]): Promise<CallOutcome> {
-  const input: EnrichInput = { products: batch.map((c) => c.input) };
-  const tier = batch[0].tier;
-  const request = {
-    purpose: "enrich" as const,
-    model: batch[0].model,
-    system: buildEnrichSystemPrompt(promptVersion),
-    userText: renderEnrichUserText(input),
-    input,
-    schema: aiEnrichBatchSchema,
-    maxTokens: MAX_TOKENS,
-    effort: tier === "cheap" ? ("low" as const) : ("medium" as const),
-    customId: id,
-  };
-  let lastError: string | null = null;
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const started = Date.now();
-    try {
-      const res = await provider.complete(request);
-      calls.push(record(id, batch, attempt, res, null, res.latencyMs));
-      return { outputs: new Map(res.output.products.map((o) => [o.product_key, o] as const)), error: null, fatal: false };
-    } catch (err) {
-      lastError = errorMessage(err);
-      calls.push(record(id, batch, attempt, null, lastError, Date.now() - started));
-      if (isAiError(err) && !err.retryable) return { outputs: new Map(), error: lastError, fatal: true };
-      // A cut-off answer would be cut off again; let the caller split the batch instead of retrying it.
-      if (isAiError(err) && err.kind === "max_tokens" && batch.length > 1) return { outputs: new Map(), error: lastError, fatal: false };
-      if (attempt < MAX_ATTEMPTS) await sleep(BACKOFF_MS);
-    }
-  }
-  return { outputs: new Map(), error: lastError, fatal: false };
-}
-
-async function enrichAll(provider: AiProvider, candidates: Candidate[], promptVersion: string, calls: CallRecord[], log: Logger): Promise<Map<string, ModelAnswer>> {
-  const answers = new Map<string, ModelAnswer>();
-  const lanes = new Map<string, Candidate[]>();
-  for (const c of candidates) {
-    const lane = `${c.tier}|${c.model}`;
-    lanes.set(lane, [...(lanes.get(lane) ?? []), c]);
-  }
-  const total = [...lanes.values()].reduce((n, list) => n + Math.ceil(list.length / BATCH_SIZE), 0);
-  let batchNo = 0;
-  for (const list of lanes.values()) {
-    for (let i = 0; i < list.length; i += BATCH_SIZE) {
-      const batch = list.slice(i, i + BATCH_SIZE);
-      batchNo += 1;
-      const id = `eval:${batchNo}`;
-      log(`batch ${batchNo}/${total}: ${batch.length} product(s) via ${batch[0].tier} (${batch[0].model})`);
-      const result = await callWithRetry(provider, batch, promptVersion, id, calls);
-      const leftovers: Candidate[] = [];
-      for (const c of batch) {
-        const out = result.outputs.get(c.group.productKey);
-        if (out) answers.set(c.group.productKey, { output: out });
-        else leftovers.push(c);
-      }
-      if (leftovers.length === 0) continue;
-      const reason = result.error ?? "the model returned no output for this product";
-      if (result.fatal || batch.length === 1) {
-        for (const c of leftovers) answers.set(c.group.productKey, { error: reason });
-        continue;
-      }
-      // Invalid output for the batch (skipped or mislabelled products): split into singles, once.
-      log(`batch ${batchNo}: ${leftovers.length} product(s) without a valid answer (${reason}); retrying one at a time`);
-      for (const c of leftovers) {
-        const single = await callWithRetry(provider, [c], promptVersion, `${id}:${c.group.productKey}`, calls);
-        const out = single.outputs.get(c.group.productKey);
-        answers.set(c.group.productKey, out ? { output: out } : { error: single.error ?? "the model returned no output for this product" });
-      }
-    }
-  }
-  return answers;
 }
 
 // ---------------------------------------------------------------------------

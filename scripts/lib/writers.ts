@@ -26,15 +26,6 @@ export function toCsv(header: string[] | null, data: string[][], opts: CsvOption
   return `${opts.bom ? BOM : ""}${body}${body.endsWith("\n") ? "" : "\n"}`;
 }
 
-/** Counts data rows the way a parser would (quoted line breaks do not count). */
-export function countCsvDataRows(text: string, hasHeader: boolean, delimiter?: string): number {
-  const parsed = Papa.parse<string[]>(text.replace(/^﻿/, ""), {
-    delimiter,
-    skipEmptyLines: true,
-  });
-  return Math.max(0, parsed.data.length - (hasHeader ? 1 : 0));
-}
-
 const FIXED_DATE = new Date("2026-10-01T00:00:00Z");
 
 /**

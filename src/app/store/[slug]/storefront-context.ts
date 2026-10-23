@@ -121,7 +121,3 @@ export function cachedCategories(storeId: string, locale: string): Promise<Array
 export function categoryHref(slug: string, category: string): string {
   return `/store/${encodeURIComponent(slug)}/c/${encodeURIComponent(category)}`;
 }
-
-export function productHref(slug: string, handle: string): string {
-  return `/store/${encodeURIComponent(slug)}/p/${encodeURIComponent(handle)}`;
-}

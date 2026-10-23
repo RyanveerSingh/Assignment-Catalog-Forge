@@ -1,7 +1,7 @@
 import { and, asc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import type { DbOrTx } from "@/db/client";
 import { importRows, type RowStage, type RowStatus } from "@/db/schema";
-import type { CleanedRow, Issue, RawRow } from "@/core/types";
+import type { CleanedRow, RawRow } from "@/core/types";
 
 export type ImportRowRecord = typeof importRows.$inferSelect;
 
@@ -20,10 +20,6 @@ export async function insertRawRows(db: DbOrTx, importId: string, storeId: strin
     inserted += result.length;
   }
   return inserted;
-}
-
-export function chunkIndexFor(rowNumber: number): number {
-  return Math.floor((rowNumber - 1) / ROW_CHUNK_SIZE);
 }
 
 /** Rows of one chunk that still need cleaning. Idempotent: already-cleaned rows are skipped. */
@@ -103,14 +99,6 @@ export async function setRowsStatusForProduct(db: DbOrTx, productId: string, sta
   return rows.length;
 }
 
-export async function failRows(db: DbOrTx, importId: string, rowNumbers: number[], reason: string): Promise<void> {
-  if (rowNumbers.length === 0) return;
-  await db
-    .update(importRows)
-    .set({ status: "failed", stage: "done", failureReason: reason, updatedAt: new Date() })
-    .where(and(eq(importRows.importId, importId), inArray(importRows.rowNumber, rowNumbers)));
-}
-
 /** Any row still pending/processing when an import is cancelled ends as Failed with a reason (EC-E11). */
 export async function failOpenRows(db: DbOrTx, importId: string, reason: string): Promise<number> {
   const rows = await db
@@ -139,12 +127,4 @@ export async function listRows(
     .limit(opts.limit ?? 50)
     .offset(opts.offset ?? 0);
   return { rows, total: countRow?.n ?? 0 };
-}
-
-export function issuesSummary(issues: Issue[]): string {
-  return issues
-    .filter((i) => i.severity !== "info")
-    .map((i) => i.message)
-    .slice(0, 5)
-    .join("; ");
 }

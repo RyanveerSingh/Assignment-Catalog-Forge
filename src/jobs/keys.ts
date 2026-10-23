@@ -28,8 +28,6 @@ export const JOB_TYPES = {
   webhook: "webhook.deliver",
 } as const;
 
-export type JobType = (typeof JOB_TYPES)[keyof typeof JOB_TYPES];
-
 /** Small imports jump the queue so a 10-row upload is never stuck behind a 10k one (EC-E5). */
 export function priorityFor(totalRows: number): number {
   if (totalRows <= 200) return 40;

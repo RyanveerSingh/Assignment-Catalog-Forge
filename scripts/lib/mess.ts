@@ -83,8 +83,6 @@ export function priceAmbiguous(cents: number): string {
 }
 
 /** Values that mean "no price" in the wild. */
-export const PRICE_PLACEHOLDERS = ["N/A", "-", "0", "TBD", "n/a", "0,00"] as const;
-
 // ---------------------------------------------------------------------------
 // Units (EC-B7, EC-B13, EC-B18)
 // ---------------------------------------------------------------------------

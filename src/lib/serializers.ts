@@ -27,4 +27,3 @@ export function serializeImport(row: ImportRow) {
   };
 }
 
-export type ImportDto = ReturnType<typeof serializeImport>;
