@@ -14,7 +14,7 @@ import { UserMenu } from "./user-menu";
 /** The blue mark beside the wordmark: a sheet becoming a card, in one stroke. */
 export function Logomark({ className }: { className?: string }) {
   return (
-    <span aria-hidden className={cn("flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-brand text-brand-foreground shadow-[0_6px_16px_-6px_rgba(17,17,17,0.5)]", className)}>
+    <span aria-hidden className={cn("flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-brand text-brand-foreground shadow-[0_6px_16px_-6px_rgba(36,87,245,0.7)]", className)}>
       <svg viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
         <path d="M4 5h5M4 9h4M4 13h3" />
         <path d="M10 10h6M13 7l3 3-3 3" />

@@ -16,7 +16,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     <div className="flex min-h-dvh flex-col">
       <SiteHeader signIn={false} />
       <main className="relative flex flex-1 items-center justify-center overflow-hidden px-4 py-14 md:px-6 md:py-20">
-        <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 h-[640px] w-[900px] -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ background: "radial-gradient(closest-side, rgba(228,71,15,0.14), rgba(228,71,15,0.04) 55%, transparent 75%)" }} />
+        <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 h-[640px] w-[900px] -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ background: "radial-gradient(closest-side, rgba(36,87,245,0.2), rgba(36,87,245,0.05) 55%, transparent 75%)" }} />
         <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 size-[560px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-brand/10" />
         <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 size-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-brand/7" />
         <div className="relative w-full max-w-[440px] rounded-[28px] bg-card p-7 shadow-[var(--shadow-pop)] ring-1 ring-border/70 sm:p-9">

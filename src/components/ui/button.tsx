@@ -7,9 +7,9 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-[0_1px_2px_rgba(17,17,17,0.12),0_8px_20px_-10px_rgba(17,17,17,0.45)] hover:bg-brand hover:shadow-[0_1px_2px_rgba(17,17,17,0.12),0_12px_28px_-10px_rgba(17,17,17,0.55)]",
+        default: "bg-primary text-primary-foreground shadow-[0_1px_2px_rgba(15,23,42,0.12),0_8px_20px_-10px_rgba(36,87,245,0.6)] hover:bg-brand-strong hover:shadow-[0_1px_2px_rgba(15,23,42,0.12),0_12px_28px_-10px_rgba(36,87,245,0.7)]",
         outline:
-          "border-border bg-card text-foreground shadow-[0_1px_2px_rgba(17,17,17,0.04)] hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+          "border-border bg-card text-foreground shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ghost:

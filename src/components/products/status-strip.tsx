@@ -21,7 +21,7 @@ interface Segment {
 
 const SEGMENTS: ReadonlyArray<Segment> = [
   { key: "approved", label: "Approved", statuses: ["approved"], bar: "bg-brand" },
-  { key: "draft", label: "Draft", statuses: ["draft"], bar: "bg-[#a8a6a0]" },
+  { key: "draft", label: "Draft", statuses: ["draft"], bar: "bg-[#7c9cf6]" },
   { key: "needs_review", label: "Needs review", statuses: ["needs_review"], bar: "bg-warning" },
   { key: "failed", label: "Failed", statuses: ["failed"], bar: "bg-destructive" },
   { key: "pending_ai", label: "Being written", statuses: ["pending_ai"], bar: "bg-[#b9c9fb]" },

@@ -1,8 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // A second build directory lets a benchmark build run beside a live server without replacing its files.
-  distDir: process.env.NEXT_DIST_DIR ?? ".next",
   // Served with `next start` everywhere (Render and Docker); no standalone output so one start command fits both.
   // Native/Node-only packages must not be bundled for the server runtime.
   serverExternalPackages: ["sharp", "pg", "pino", "yauzl", "xlsx", "jschardet", "iconv-lite"],

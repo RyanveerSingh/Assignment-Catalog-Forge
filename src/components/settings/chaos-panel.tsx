@@ -18,8 +18,8 @@ const SLIDERS: ReadonlyArray<{ key: keyof ChaosDto; label: string; hint: string 
 /* A native range with a blue 20 px thumb on a thin track; the filled part of the track is painted by a gradient that follows the value. */
 const RANGE =
   "h-2 w-full cursor-pointer appearance-none rounded-full bg-surface-2 outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 " +
-  "[&::-webkit-slider-thumb]:size-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-brand [&::-webkit-slider-thumb]:shadow-[0_0_0_4px_var(--card),0_2px_8px_rgba(228,71,15,0.45)] [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-150 [&::-webkit-slider-thumb]:hover:scale-110 " +
-  "[&::-moz-range-thumb]:size-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-brand [&::-moz-range-thumb]:shadow-[0_0_0_4px_var(--card),0_2px_8px_rgba(228,71,15,0.45)]";
+  "[&::-webkit-slider-thumb]:size-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-brand [&::-webkit-slider-thumb]:shadow-[0_0_0_4px_var(--card),0_2px_8px_rgba(36,87,245,0.45)] [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-150 [&::-webkit-slider-thumb]:hover:scale-110 " +
+  "[&::-moz-range-thumb]:size-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-brand [&::-moz-range-thumb]:shadow-[0_0_0_4px_var(--card),0_2px_8px_rgba(36,87,245,0.45)]";
 
 type CrashState = { kind: "idle" } | { kind: "confirm" } | { kind: "sending" } | { kind: "sent"; message: string } | { kind: "error"; message: string };
 

@@ -26,7 +26,7 @@ export function NavMenu({ links, dashboardHref, signIn }: Props) {
       >
         <MenuIcon aria-hidden className="size-5" />
       </SheetTrigger>
-      <SheetContent side="top" className="border-0 border-b border-border bg-card">
+      <SheetContent side="top" className="rounded-b-3xl border-0 bg-card shadow-[var(--shadow-pop)]">
         <div className="px-5 pt-5 pb-6">
           <SheetTitle className="font-display text-lg text-ink">Menu</SheetTitle>
           <SheetDescription className="sr-only">Site navigation</SheetDescription>
@@ -39,12 +39,12 @@ export function NavMenu({ links, dashboardHref, signIn }: Props) {
             ))}
           </nav>
           <div className="mt-4 flex flex-col gap-2">
-            <Link href={dashboardHref ?? DEMO_HREF} onClick={close} className={cn(buttonVariants({ size: "lg" }), "w-full rounded-md")}>
+            <Link href={dashboardHref ?? DEMO_HREF} onClick={close} className={cn(buttonVariants({ size: "lg" }), "w-full rounded-full")}>
               {dashboardHref ? "Open dashboard" : "Open the demo"}
               <ArrowRightIcon aria-hidden className="size-4" />
             </Link>
             {signIn && !dashboardHref ? (
-              <Link href="/login" onClick={close} className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full rounded-md")}>
+              <Link href="/login" onClick={close} className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full rounded-full")}>
                 Sign in
               </Link>
             ) : null}
