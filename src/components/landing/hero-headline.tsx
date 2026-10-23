@@ -11,18 +11,11 @@ interface Word {
 
 /* Kept as data so each word can rise into place one after another; the browser balances the lines. */
 const WORDS: readonly Word[] = [
-  { text: "Drop" },
-  { text: "in" },
-  { text: "a" },
-  { text: "supplier" },
-  { text: "sheet." },
-  { text: "Get" },
-  { text: "a" },
-  { text: "store-ready", accent: true },
-  { text: "catalogue", accent: true },
-  { text: "in" },
-  { text: "three" },
-  { text: "languages." },
+  { text: "Messy" },
+  { text: "sheet" },
+  { text: "in." },
+  { text: "Shop", accent: true },
+  { text: "out.", accent: true },
 ];
 
 /** The headline, word by word: each one rises 0.4 em and fades in, 40 ms after the last. */

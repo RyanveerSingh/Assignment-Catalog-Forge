@@ -8,7 +8,6 @@ import { LandingShopStrip } from "./landing-shop-strip";
 import { LandingSteps } from "./landing-steps";
 import { LandingTryIt } from "./landing-try-it";
 import { LandingWorksWith } from "./landing-works-with";
-import { ScrollPathAnimator } from "./scroll-path";
 import { SiteHeader } from "./site-chrome";
 import { SiteFooter } from "./site-footer";
 
@@ -24,17 +23,15 @@ export function LandingPage({ dashboardHref }: Props) {
       <SiteHeader dashboardHref={dashboardHref} />
       <main className="flex-1 overflow-x-clip">
         <LandingHero dashboardHref={dashboardHref} />
-        <ScrollPathAnimator>
-          <LandingFeatures />
-          <LandingSteps />
-          <LandingBeforeAfter />
-          <LandingTryIt />
-          <LandingNumbers />
-          <LandingWorksWith />
-          <LandingPromises />
-          <LandingShopStrip />
-          <LandingCta dashboardHref={dashboardHref} />
-        </ScrollPathAnimator>
+        <LandingFeatures />
+        <LandingSteps />
+        <LandingBeforeAfter />
+        <LandingTryIt />
+        <LandingNumbers />
+        <LandingWorksWith />
+        <LandingPromises />
+        <LandingShopStrip />
+        <LandingCta dashboardHref={dashboardHref} />
         <LandingExplore dashboardHref={dashboardHref} />
       </main>
       <SiteFooter dashboardHref={dashboardHref} />

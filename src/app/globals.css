@@ -5,9 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
-  CatalogForge design tokens, second system: "ice and ink".
-  Near-white cool ground, white rounded cards with soft layered shadows, one electric blue,
-  tight geometric display type. The legacy token names (paper, brand, hairline) stay so every
+  CatalogForge design tokens, third system: "white, ink and signal".
+  Three colours only: a white ground, near-black ink, and one signal orange used sparingly for
+  action and emphasis; warm greys carry structure. Tight geometric display type. The legacy token names (paper, brand, hairline) stay so every
   component recolours without a rewrite; new work should prefer the semantic names below.
 */
 @theme inline {
@@ -80,65 +80,66 @@
 
 :root {
   color-scheme: light;
-  --paper: #f7f9fd;
-  --paper-deep: #eef3ff;
+  --paper: #f6f5f2;
+  --paper-deep: #ecebe6;
   --surface: #ffffff;
-  --surface-2: #eef3ff;
-  --ink: #0f172a;
-  --ink-muted: #5f6b7f;
-  --line: #e3e8f1;
-  --line-strong: #cfd7e6;
+  --surface-2: #f2f1ed;
+  --ink: #111111;
+  --ink-muted: #63625d;
+  --line: #e6e4de;
+  --line-strong: #d3d1ca;
 
-  --background: #f7f9fd;
-  --foreground: #0f172a;
+  --background: #ffffff;
+  --foreground: #111111;
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: #111111;
   --popover: #ffffff;
-  --popover-foreground: #0f172a;
-  --primary: #2457f5;
+  --popover-foreground: #111111;
+  --primary: #111111;
   --primary-foreground: #ffffff;
-  --secondary: #eef3ff;
-  --secondary-foreground: #0f172a;
-  --muted: #f1f4fa;
-  --muted-foreground: #5f6b7f;
-  --accent: #eef3ff;
-  --accent-foreground: #0f172a;
+  --secondary: #f2f1ed;
+  --secondary-foreground: #111111;
+  --muted: #f2f1ed;
+  --muted-foreground: #63625d;
+  --accent: #f2f1ed;
+  --accent-foreground: #111111;
   --destructive: #dc2626;
-  --border: #e3e8f1;
-  --input: #cfd7e6;
-  --ring: #2457f5;
+  --border: #e6e4de;
+  --input: #d3d1ca;
+  --ring: #e4470f;
 
-  --brand: #2457f5;
-  --brand-strong: #1a46d9;
+  --brand: #e4470f;
+  --brand-rgb: 228, 71, 15;
+  --brand-strong: #c23a09;
   --brand-foreground: #ffffff;
-  --brand-soft: #e8eeff;
-  --accent-glow: rgba(36, 87, 245, 0.18);
+  --brand-soft: #fdebe3;
+  --accent-glow: rgba(228, 71, 15, 0.14);
   --success: #15803d;
   --success-soft: #e6f5ec;
   --warning: #d97706;
   --warning-soft: #fff4e5;
-  --info: #2457f5;
-  --info-soft: #e8eeff;
+  --info: #111111;
+  --info-soft: #f2f1ed;
 
-  --chart-1: #2457f5;
-  --chart-2: #0f172a;
+  --chart-1: #e4470f;
+  --chart-2: #111111;
   --chart-3: #15803d;
-  --chart-4: #7c9cf6;
-  --chart-5: #d97706;
+  --chart-4: #a8a6a0;
+  --chart-5: #f2a07e;
   --radius: 0.875rem;
 
-  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 30px -14px rgba(15, 23, 42, 0.14);
-  --shadow-float: 0 2px 6px rgba(15, 23, 42, 0.06), 0 18px 48px -16px rgba(36, 87, 245, 0.28);
-  --shadow-pop: 0 24px 64px -24px rgba(15, 23, 42, 0.28), 0 2px 8px rgba(15, 23, 42, 0.06);
+  --shadow-card: 0 1px 2px rgba(17, 17, 17, 0.04), 0 10px 30px -14px rgba(17, 17, 17, 0.14);
+  --shadow-float: 0 2px 6px rgba(17, 17, 17, 0.06), 0 18px 48px -16px rgba(17, 17, 17, 0.22);
+  --shadow-pop: 0 24px 64px -24px rgba(17, 17, 17, 0.28), 0 2px 8px rgba(17, 17, 17, 0.06);
 
   --sidebar: #ffffff;
-  --sidebar-foreground: #0f172a;
-  --sidebar-primary: #2457f5;
+  --sidebar-foreground: #111111;
+  --sidebar-primary: #111111;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #eef3ff;
-  --sidebar-accent-foreground: #0f172a;
-  --sidebar-border: #e3e8f1;
-  --sidebar-ring: #2457f5;
+  --sidebar-accent: #f2f1ed;
+  --sidebar-accent-foreground: #111111;
+  --sidebar-border: #e6e4de;
+  --sidebar-ring: #e4470f;
 }
 
 @layer base {
@@ -245,6 +246,17 @@
   will-change: transform;
 }
 
+/* The hero chips' idle drift: a compositor-only loop, so it never touches the main thread while scrolling. */
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(calc(var(--float-amp, 6px) * -1)); }
+  75% { transform: translateY(var(--float-amp, 6px)); }
+}
+
+@utility animate-float {
+  animation: float-y var(--float-period, 5s) ease-in-out infinite;
+}
+
 /* Skeleton shimmer for loading states. */
 @keyframes shimmer {
   from { background-position: 200% 0; }
@@ -252,7 +264,7 @@
 }
 
 @utility skeleton {
-  background: linear-gradient(90deg, var(--surface-2) 25%, #f7f9fd 50%, var(--surface-2) 75%);
+  background: linear-gradient(90deg, var(--surface-2) 25%, #faf9f6 50%, var(--surface-2) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.6s linear infinite;
   border-radius: var(--radius-md);

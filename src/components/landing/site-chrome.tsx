@@ -53,11 +53,11 @@ interface HeaderProps {
   dashboardHref?: string | null;
 }
 
-/** A white bar floating 16 px below the top edge, sticky, with the wordmark, four links and the blue pill. */
+/** A white bar floating 16 px below the top edge, sticky and opaque (a blurred backdrop repaints on every scroll frame), with the wordmark, four links and the blue pill. */
 export function SiteHeader({ signIn = true, dashboardHref = null }: HeaderProps) {
   return (
     <header className="sticky top-3 z-40 px-3 pt-3 md:top-4 md:px-6 md:pt-4">
-      <div className="mx-auto flex h-[60px] max-w-[1200px] items-center justify-between gap-2 rounded-2xl bg-card/90 pr-1.5 pl-3 shadow-[var(--shadow-pop)] ring-1 ring-border/70 backdrop-blur-md supports-[backdrop-filter]:bg-card/80 md:gap-3 md:pr-2 md:pl-5">
+      <div className="mx-auto flex h-[60px] max-w-[1200px] items-center justify-between gap-2 rounded-2xl bg-card pr-1.5 pl-3 shadow-[var(--shadow-card)] ring-1 ring-border/70 md:gap-3 md:pr-2 md:pl-5">
         <Wordmark />
         <nav aria-label="Site" className="hidden items-center gap-0.5 lg:flex">
           {NAV_LINKS.map((l) => (

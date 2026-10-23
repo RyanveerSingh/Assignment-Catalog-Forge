@@ -1,7 +1,7 @@
 "use client";
 
 import { animate, useInView, useReducedMotion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { EASE_OUT } from "@/components/ext/motion";
 import { Reveal } from "./reveal";
 import { SectionHeading } from "./section-heading";
@@ -36,26 +36,27 @@ function CountUp({ stat }: { stat: Stat }) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: "0px 0px -15% 0px" });
   const reduce = useReducedMotion();
-  const [shown, setShown] = useState(0);
 
+  // Writes the text node directly: eight counters re-rendering React on every frame made scrolling past this band stutter.
   useEffect(() => {
-    if (!inView) return;
+    const el = ref.current;
+    if (!inView || !el) return;
     if (reduce) {
-      setShown(stat.value);
+      el.textContent = format(stat.value, stat);
       return;
     }
-    const controls = animate(0, stat.value, { duration: 1.4, ease: EASE_OUT, onUpdate: (v) => setShown(v) });
+    const controls = animate(0, stat.value, { duration: 1.4, ease: EASE_OUT, onUpdate: (v) => (el.textContent = format(v, stat)) });
     return () => controls.stop();
-  }, [inView, reduce, stat.value]);
+  }, [inView, reduce, stat]);
 
   return (
     <span ref={ref} className="font-display tabular block text-[40px] leading-none text-brand md:text-[48px]">
-      {format(shown, stat)}
+      {format(0, stat)}
     </span>
   );
 }
 
-/** The figures band: white cards on ice, big blue numbers that count up, eight things that were measured rather than claimed. */
+/** The figures band: white cards on ice, big orange numbers that count up, eight things that were measured rather than claimed. */
 export function LandingNumbers() {
   return (
     <section id="numbers" aria-labelledby="numbers-heading" className="scroll-mt-24 py-6 md:py-10">

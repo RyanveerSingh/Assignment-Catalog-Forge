@@ -116,7 +116,7 @@ export function ProductCard({ lang, onLang, className }: CardProps) {
     <div className={cn("rounded-[24px] bg-card p-2 text-left shadow-[var(--shadow-pop)] ring-1 ring-border/70", className)}>
       <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-surface-2">
         <Image src="/landing/hero-vase.jpg" alt="Sage-green hand-turned stoneware vase, the product photo the supplier sent" fill priority sizes="300px" className="object-cover" />
-        <span className="absolute top-2.5 left-2.5 rounded-full bg-card/90 px-2 py-0.5 text-[10px] font-medium text-ink shadow-[var(--shadow-card)] backdrop-blur">Published</span>
+        <span className="absolute top-2.5 left-2.5 rounded-full bg-card px-2 py-0.5 text-[10px] font-medium text-ink shadow-[var(--shadow-card)]">Published</span>
       </div>
       <div className="flex flex-col gap-3 p-3 pt-3.5">
         <div role="group" aria-label="Listing language" className="flex gap-1.5">

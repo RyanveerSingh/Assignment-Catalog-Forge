@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "motion/react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { EASE_OUT } from "@/components/ext/motion";
 
 interface Props {
@@ -19,18 +19,20 @@ interface Props {
 
 /**
  * A floating chip: it enters once (fade, rise, settle) and then drifts up and down forever. Two layers
- * keep the entrance and the loop from fighting over the same transform. Transform and opacity only.
+ * keep the entrance and the loop from fighting over the same transform. The loop is a CSS animation, not
+ * a motion tween, so it runs on the compositor and costs the main thread nothing.
  */
 export function Float({ children, className, delay = 0, period = 5, amplitude = 6, invert = false }: Props) {
   const reduce = useReducedMotion();
-  // Each loop starts and ends at rest, so the first cycle continues smoothly from the entrance.
-  const drift = invert ? [0, amplitude, 0, -amplitude, 0] : [0, -amplitude, 0, amplitude, 0];
   return (
     <motion.div className={className} initial={{ opacity: 0, y: 14, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={reduce ? { duration: 0 } : { duration: 0.6, delay, ease: EASE_OUT }}>
-      {/* An explicit resting pose keeps the server markup identical whether or not the visitor prefers reduced motion. */}
-      <motion.div className="h-full" initial={{ y: 0 }} animate={reduce ? { y: 0 } : { y: drift }} transition={{ duration: period, repeat: Infinity, ease: "easeInOut", delay }}>
+      <div
+        className="h-full animate-float motion-reduce:animate-none"
+        // A negative delay on the inverted chips starts them half a cycle in, so neighbours never move in step.
+        style={{ "--float-period": `${period}s`, "--float-amp": `${amplitude}px`, animationDelay: invert ? `${-period / 2}s` : `${delay}s` } as CSSProperties}
+      >
         {children}
-      </motion.div>
+      </div>
     </motion.div>
   );
 }

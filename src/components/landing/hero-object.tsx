@@ -2,7 +2,7 @@
 
 import type { LucideIcon } from "lucide-react";
 import { CoinsIcon, FileSpreadsheetIcon, LanguagesIcon, ShieldCheckIcon } from "lucide-react";
-import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import type { CSSProperties, ReactNode } from "react";
 import { cn } from "cn";
 import { EASE_OUT } from "@/components/ext/motion";
@@ -71,23 +71,20 @@ function Text({ title, sub }: { title: ReactNode; sub: string }) {
 
 /**
  * The hero object: the published vase card in the middle, the supplier's row tilted behind it, four
- * status chips tethered to the card by thin lines, all over soft concentric circles and a blue glow
- * that drifts a little slower than the page. Below `lg` the chips line up under the card instead.
+ * status chips tethered to the card by thin lines, all over soft concentric circles and a still orange glow
+ * that does not follow the scroll, so scrolling past it costs nothing. Below `lg` the chips line up under the card instead.
  */
 export function HeroObject() {
   const reduce = useReducedMotion();
   const { lang, choose, pause } = useLangCycle(reduce);
-  const { scrollY } = useScroll();
-  const glowY = useTransform(scrollY, [0, 900], [0, -26]);
-  const circleY = useTransform(scrollY, [0, 900], [0, -12]);
   const enter = (delay: number) => (reduce ? { duration: 0 } : { duration: 0.7, delay, ease: EASE_OUT });
 
   return (
     <div className="relative mt-10 md:mt-12" onMouseEnter={() => pause(true)} onMouseLeave={() => pause(false)} onFocus={() => pause(true)} onBlur={() => pause(false)}>
       <div className="relative mx-auto w-full max-w-[960px] px-4 pt-2 pb-4 lg:h-[540px] lg:px-0 lg:pt-0 lg:pb-0" style={{ "--card-x": `${CARD.x}px`, "--card-y": `${CARD.y}px` } as CSSProperties}>
         {/* Glow and circles, centred on the card. */}
-        <motion.div aria-hidden className="pointer-events-none absolute left-1/2 top-[420px] h-[620px] w-[820px] -translate-x-1/2 -translate-y-1/2 rounded-full lg:top-[258px]" style={{ y: reduce ? 0 : glowY, background: "radial-gradient(closest-side, rgba(36,87,245,0.22), rgba(36,87,245,0.06) 55%, transparent 75%)" }} />
-        <motion.div aria-hidden className="pointer-events-none absolute left-1/2 top-[420px] -translate-x-1/2 -translate-y-1/2 lg:top-[258px]" style={{ y: reduce ? 0 : circleY }}>
+        <div aria-hidden className="pointer-events-none absolute left-1/2 top-[420px] h-[620px] w-[820px] -translate-x-1/2 -translate-y-1/2 rounded-full lg:top-[258px]" style={{ background: "radial-gradient(closest-side, color-mix(in oklab, var(--brand) 16%, transparent), color-mix(in oklab, var(--brand) 4%, transparent) 55%, transparent 75%)" }} />
+        <div aria-hidden className="pointer-events-none absolute left-1/2 top-[420px] -translate-x-1/2 -translate-y-1/2 lg:top-[258px]">
           {[380, 580, 780].map((d, i) => (
             <motion.span
               key={d}
@@ -98,7 +95,7 @@ export function HeroObject() {
               transition={reduce ? { duration: 0 } : { duration: 1.1, delay: 0.3 + i * 0.12, ease: EASE_OUT }}
             />
           ))}
-        </motion.div>
+        </div>
 
         {/* The supplier's row: tilted behind the card on wide screens, stacked just above it (and fully readable) otherwise. */}
         <motion.div className="relative z-[1] mx-auto w-full max-w-[320px] lg:absolute lg:left-[120px] lg:top-[70px] lg:mx-0 lg:w-[330px] lg:max-w-none" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={enter(0.5)}>
