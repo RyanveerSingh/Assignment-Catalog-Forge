@@ -9,12 +9,16 @@ import { cn } from "cn";
  * rests: a fluid, never the same twice. The edges are hard on purpose: only the letters change colour,
  * nothing around them, so the blob itself is never visible.
  */
+/* Small and tapering, so the trail reads as a thin flowing ribbon rather than a disc. */
 const BLOBS = [
-  { r: 62, follow: 0.32, wobble: 14, speed: 0.0011 },
-  { r: 48, follow: 0.2, wobble: 20, speed: 0.0017 },
-  { r: 40, follow: 0.13, wobble: 24, speed: 0.0013 },
-  { r: 32, follow: 0.085, wobble: 18, speed: 0.0021 },
-  { r: 26, follow: 0.055, wobble: 16, speed: 0.0009 },
+  { r: 24, follow: 0.34, wobble: 7, speed: 0.0019 },
+  { r: 21, follow: 0.26, wobble: 9, speed: 0.0013 },
+  { r: 19, follow: 0.2, wobble: 10, speed: 0.0023 },
+  { r: 17, follow: 0.155, wobble: 11, speed: 0.0011 },
+  { r: 15, follow: 0.12, wobble: 10, speed: 0.0017 },
+  { r: 13, follow: 0.092, wobble: 9, speed: 0.0027 },
+  { r: 11, follow: 0.07, wobble: 8, speed: 0.0015 },
+  { r: 9, follow: 0.052, wobble: 7, speed: 0.0021 },
 ] as const;
 
 const MASK = BLOBS.map((b, i) => `radial-gradient(circle calc(${b.r}px * var(--spot-k)) at var(--b${i}x) var(--b${i}y), #000 calc(100% - 0.5px), transparent 100%)`).join(", ");

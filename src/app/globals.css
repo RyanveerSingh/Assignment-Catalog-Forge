@@ -280,7 +280,8 @@
 .spotlight {
   /* Parked off the text until the pointer arrives; an undefined position would void the whole mask. */
   --b0x: -999px; --b0y: -999px; --b1x: -999px; --b1y: -999px; --b2x: -999px; --b2y: -999px;
-  --b3x: -999px; --b3y: -999px; --b4x: -999px; --b4y: -999px;
+  --b3x: -999px; --b3y: -999px; --b4x: -999px; --b4y: -999px; --b5x: -999px; --b5y: -999px;
+  --b6x: -999px; --b6y: -999px; --b7x: -999px; --b7y: -999px;
   transition: --spot-k 320ms ease-out;
 }
 
