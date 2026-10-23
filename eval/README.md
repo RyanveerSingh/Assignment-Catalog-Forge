@@ -3,7 +3,7 @@
 Runs a sample sheet through the real pipeline pieces (parse → map columns → clean → group → AI enrichment in batches of eight → grounding validator), compares the result with the ground truth generated alongside the sample, prints a report and writes a JSON file. Nothing is written to the products tables.
 
 ```
-npx tsx eval/run.ts --sample messy-120 [--provider mock|anthropic] [--prompt v1] [--tier auto|cheap|strong] [--limit N] [--store[=<storeId>]] [--out <dir>] [--quiet]
+npx tsx eval/run.ts --sample messy-120 [--provider mock|anthropic] [--prompt v1|v2] [--tier auto|cheap|strong] [--limit N] [--store[=<storeId>]] [--out <dir>] [--quiet]
 npm run eval -- --sample tiny-10 --provider mock
 ```
 
@@ -11,7 +11,7 @@ npm run eval -- --sample tiny-10 --provider mock
 |---|---|---|
 | `--sample` | `messy-120` | `samples/<name>.csv` (or `.xlsx` when there is no CSV) plus `samples/ground-truth/<name>.json`. |
 | `--provider` | `mock` | `anthropic` needs `ANTHROPIC_API_KEY` in `.env.local` (with `AI_PROVIDER=anthropic`); without it the run falls back to the mock and says so in the header. `mock` always runs the mock, even when the server is configured for Anthropic. |
-| `--prompt` | `v1` | Prompt version handed to `buildEnrichSystemPrompt`. |
+| `--prompt` | `v1` | An id from `PROMPT_VERSIONS` (`src/core/ai/prompts.ts`), currently `v1` or `v2`; anything else is rejected before a call is made. |
 | `--tier` | `auto` | `auto` routes each product with `routeTier` like the pipeline; `cheap`/`strong` force one model for every product. |
 | `--limit` | all | Only the first N products in sheet order; the ground truth is narrowed to the same rows so recall stays meaningful. |
 | `--store` | off | Also insert one row into `eval_runs` (`store_id` null, or the id given as `--store=<uuid>` so it shows in that store's Metrics tab). Skipped with a message when `DATABASE_URL` is unset or the database is unreachable. |
@@ -37,8 +37,9 @@ Products are paired by shared SKUs (most shared wins, each truth product used on
 | price exactness | Truth variants whose matched variant has the identical `priceCents` and `currency` (`null` must meet `null`; `0` is not `null`). Over all truth variants. |
 | title keyword rate | Mean, per product, of the share of `titleKeywords` found in the lower-cased output title. |
 | category accuracy | Output category starts with `categoryPrefix`, case-insensitive. |
-| claim precision | Output claims (after grounding) that sit inside `allowedClaims`. Claims compare after lower-casing and hyphen/space folding; a claim counts when all of its words appear in one allowed claim or vice versa (`organic` is inside `100% organic cotton`). Micro-averaged over all claims. |
-| claim recall | `allowedClaims` covered by some output claim, same comparison. Bounded by what the model cites and by the claim lexicon in `src/core/ai/lexicon.ts`; phrases outside it (`40 hour burn time`) can only be recalled when the model cites them. |
+| review precision / status accuracy | The truth's expected status describes the data (missing prices, conflicts), not the model. A product flagged only because the validator blocked a claim the model asserted against the source ("solid wood" against "not solid wood") is a correct flag, so it counts as a true positive; those flags are also reported on their own line ("flags from model errors") so a careless model cannot hide behind the rule. |
+| claim grounding | Output claims whose cited quote the eval itself finds in the product's raw rows (verbatim, or at least 90% of its tokens, after mojibake repair; one-word quotes never count). This re-checks the validator's work with an independent method and is the "no invented claims" measure. Micro-averaged over all claims. |
+| allowed-claim coverage | Informational, reported below the accuracy table: `allowedClaims` (the facts the generator planted) covered by some output claim after lower-casing and hyphen/space folding; a claim counts when all of its words appear in one allowed claim or vice versa (`organic` is inside `100% organic cotton`). A listing is free to omit a true fact, so this is not an error rate. |
 | negated violations | Count of output claims that assert a `negatedClaims` entry (or part of one, or its joined spelling such as `frostproof`), plus every occurrence of a negated phrase in the title, description, tags or attributes that is not itself negated within the three preceding tokens (`not frost-proof` in a restored care sentence is fine). Must be 0. |
 | review precision / recall | `needs_review` as the positive class, over matched pairs: flags that were expected / expected flags that happened. |
 | review reason hit | For products expected in review with a reason class: `no_price` needs a reason containing "price", `sku_conflict` one containing "conflict". |
@@ -57,17 +58,21 @@ The ground truth is a `GroundTruthFile` (`src/core/types.ts`). The committed fil
 
 Then `npx tsx eval/run.ts --sample <name>`.
 
-## A/B testing prompts and models
+## A/B a prompt or model
 
-Run the same sample twice with different flags and compare the JSON files:
+Prompt versions are registered in `PROMPT_VERSIONS` (`src/core/ai/prompts.ts`). Every version shares the eight hard rules the grounding validator is written against and differs only in style guidance: `v1` asks for 40–120-word descriptions, 3–8 tags and any factual attribute; `v2` is the concise variant (25–60 words led by the one fact a shopper most needs, at most 5 tags and 4 claims, attributes limited to material, colour, care and size, meta description under 120 characters). A version is identified by its id alone, in the response-cache key and in the `prompt_version` column on products, `ai_requests` and `eval_runs`, so a change of wording is always a new id, never an edit in place.
+
+Run the same sample once per setting and compare the JSON files:
 
 ```
-npx tsx eval/run.ts --sample messy-120 --provider anthropic --prompt v1
-npx tsx eval/run.ts --sample messy-120 --provider anthropic --prompt v2
+npx tsx eval/run.ts --sample messy-120 --provider anthropic --prompt v1 --store=<storeId>
+npx tsx eval/run.ts --sample messy-120 --provider anthropic --prompt v2 --store=<storeId>
 npx tsx eval/run.ts --sample messy-120 --provider anthropic --tier cheap
 npx tsx eval/run.ts --sample messy-120 --provider anthropic --tier strong
 ```
 
-Each run names its file after the sample, provider, model, prompt and timestamp. `metrics` is the summary to diff; `products[]` tells you which product moved and why; `cost` carries tokens, dollars and latency so an accuracy gain can be weighed against its price. With `--store` the summary also lands in `eval_runs`, and the Metrics tab lists stored runs by prompt version and model (pass `--store=<storeId>` for the store whose tab should show it).
+What to compare, in this order: negated violations (must stay 0 for both, or the run has already failed); claim grounding, title keyword rate, category accuracy, review precision/recall and status accuracy (a concise prompt cites fewer claims and writes shorter titles, so expect allowed-claim coverage to move first); then `cost.outputTokens`, `cost.costUsd` and `cost.meanLatencyMs`, which say what the change buys or costs. `products[]` names each product that moved and the check it failed. With `--store` both summaries land in `eval_runs` and the Metrics tab lists them side by side by prompt version and model (pass `--store=<storeId>` for the store whose tab should show them). The same split exists in the app: select products and use "Re-run AI" with the other version or tier; every product and every `ai_requests` row records which prompt version wrote it.
+
+Each run names its file after the sample, provider, model, prompt and timestamp.
 
 The mock provider is deterministic and free, so it is the right baseline for checking that the deterministic stages and the grounding validator behave; its listings are naive on purpose (it copies source text, does not translate and claims whatever the lexicon finds), so compare mock runs with mock runs and model runs with model runs.

@@ -2,7 +2,7 @@
  * Evaluation harness: the deterministic pipeline, the AI stage and grounding on a sample sheet,
  * scored against the ground truth that was generated with it.
  *
- *   npx tsx eval/run.ts --sample messy-120 [--provider mock|anthropic] [--prompt v1]
+ *   npx tsx eval/run.ts --sample messy-120 [--provider mock|anthropic] [--prompt v1|v2]
  *                       [--tier auto|cheap|strong] [--limit N] [--store[=<storeId>]] [--out eval/out]
  *
  * Nothing touches the products tables; `--store` inserts one row into eval_runs and nothing else.
@@ -12,7 +12,7 @@ import "@/lib/env";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { groundProductOutput } from "@/core/ai/grounding";
-import { PROMPT_VERSION } from "@/core/ai/prompts";
+import { isPromptVersion, PROMPT_VERSION, PROMPT_VERSIONS } from "@/core/ai/prompts";
 import { routeTier, type AiTier } from "@/core/ai/routing";
 import { htmlToText } from "@/core/clean/html";
 import { buildEnrichProductInput } from "@/jobs/enrich-input";
@@ -21,7 +21,7 @@ import { getAiProvider, modelForTier, type AiProvider } from "@/providers/ai";
 import { createMockProvider } from "@/providers/ai/mock";
 import { DEFAULT_CURRENCY, loadSample, runDeterministic } from "./deterministic";
 import { type Candidate, enrichAll, errorMessage, type Logger, type ModelAnswer } from "./enrich-loop";
-import { aggregate, matchProducts, scoreDuplicates, scorePair, type DerivedProduct } from "./metrics";
+import { aggregate, matchProducts, quoteFoundInRows, scoreDuplicates, scorePair, type DerivedProduct } from "./metrics";
 import { formatReport } from "./report";
 import type { CallRecord, CostSummary, EvalOptions, EvalProvider, EvalRunResult, EvalTier } from "./types";
 
@@ -65,7 +65,7 @@ function toDerived(c: Candidate, answer: ModelAnswer | undefined): DerivedProduc
     skus: c.group.variants.map((v) => v.sku),
     variants: c.group.variants.map((v) => ({ sku: v.sku, synthetic: v.synthetic, priceCents: v.priceCents, currency: v.currency })),
   };
-  const failed = (error: string): DerivedProduct => ({ ...base, blocked: [], title: "", category: "", claims: [], descriptionText: "", tags: [], attributes: {}, status: "failed", reviewReasons: [], confidence: {}, error });
+  const failed = (error: string): DerivedProduct => ({ ...base, blocked: [], claimsGrounded: 0, ungroundedClaims: [], title: "", category: "", claims: [], descriptionText: "", tags: [], attributes: {}, status: "failed", reviewReasons: [], confidence: {}, error });
   if (!answer) return failed("no model answer");
   if ("error" in answer) return failed(answer.error);
   try {
@@ -75,6 +75,8 @@ function toDerived(c: Candidate, answer: ModelAnswer | undefined): DerivedProduc
       title: g.content.title,
       category: g.content.category,
       claims: g.claims.map((claim) => claim.text),
+      claimsGrounded: g.claims.filter((claim) => quoteFoundInRows(c.rows, claim.quote)).length,
+      ungroundedClaims: g.claims.filter((claim) => !quoteFoundInRows(c.rows, claim.quote)).map((claim) => `${claim.text} ← "${claim.quote}"`),
       blocked: g.blocked.map((b) => `${b.kind}: "${b.text}" — ${b.reason}${b.quote ? ` (source: "${b.quote}")` : ""}`),
       descriptionText: g.content.descriptionHtml ? htmlToText(g.content.descriptionHtml) : "",
       tags: g.content.tags,
@@ -221,7 +223,7 @@ export async function runEval(options: EvalOptions): Promise<EvalRunResult> {
 // CLI
 // ---------------------------------------------------------------------------
 
-const USAGE = "usage: npx tsx eval/run.ts --sample <name> [--provider mock|anthropic] [--prompt v1] [--tier auto|cheap|strong] [--limit N] [--store[=<storeId>]] [--out <dir>] [--quiet]";
+const USAGE = `usage: npx tsx eval/run.ts --sample <name> [--provider mock|anthropic] [--prompt ${PROMPT_VERSIONS.map((v) => v.id).join("|")}] [--tier auto|cheap|strong] [--limit N] [--store[=<storeId>]] [--out <dir>] [--quiet]`;
 const VALUE_FLAGS: ReadonlySet<string> = new Set(["--sample", "--provider", "--prompt", "--tier", "--limit", "--out"]);
 
 export function parseArgs(argv: string[]): EvalOptions {
@@ -248,6 +250,7 @@ export function parseArgs(argv: string[]): EvalOptions {
         opts.provider = value;
         break;
       case "--prompt":
+        if (!isPromptVersion(value)) throw new Error(`--prompt must be one of ${PROMPT_VERSIONS.map((v) => v.id).join(", ")}, got ${value}`);
         opts.prompt = value;
         break;
       case "--tier":

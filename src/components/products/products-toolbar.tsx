@@ -1,13 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { cn } from "cn";
-import { CheckIcon, SearchIcon, XIcon } from "lucide-react";
+import { CheckIcon, SearchIcon, SparklesIcon, XIcon } from "lucide-react";
+import { isPromptVersion, PROMPT_VERSION, PROMPT_VERSIONS } from "@/core/ai/prompts";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverDescription, PopoverHeader, PopoverTitle, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { statusLabel } from "@/lib/format";
 import { countActiveFilters, type ProductFilters } from "./products-filters";
-import { PRODUCT_STATUSES, type ProductStatus } from "./types";
+import { PRODUCT_STATUSES, RERUN_TIERS, type ProductStatus, type RerunSettings, type RerunTier } from "./types";
 
 const CONFIDENCE_PRESETS: ReadonlyArray<{ key: string; label: string; min: number | null; max: number | null }> = [
   { key: "any", label: "Any", min: null, max: null },
@@ -130,5 +134,97 @@ export function ProductsToolbar({ filters, searchText, onSearchChange, onChange,
         </Group>
       </div>
     </div>
+  );
+}
+
+// --- re-run AI ---------------------------------------------------------------
+
+const TIER_ITEMS = RERUN_TIERS.map((t) => ({ value: t.value, label: t.label }));
+const PROMPT_ITEMS = PROMPT_VERSIONS.map((p) => ({ value: p.id, label: p.label }));
+
+/** Tier and prompt-version selects shared by the review drawer and the bulk popover; the prompt list is the registry, never free text. */
+export function RerunSettingsFields({ idPrefix, value, onChange, disabled }: { idPrefix: string; value: RerunSettings; onChange: (next: RerunSettings) => void; disabled?: boolean }) {
+  const version = PROMPT_VERSIONS.find((p) => p.id === value.promptVersion);
+  return (
+    <>
+      <div className="flex flex-col gap-1">
+        <Label htmlFor={`${idPrefix}-tier`} className="text-xs">
+          Model tier
+        </Label>
+        <Select value={value.tier} items={TIER_ITEMS} disabled={disabled} onValueChange={(v) => v && onChange({ ...value, tier: v as RerunTier })}>
+          <SelectTrigger id={`${idPrefix}-tier`} size="sm" className="w-full cursor-pointer">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {RERUN_TIERS.map((t) => (
+              <SelectItem key={t.value} value={t.value}>
+                {t.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex flex-col gap-1">
+        <Label htmlFor={`${idPrefix}-prompt`} className="text-xs">
+          Prompt version
+        </Label>
+        <Select value={value.promptVersion} items={PROMPT_ITEMS} disabled={disabled} onValueChange={(v) => v && isPromptVersion(v) && onChange({ ...value, promptVersion: v })}>
+          <SelectTrigger id={`${idPrefix}-prompt`} size="sm" className="w-full cursor-pointer">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PROMPT_VERSIONS.map((p) => (
+              <SelectItem key={p.id} value={p.id}>
+                {p.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {version ? <p className="text-[11px] leading-snug text-ink-muted">{version.summary}</p> : null}
+      </div>
+    </>
+  );
+}
+
+/** The bulk-bar buttons are 24 px tall; 10 px of invisible hit area above and below makes a 44 px tap (same trick as Checkbox and the photo tray). */
+const TAP_TARGET_XS = "relative after:absolute after:inset-x-0 after:-inset-y-2.5 after:content-['']";
+
+/** "Re-run AI" for the selection: one job per product with the chosen tier and prompt version; the Queue button is the confirmation. */
+export function BulkRerunPopover({ count, busy, disabled, onQueue }: { count: number; busy: boolean; disabled: boolean; onQueue: (settings: RerunSettings) => Promise<boolean> }) {
+  const [open, setOpen] = useState(false);
+  const [settings, setSettings] = useState<RerunSettings>({ tier: "cheap", promptVersion: PROMPT_VERSION });
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger render={<Button type="button" variant="outline" size="xs" disabled={disabled} className={cn("cursor-pointer", TAP_TARGET_XS)} />}>
+        <SparklesIcon data-icon="inline-start" />
+        Re-run AI
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-80">
+        <PopoverHeader>
+          <PopoverTitle>
+            Re-run AI on {count} {count === 1 ? "product" : "products"}
+          </PopoverTitle>
+          <PopoverDescription className="text-xs">Each product gets a fresh draft with these settings; published versions stay until re-approved. Products without source rows, deleted or still running are skipped and counted.</PopoverDescription>
+        </PopoverHeader>
+        <RerunSettingsFields idPrefix="bulk-rerun" value={settings} onChange={setSettings} disabled={busy} />
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            disabled={busy}
+            className="cursor-pointer bg-brand text-brand-foreground hover:bg-brand/90"
+            onClick={async () => {
+              const ok = await onQueue(settings);
+              if (ok) setOpen(false);
+            }}
+          >
+            {busy ? "Queuing…" : `Queue ${count} ${count === 1 ? "re-run" : "re-runs"}`}
+          </Button>
+          <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => setOpen(false)} className="cursor-pointer">
+            Cancel
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

@@ -17,9 +17,9 @@ import { api, storeApi } from "@/lib/client/api";
 import { formatNumber } from "@/lib/format";
 import { buildColumns, type ColumnMeta } from "./products-columns";
 import { applyFilterPatch, countActiveFilters, DEFAULT_FILTERS, PAGE_SIZES, parseFilters, toApiQuery, toExportQuery, toSearchParams, type ProductFilters } from "./products-filters";
-import { ProductsToolbar } from "./products-toolbar";
+import { BulkRerunPopover, ProductsToolbar } from "./products-toolbar";
 import { ReviewDrawer } from "./review-drawer";
-import type { BulkApproveResponse, ProductListItem, ProductListResponse } from "./types";
+import type { BulkApproveResponse, BulkRerunResponse, ProductListItem, ProductListResponse, RerunSettings } from "./types";
 
 const SEARCH_DEBOUNCE_MS = 300;
 const EXPORTS = [
@@ -27,6 +27,16 @@ const EXPORTS = [
   { format: "json", label: "JSON" },
   { format: "shopify", label: "Shopify CSV" },
 ] as const;
+
+type BulkAction = "approve" | "rerun";
+
+/** "2 skipped: no source rows", or with several causes "3 skipped: no source rows (2), deleted (1)". */
+function skippedSummary(skipped: ReadonlyArray<{ reason: string }>): string {
+  const counts = new Map<string, number>();
+  for (const s of skipped) counts.set(s.reason, (counts.get(s.reason) ?? 0) + 1);
+  const reasons = [...counts.entries()].map(([reason, n]) => (counts.size > 1 ? `${reason} (${n})` : reason)).join(", ");
+  return `${skipped.length} skipped: ${reasons}`;
+}
 
 export function ProductsTable({ storeSlug, initialImportId = "" }: { storeSlug: string; initialImportId?: string }) {
   const router = useRouter();
@@ -45,7 +55,7 @@ export function ProductsTable({ storeSlug, initialImportId = "" }: { storeSlug: 
   const [openId, setOpenId] = useState<string | null>(null);
   const [searchText, setSearchText] = useState(filters.q);
   const [includeNeedsReview, setIncludeNeedsReview] = useState(false);
-  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState<BulkAction | null>(null);
   const [bulkNotice, setBulkNotice] = useState<string | null>(null);
   const requestSeq = useRef(0);
   const filtersRef = useRef(filters);
@@ -130,7 +140,7 @@ export function ProductsTable({ storeSlug, initialImportId = "" }: { storeSlug: 
   };
 
   const bulkApprove = async () => {
-    setBulkBusy(true);
+    setBulkBusy("approve");
     setBulkNotice(null);
     try {
       const res = await api<BulkApproveResponse>(`${storeApi(storeSlug)}/products`, { method: "POST", json: { action: "approve", ids: selected.map((s) => s.id), includeNeedsReview } });
@@ -144,7 +154,26 @@ export function ProductsTable({ storeSlug, initialImportId = "" }: { storeSlug: 
     } catch (err) {
       setBulkNotice(err instanceof Error ? err.message : "Bulk approve failed");
     } finally {
-      setBulkBusy(false);
+      setBulkBusy(null);
+    }
+  };
+
+  // One job per selected product (EC-F10); the refresh shows them as "pending AI" until the worker answers.
+  const bulkRerun = async (settings: RerunSettings): Promise<boolean> => {
+    setBulkBusy("rerun");
+    setBulkNotice(null);
+    try {
+      const res = await api<BulkRerunResponse>(`${storeApi(storeSlug)}/products`, { method: "POST", json: { action: "rerun", ids: selected.map((s) => s.id), ...settings } });
+      const n = res.queued.length;
+      setBulkNotice(`Queued ${n} ${n === 1 ? "re-run" : "re-runs"}${res.skipped.length ? ` (${skippedSummary(res.skipped)})` : ""}.`);
+      setRowSelection({});
+      refresh();
+      return true;
+    } catch (err) {
+      setBulkNotice(err instanceof Error ? err.message : "Bulk re-run failed");
+      return false;
+    } finally {
+      setBulkBusy(null);
     }
   };
 
@@ -163,10 +192,11 @@ export function ProductsTable({ storeSlug, initialImportId = "" }: { storeSlug: 
                   Include {selectedNeedsReview} that {selectedNeedsReview === 1 ? "needs" : "need"} review?
                 </Label>
               ) : null}
-              <Button type="button" size="xs" disabled={bulkBusy} onClick={() => void bulkApprove()} className="cursor-pointer bg-brand text-brand-foreground hover:bg-brand/90">
-                {bulkBusy ? "Approving…" : `Approve ${selected.length - (includeNeedsReview ? 0 : selectedNeedsReview)}`}
+              <Button type="button" size="xs" disabled={bulkBusy !== null} onClick={() => void bulkApprove()} className="cursor-pointer bg-brand text-brand-foreground hover:bg-brand/90">
+                {bulkBusy === "approve" ? "Approving…" : `Approve ${selected.length - (includeNeedsReview ? 0 : selectedNeedsReview)}`}
               </Button>
-              <Button type="button" variant="ghost" size="xs" onClick={() => setRowSelection({})} className="cursor-pointer">
+              <BulkRerunPopover count={selected.length} busy={bulkBusy === "rerun"} disabled={bulkBusy !== null} onQueue={bulkRerun} />
+              <Button type="button" variant="ghost" size="xs" disabled={bulkBusy !== null} onClick={() => setRowSelection({})} className="cursor-pointer">
                 Clear
               </Button>
             </div>

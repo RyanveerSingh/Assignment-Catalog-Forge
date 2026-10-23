@@ -1,4 +1,5 @@
 import { and, eq, inArray } from "drizzle-orm";
+import { isPromptVersion } from "@/core/ai/prompts";
 import type { Db } from "@/db/client";
 import { publishProduct, republishIfLive, unpublishProduct } from "@/jobs/publish";
 import { auditLog, products, translations, type ProductContent } from "@/db/schema";
@@ -101,8 +102,16 @@ export async function sendBackProduct(db: Db, storeId: string, productId: string
   return { ok: true };
 }
 
+export interface RerunOptions {
+  tier?: "cheap" | "strong" | "vision" | "escalation";
+  /** An id from `PROMPT_VERSIONS`; absent means the import's version. */
+  promptVersion?: string;
+}
+
 /** Queue a fresh AI run; the published snapshot is untouched until re-approved (EC-F6). */
-export async function rerunProductAi(db: Db, storeId: string, productId: string, actorId: string | null, opts: { tier?: "cheap" | "strong" | "vision" | "escalation"; promptVersion?: string }): Promise<ActionResult> {
+export async function rerunProductAi(db: Db, storeId: string, productId: string, actorId: string | null, opts: RerunOptions): Promise<ActionResult> {
+  // The worker builds the system prompt from the id and treats an unknown one as a programmer error; stop it here.
+  if (opts.promptVersion !== undefined && !isPromptVersion(opts.promptVersion)) return { ok: false, code: "unknown_prompt_version", message: `Unknown prompt version "${opts.promptVersion}"` };
   const [p] = await db.select({ status: products.status, lastImportId: products.lastImportId, group: products.group }).from(products).where(and(eq(products.storeId, storeId), eq(products.id, productId))).limit(1);
   if (!p) return { ok: false, code: "not_found", message: "Product not found" };
   if (!p.group) return { ok: false, code: "no_source", message: "This product has no source rows to re-run from" };
@@ -147,6 +156,28 @@ export async function bulkApprove(db: Db, storeId: string, ids: string[], actorI
     else skipped.push({ id: r.id, reason: res.message ?? res.code ?? "skipped" });
   }
   return { approved, skipped };
+}
+
+/**
+ * One re-run per selected product, each audited exactly like the single action (EC-F10). Products the
+ * AI cannot run on are reported with a short reason rather than failed: no source rows, deleted, or
+ * still pending from an earlier run (a second job would double the cost of the same answer).
+ */
+export async function bulkRerunAi(db: Db, storeId: string, ids: string[], actorId: string | null, opts: RerunOptions): Promise<{ queued: string[]; skipped: Array<{ id: string; reason: string }> }> {
+  const rows = await db.select({ id: products.id, status: products.status, group: products.group, deletedAt: products.deletedAt }).from(products).where(and(eq(products.storeId, storeId), inArray(products.id, ids)));
+  const queued: string[] = [];
+  const skipped: Array<{ id: string; reason: string }> = [];
+  for (const r of rows) {
+    const reason = r.deletedAt ? "deleted" : r.status === "pending_ai" ? "already running" : !r.group ? "no source rows" : null;
+    if (reason) {
+      skipped.push({ id: r.id, reason });
+      continue;
+    }
+    const res = await rerunProductAi(db, storeId, r.id, actorId, opts);
+    if (res.ok) queued.push(r.id);
+    else skipped.push({ id: r.id, reason: res.message ?? res.code ?? "skipped" });
+  }
+  return { queued, skipped };
 }
 
 /** A merchant's translation fix: wins over the AI, keyed to the current English (EC-F3). */

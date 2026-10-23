@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isPromptVersion } from "@/core/ai/prompts";
 import { asColumnMappings, buildCleaningXray, isCleanedRow } from "@/core/clean/xray";
 import { getDb } from "@/db/client";
 import { getProductDetail } from "@/db/repositories/products-query";
@@ -57,7 +58,7 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("approve"), force: z.boolean().optional() }),
   z.object({ action: z.literal("reject"), reason: z.string().max(500).optional() }),
   z.object({ action: z.literal("send_back"), reason: z.string().min(1).max(500) }),
-  z.object({ action: z.literal("rerun"), tier: z.enum(["cheap", "strong", "vision", "escalation"]).optional(), promptVersion: z.string().max(20).optional() }),
+  z.object({ action: z.literal("rerun"), tier: z.enum(["cheap", "strong", "vision", "escalation"]).optional(), promptVersion: z.string().max(20).refine(isPromptVersion, "Prompt version must be one of the registered versions").optional() }),
   z.object({ action: z.literal("delete") }),
   z.object({ action: z.literal("restore") }),
   z.object({ action: z.literal("translate"), field: z.string().min(1).max(100), locale: z.string().min(2).max(5), text: z.string().max(50_000) }),

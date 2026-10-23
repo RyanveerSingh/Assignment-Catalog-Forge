@@ -3,20 +3,13 @@
 import { useState } from "react";
 import { cn } from "cn";
 import { CheckIcon, RotateCcwIcon, SparklesIcon, Trash2Icon, Undo2Icon, XIcon } from "lucide-react";
+import { isPromptVersion, PROMPT_VERSION } from "@/core/ai/prompts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverDescription, PopoverHeader, PopoverTitle, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { ProductAction, ProductRow } from "./types";
-
-type Tier = "cheap" | "strong" | "vision" | "escalation";
-const TIERS: Array<{ value: Tier; label: string }> = [
-  { value: "cheap", label: "Cheap (fast model)" },
-  { value: "strong", label: "Strong" },
-  { value: "vision", label: "Vision (uses photos)" },
-  { value: "escalation", label: "Escalation" },
-];
+import { RerunSettingsFields } from "./products-toolbar";
+import type { ProductAction, ProductRow, RerunSettings } from "./types";
 
 type Pending = "approve" | "send_back" | "reject" | "delete" | null;
 
@@ -29,8 +22,8 @@ export interface FooterNotice {
 export function ReviewFooter({ product, busy, notice, onAction }: { product: ProductRow; busy: boolean; notice: FooterNotice | null; onAction: (a: ProductAction) => Promise<boolean> }) {
   const [pending, setPending] = useState<Pending>(null);
   const [reason, setReason] = useState("");
-  const [tier, setTier] = useState<Tier>("cheap");
-  const [promptVersion, setPromptVersion] = useState(product.promptVersion ?? "v1");
+  // Start from the version the product was last written with, as long as it is still registered.
+  const [rerun, setRerun] = useState<RerunSettings>(() => ({ tier: "cheap", promptVersion: product.promptVersion !== null && isPromptVersion(product.promptVersion) ? product.promptVersion : PROMPT_VERSION }));
   const [rerunOpen, setRerunOpen] = useState(false);
 
   const deleted = product.deletedAt !== null;
@@ -120,34 +113,14 @@ export function ReviewFooter({ product, busy, notice, onAction }: { product: Pro
                   <PopoverTitle>Re-run the AI stage</PopoverTitle>
                   <PopoverDescription className="text-xs">Results go to the draft; the published version stays until you re-approve.</PopoverDescription>
                 </PopoverHeader>
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs">Model tier</Label>
-                  <Select value={tier} onValueChange={(v) => v && setTier(v as Tier)}>
-                    <SelectTrigger size="sm" className="w-full cursor-pointer" aria-label="Model tier">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TIERS.map((t) => (
-                        <SelectItem key={t.value} value={t.value}>
-                          {t.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Label htmlFor="rerun-prompt-version" className="text-xs">
-                    Prompt version
-                  </Label>
-                  <Input id="rerun-prompt-version" value={promptVersion} maxLength={20} onChange={(e) => setPromptVersion(e.target.value)} className="h-7 text-xs md:text-xs" />
-                </div>
+                <RerunSettingsFields idPrefix="rerun" value={rerun} onChange={setRerun} disabled={busy} />
                 <Button
                   type="button"
                   size="sm"
                   disabled={busy}
                   className="cursor-pointer"
                   onClick={async () => {
-                    const ok = await run({ action: "rerun", tier, promptVersion: promptVersion.trim() || undefined });
+                    const ok = await run({ action: "rerun", ...rerun });
                     if (ok) setRerunOpen(false);
                   }}
                 >

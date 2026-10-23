@@ -1,6 +1,8 @@
+import { z } from "zod";
+import { isPromptVersion, PROMPT_VERSIONS } from "@/core/ai/prompts";
 import { getDb } from "@/db/client";
 import { listCategories, listProducts, type ProductSortKey } from "@/db/repositories/products-query";
-import { bulkApprove } from "@/db/repositories/review";
+import { bulkApprove, bulkRerunAi } from "@/db/repositories/review";
 import { PRODUCT_STATUSES, type ProductStatus } from "@/db/schema";
 import { HttpError, json, parseIntParam, withApi } from "@/lib/http";
 import { requireStore } from "@/lib/session";
@@ -39,14 +41,32 @@ export const GET = withApi(async (req: Request, { params }: Ctx) => {
   return json({ ...result, categories });
 });
 
-/** Bulk actions. Body: { action: "approve", ids: string[], includeNeedsReview?: boolean } */
+const idsSchema = z.array(z.string().min(1).max(64)).min(1, "Select at least one product").max(500);
+
+const bulkSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("approve"), ids: idsSchema, includeNeedsReview: z.boolean().optional() }),
+  z.object({
+    action: z.literal("rerun"),
+    ids: idsSchema,
+    tier: z.enum(["cheap", "strong", "vision", "escalation"]).optional(),
+    promptVersion: z
+      .string()
+      .max(20)
+      .refine(isPromptVersion, { message: `Prompt version must be one of ${PROMPT_VERSIONS.map((v) => v.id).join(", ")}` })
+      .optional(),
+  }),
+]);
+
+/**
+ * Bulk actions over a selection (at most 500 ids): approve (EC-F5) or re-run the AI stage with another
+ * tier and prompt version (EC-F10). Both answer with what was done and what was skipped, with a reason.
+ */
 export const POST = withApi(async (req: Request, { params }: Ctx) => {
   const { slug } = await params;
   const { store, user } = await requireStore(slug);
-  const body = (await req.json().catch(() => ({}))) as { action?: string; ids?: unknown; includeNeedsReview?: boolean };
-  const ids = Array.isArray(body.ids) ? body.ids.filter((x): x is string => typeof x === "string").slice(0, 500) : [];
-  if (ids.length === 0) throw new HttpError(400, "no_ids", "Select at least one product");
-  if (body.action !== "approve") throw new HttpError(400, "unknown_action", "Supported bulk action: approve");
-  const result = await bulkApprove(getDb(), store.id, ids, user.id, { includeNeedsReview: Boolean(body.includeNeedsReview) });
-  return json(result);
+  const parsed = bulkSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) throw new HttpError(400, "invalid_body", "Invalid bulk action", parsed.error.issues);
+  const body = parsed.data;
+  if (body.action === "approve") return json(await bulkApprove(getDb(), store.id, body.ids, user.id, { includeNeedsReview: Boolean(body.includeNeedsReview) }));
+  return json(await bulkRerunAi(getDb(), store.id, body.ids, user.id, { tier: body.tier, promptVersion: body.promptVersion }));
 });

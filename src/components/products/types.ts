@@ -54,6 +54,26 @@ export interface BulkApproveResponse {
   skipped: Array<{ id: string; reason: string }>;
 }
 
+export type RerunTier = "cheap" | "strong" | "vision" | "escalation";
+
+export const RERUN_TIERS: ReadonlyArray<{ value: RerunTier; label: string }> = [
+  { value: "cheap", label: "Cheap (fast model)" },
+  { value: "strong", label: "Strong" },
+  { value: "vision", label: "Vision (uses photos)" },
+  { value: "escalation", label: "Escalation" },
+];
+
+/** What a re-run is asked to use; the prompt version is an id from `PROMPT_VERSIONS`. */
+export interface RerunSettings {
+  tier: RerunTier;
+  promptVersion: string;
+}
+
+export interface BulkRerunResponse {
+  queued: string[];
+  skipped: Array<{ id: string; reason: string }>;
+}
+
 export interface ProductSeo {
   metaTitle: string | null;
   metaDescription: string | null;
@@ -200,7 +220,7 @@ export type ProductAction =
   | { action: "approve"; force?: boolean }
   | { action: "reject"; reason?: string }
   | { action: "send_back"; reason: string }
-  | { action: "rerun"; tier?: "cheap" | "strong" | "vision" | "escalation"; promptVersion?: string }
+  | { action: "rerun"; tier?: RerunTier; promptVersion?: string }
   | { action: "delete" }
   | { action: "restore" }
   | { action: "translate"; field: string; locale: string; text: string };
