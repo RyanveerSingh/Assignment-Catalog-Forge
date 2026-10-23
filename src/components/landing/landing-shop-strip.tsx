@@ -7,7 +7,7 @@ import { storefrontImageUrl } from "@/components/storefront/image-url";
 import { buttonVariants } from "@/components/ui/button";
 import { formatMoney } from "@/core/i18n/locale";
 import { SHOP_HREF } from "./landing-links";
-import { HoverWords } from "./hover-words";
+import { SpotlightText } from "./spotlight-text";
 import { Reveal } from "./reveal";
 import { CONTAINER } from "./site-chrome";
 
@@ -35,7 +35,7 @@ export async function LandingShopStrip() {
           <Reveal className="flex flex-col items-center gap-5 px-6 text-center">
             <p className="text-sm font-medium text-brand">The shop it built</p>
             <h2 id="shop-strip-heading" className="font-display max-w-[22ch] text-[34px] leading-[1.05] text-balance text-ink sm:text-[40px] md:text-[48px]">
-              <HoverWords text={`${total} real products, published from one supplier sheet`} />
+              <SpotlightText>{`${total} real products, published from one supplier sheet`}</SpotlightText>
             </h2>
             <Link href={SHOP_HREF} className={cn(buttonVariants({ size: "lg" }), "rounded-full px-6")}>
               Open the shop

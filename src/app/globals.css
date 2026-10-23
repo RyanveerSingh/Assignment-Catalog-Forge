@@ -270,6 +270,19 @@
     repeating-linear-gradient(to right, transparent 0 159px, rgb(17 17 17 / 0.035) 159px 160px);
 }
 
+/* The landing's text spotlight: registered so the circle's radius can ease in and out. */
+@property --spot-r {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+.spotlight {
+  --spot-x: -999px;
+  --spot-y: -999px;
+  transition: --spot-r 280ms ease-out;
+}
+
 /* Skeleton shimmer for loading states. */
 @keyframes shimmer {
   from { background-position: 200% 0; }
