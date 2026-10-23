@@ -4,10 +4,13 @@ import { notFound } from "next/navigation";
 import { resolveLocale, type LocaleResolution } from "@/core/i18n/locale";
 import { getStorefrontDb } from "@/db/client";
 import { getStorefrontProduct, getStorefrontStore, listStorefrontCategories, listStorefrontProducts, type StorefrontRow, type StorefrontStore } from "@/db/repositories/storefront";
+import { singleFlight } from "@/lib/single-flight";
 
 /**
  * Server-only helpers shared by every storefront page. Everything reads through the dedicated
  * storefront pool and sits behind a 30 s data cache so a running import never adds load (EC-H6).
+ * The cache revalidates per request, so the loaders are also coalesced: fifty shoppers landing on a
+ * stale page run one query, not fifty.
  */
 
 export const PAGE_SIZE = 24;
@@ -44,7 +47,7 @@ function storeTag(storeId: string): string {
 }
 
 export function cachedStore(slug: string): Promise<StorefrontStore | null> {
-  return unstable_cache(() => getStorefrontStore(getStorefrontDb(), slug), ["storefront-store", slug], { revalidate: REVALIDATE_SECONDS, tags: ["storefront-stores"] })();
+  return unstable_cache(() => singleFlight(`store:${slug}`, () => getStorefrontStore(getStorefrontDb(), slug)), ["storefront-store", slug], { revalidate: REVALIDATE_SECONDS, tags: ["storefront-stores"] })();
 }
 
 /** Cookie (explicit choice) beats the geo header (EC-H4); unmapped countries fall back to English (EC-H3). */
@@ -77,34 +80,39 @@ function toProduct(row: StorefrontRow): StorefrontProduct {
 }
 
 export function cachedProducts(storeId: string, locale: string, opts: { category?: string; page: number; sort: StorefrontSort }): Promise<{ items: StorefrontProduct[]; total: number }> {
+  const key = ["storefront-products", storeId, locale, opts.category ?? "", String(opts.page), opts.sort];
   return unstable_cache(
-    async () => {
-      const { items, total } = await listStorefrontProducts(getStorefrontDb(), storeId, locale, {
-        category: opts.category,
-        limit: PAGE_SIZE,
-        offset: (opts.page - 1) * PAGE_SIZE,
-        sort: opts.sort,
-      });
-      return { items: items.map(toProduct), total };
-    },
-    ["storefront-products", storeId, locale, opts.category ?? "", String(opts.page), opts.sort],
+    () =>
+      singleFlight(key.join("|"), async () => {
+        const { items, total } = await listStorefrontProducts(getStorefrontDb(), storeId, locale, {
+          category: opts.category,
+          limit: PAGE_SIZE,
+          offset: (opts.page - 1) * PAGE_SIZE,
+          sort: opts.sort,
+        });
+        return { items: items.map(toProduct), total };
+      }),
+    key,
     { revalidate: REVALIDATE_SECONDS, tags: [storeTag(storeId)] },
   )();
 }
 
 export function cachedProduct(storeId: string, locale: string, handle: string): Promise<StorefrontProduct | null> {
+  const key = ["storefront-product", storeId, locale, handle];
   return unstable_cache(
-    async () => {
-      const row = await getStorefrontProduct(getStorefrontDb(), storeId, locale, handle);
-      return row ? toProduct(row) : null;
-    },
-    ["storefront-product", storeId, locale, handle],
+    () =>
+      singleFlight(key.join("|"), async () => {
+        const row = await getStorefrontProduct(getStorefrontDb(), storeId, locale, handle);
+        return row ? toProduct(row) : null;
+      }),
+    key,
     { revalidate: REVALIDATE_SECONDS, tags: [storeTag(storeId)] },
   )();
 }
 
 export function cachedCategories(storeId: string, locale: string): Promise<Array<{ category: string; n: number }>> {
-  return unstable_cache(() => listStorefrontCategories(getStorefrontDb(), storeId, locale), ["storefront-categories", storeId, locale], {
+  const key = ["storefront-categories", storeId, locale];
+  return unstable_cache(() => singleFlight(key.join("|"), () => listStorefrontCategories(getStorefrontDb(), storeId, locale)), key, {
     revalidate: REVALIDATE_SECONDS,
     tags: [storeTag(storeId)],
   })();
