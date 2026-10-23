@@ -3,10 +3,14 @@
 import type { CSSProperties, PointerEvent, ReactNode } from "react";
 import { cn } from "cn";
 
-const RADIUS = "90px";
+const RADIUS = "70px";
 
-/* A copy of the text in the second colour, shown only inside a soft circle around the pointer. */
-const MASK = "radial-gradient(circle var(--spot-r) at var(--spot-x) var(--spot-y), #000 0 55%, transparent 100%)";
+/*
+ * A copy of the text in the second colour, shown only inside a circle around the pointer. The edge is
+ * hard on purpose: a soft fade blends the two colours into a brown halo that reads as a visible disc,
+ * whereas a hard edge changes nothing but the letters it crosses.
+ */
+const MASK = "radial-gradient(circle var(--spot-r) at var(--spot-x) var(--spot-y), #000 calc(100% - 0.5px), transparent 100%)";
 const OVERLAY_STYLE: CSSProperties = { maskImage: MASK, WebkitMaskImage: MASK };
 
 function move(e: PointerEvent<HTMLElement>): void {
@@ -37,8 +41,8 @@ interface Props {
 }
 
 /**
- * Text with a colour spotlight: a circle around the mouse recolours exactly the part of the letters it
- * covers. The lit copy sits on top, inherits the heading's font and width so it wraps identically, and
+ * Text with a colour spotlight: an invisible circle around the mouse recolours exactly the part of the
+ * letters it covers. The lit copy sits on top, inherits the heading's font and width so it wraps identically, and
  * is masked to the circle; the radius eases in and out on enter and leave.
  */
 export function SpotlightText({ children, lit, className }: Props) {
