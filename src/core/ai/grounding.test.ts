@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ProductGroup } from "@/core/types";
-import { collectSourceNumbers, extractNumbers, groundProductOutput, isNegated } from "./grounding";
+import { claimPolarity, collectSourceNumbers, extractNumbers, groundProductOutput, isNegated, tokenizeClauses } from "./grounding";
 import type { AiProductOutput } from "./schema";
 
 const rows: Array<{ row: number; cells: Record<string, string> }> = [
@@ -69,6 +69,38 @@ function output(overrides: Partial<AiProductOutput> = {}): AiProductOutput {
   };
 }
 
+describe("tokenizeClauses + isNegated", () => {
+  it.each([
+    ["will not scratch floors. Suits hallways and living rooms", ["suits hallways"], false],
+    ["Not for outdoor use, dishwasher safe", ["dishwasher safe"], false],
+    ["folds flat when not in use. 7 W, 450 lumens", ["450 lumens"], false],
+    ["Hand wash, not dishwasher-safe.", ["dishwasher safe"], true],
+    ["frost-resistant (not frost-proof, bring indoors)", ["frost proof"], true],
+    ["frost-resistant (not frost-proof, bring indoors)", ["frost resistant"], false],
+    ["Nicht spülmaschinenfest", ["spulmaschinenfest"], true],
+  ])("EC-B15: %j negates %j → %s", (text, variants, expected) => {
+    expect(isNegated(tokenizeClauses(text), variants)).toBe(expected);
+  });
+
+  it("marks clause boundaries with a token that never matches a claim", () => {
+    expect(tokenizeClauses("Soft rug. Indoor only; not outdoors")).toEqual(["soft", "rug", "|", "indoor", "only", "|", "not", "outdoors"]);
+  });
+});
+
+describe("claimPolarity", () => {
+  it.each([
+    ["Not frost-proof", { core: "frost proof", negated: true }],
+    ["no drainage hole", { core: "drainage hole", negated: true }],
+    ["Dishwasher-safe", { core: "dishwasher safe", negated: false }],
+    ["Not indestructible; supervise play", { core: "indestructible", negated: true }],
+    ["No soak, not dishwasher-safe", { core: "soak", negated: true }],
+    ["Water-resistant, not waterproof", { core: "water resistant", negated: false }],
+    ["not", { core: "not", negated: false }],
+  ])("%j → %j", (text, expected) => {
+    expect(claimPolarity(text)).toEqual(expected);
+  });
+});
+
 describe("groundProductOutput", () => {
   it("keeps cited, supported claims and sends the product to review only for the missing price", () => {
     const r = groundProductOutput({ output: output(), group, rows });
@@ -95,6 +127,110 @@ describe("groundProductOutput", () => {
     expect(r.content.descriptionHtml).not.toMatch(/frost-proof/i);
     expect(r.reviewReasons.some((x) => x.includes("negates"))).toBe(true);
     expect(r.issues.some((i) => i.code === "claim.negated" && i.ec === "B15")).toBe(true);
+  });
+
+  it("EC-B15: a listing that denies what the source denies is faithful, not a violation", () => {
+    const r = groundProductOutput({
+      output: output({
+        description_html: "<p>Hand-thrown terracotta planter with drainage hole. Frost-resistant but not frost-proof; bring indoors below 0 °C.</p>",
+        claims: [
+          { text: "hand-thrown", source_row: 14, source_column: "Description", quote: "Hand-thrown planter" },
+          { text: "Not frost-proof; bring indoors below 0 °C", source_row: 14, source_column: "Notes", quote: "not frost-proof, bring indoors below 0 °C" },
+        ],
+      }),
+      group,
+      rows,
+    });
+    expect(r.claims.map((c) => c.text)).toEqual(expect.arrayContaining(["hand-thrown", "Not frost-proof; bring indoors below 0 °C"]));
+    expect(r.removedClaims).toEqual([]);
+    expect(r.content.descriptionHtml).toMatch(/not frost-proof/i);
+    expect(r.reviewReasons).toEqual(["No price for 30 cm"]);
+  });
+
+  it("EC-B15: a listing that denies what the source asserts is a violation", () => {
+    const r = groundProductOutput({
+      output: output({
+        title: "Terracotta Planter",
+        description_html: "<p>Terracotta planter with drainage hole. Not hand-thrown; frost-resistant.</p>",
+        claims: [{ text: "frost-resistant", source_row: 14, source_column: "Notes", quote: "frost-resistant" }],
+      }),
+      group,
+      rows,
+    });
+    expect(r.reviewReasons).toContain('Listing says "not hand-thrown" but the source says it is');
+    expect(r.content.descriptionHtml).not.toMatch(/hand-thrown/i);
+    expect(r.content.descriptionHtml).toMatch(/frost-resistant/i);
+  });
+
+  it("EC-B15: a listing that denies something the source never mentions is invented", () => {
+    const r = groundProductOutput({
+      output: output({ description_html: "<p>Hand-thrown terracotta planter. Not dishwasher-safe.</p>" }),
+      group,
+      rows,
+    });
+    expect(r.reviewReasons).toContain('Listing says "not dishwasher-safe" but the source does not mention it');
+    expect(r.content.descriptionHtml).not.toMatch(/dishwasher/i);
+  });
+
+  it("EC-B15: a negation in the previous sentence does not poison a cited claim", () => {
+    const localRows = [{ row: 3, cells: { Title: "Jute Rug", Description: "Soft underside that will not scratch floors. Suits hallways and living rooms. The arm folds flat when not in use. 7 W, 450 lumens." } }];
+    const localGroup: ProductGroup = { ...group, productKey: "JT-RG", title: "Jute Rug", descriptionText: localRows[0]!.cells.Description!, notes: null, variants: [group.variants[0]!], sourceRows: [3], sourceCorpus: `Title: Jute Rug\nDescription: ${localRows[0]!.cells.Description}` };
+    const r = groundProductOutput({
+      output: output({
+        product_key: "JT-RG",
+        title: "Jute Rug",
+        description_html: "<p>Jute rug that suits hallways and living rooms. 7 W, 450 lumens.</p>",
+        attributes: [],
+        claims: [
+          { text: "Suits hallways and living rooms", source_row: 3, source_column: "Description", quote: "Suits hallways and living rooms" },
+          { text: "7 W, 450 lumens", source_row: 3, source_column: "Description", quote: "7 W, 450 lumens" },
+        ],
+      }),
+      group: localGroup,
+      rows: localRows,
+    });
+    expect(r.removedClaims).toEqual([]);
+    expect(r.claims.map((c) => c.text)).toEqual(["Suits hallways and living rooms", "7 W, 450 lumens"]);
+    expect(r.reviewReasons.filter((x) => x.includes("negates"))).toEqual([]);
+  });
+
+  it("EC-D7: the mix-up check is skipped for a German source, whose English title shares no tokens", () => {
+    const de: ProductGroup = { ...group, language: { lang: "de", confidence: 95 } };
+    const r = groundProductOutput({ output: output({ title: "Galvanised Steel Watering Can with Shower Head", claims: [] }), group: de, rows });
+    expect(r.reviewReasons.some((x) => x.includes("mix-up"))).toBe(false);
+    expect(r.confidence.title).toBe(90);
+  });
+
+  it("EC-D2: a quote found in a sibling row is accepted as the citation", () => {
+    const r = groundProductOutput({
+      output: output({ claims: [{ text: "Drainage hole included", source_row: 15, source_column: "Description", quote: "planter with drainage hole" }] }),
+      group,
+      rows,
+    });
+    expect(r.removedClaims).toEqual([]);
+    expect(r.claims).toEqual(expect.arrayContaining([expect.objectContaining({ text: "Drainage hole included", row: 14, column: "Description", verified: true })]));
+  });
+
+  it("EC-B15 / EC-A4: a negated claim proven by a German quote, in a mojibake cell, stands on its citation", () => {
+    const deRows = [{ row: 5, cells: { Titel: "Bienenwachskerze", Beschreibung: "Nicht tropffrei; immer in einem Halter verwenden. Innen und auÃŸen handgegossen." } }];
+    const de: ProductGroup = { ...group, productKey: "BW-CA", title: "Bienenwachskerze", language: { lang: "de", confidence: 95 }, sourceRows: [5], sourceCorpus: `Titel: Bienenwachskerze\nBeschreibung: ${deRows[0]!.cells.Beschreibung}` };
+    const r = groundProductOutput({
+      output: output({
+        product_key: "BW-CA",
+        title: "Beeswax Pillar Candle",
+        description_html: "<p>Beeswax pillar candle. Not drip-free; always use a holder.</p>",
+        attributes: [],
+        claims: [
+          { text: "Not drip-free", source_row: 5, source_column: "Beschreibung", quote: "Nicht tropffrei" },
+          { text: "Hand-poured inside and out", source_row: 5, source_column: "Beschreibung", quote: "Innen und außen handgegossen" },
+        ],
+      }),
+      group: de,
+      rows: deRows,
+    });
+    expect(r.removedClaims).toEqual([]);
+    expect(r.claims.map((c) => c.text)).toEqual(["Not drip-free", "Hand-poured inside and out"]);
+    expect(r.reviewReasons.filter((x) => x.includes("source"))).toEqual([]);
   });
 
   it("EC-D2: strips an invented claim and lowers confidence", () => {

@@ -1,5 +1,5 @@
 import { sanitizeDescriptionHtml, htmlToText } from "@/core/clean/html";
-import { foldForMatch } from "@/core/clean/text";
+import { foldForMatch, repairMojibake } from "@/core/clean/text";
 import { parseLength, parseWeight } from "@/core/clean/units";
 import type { Issue, ProductGroup } from "@/core/types";
 import { issue } from "@/core/types";
@@ -48,6 +48,9 @@ export interface GroundingResult {
 }
 
 const NEGATION_WINDOW = 3;
+/** Marks a clause boundary in token streams so "will not scratch floors. Suits hallways" cannot negate "suits". */
+const BOUNDARY = "|";
+const CLAUSE_SPLIT = /[.;:!?,()\n]+|\s[-–—]\s/;
 
 export function groundProductOutput(input: GroundingInput): GroundingResult {
   const { output, group, rows } = input;
@@ -56,8 +59,10 @@ export function groundProductOutput(input: GroundingInput): GroundingResult {
   const removedClaims: Array<{ text: string; reason: string }> = [];
 
   const corpus = ` ${foldForMatch(group.sourceCorpus)} `;
-  const corpusTokens = corpus.trim().split(" ").filter(Boolean);
-  const foldedRows = rows.map((r) => ({ row: r.row, cells: Object.fromEntries(Object.entries(r.cells).map(([k, v]) => [k, foldForMatch(v ?? "")])) }));
+  const corpusTokens = tokenizeClauses(group.sourceCorpus);
+  // Cells are matched after mojibake repair: the model quotes the readable text, the sheet may hold "auÃŸen".
+  const foldedRows = rows.map((r) => ({ row: r.row, cells: Object.fromEntries(Object.entries(r.cells).map(([k, v]) => [k, foldForMatch(repairMojibake(v ?? "").text)])) }));
+  const nonEnglish = group.language.lang !== "en" && group.language.lang !== "und";
 
   // --- 1. sanitise the model's HTML (defence in depth) -------------------------
   const sanitized = sanitizeDescriptionHtml(output.description_html);
@@ -71,30 +76,39 @@ export function groundProductOutput(input: GroundingInput): GroundingResult {
     if (name && value) attributes[name] = value;
   }
 
-  // --- 2. claims: citation check, then negation check --------------------------
+  // --- 2. claims: citation check, then polarity check --------------------------
   const claims: VerifiedClaim[] = [];
+  const claimedTerms = new Set<string>();
   let strippedClaims = 0;
   for (const c of output.claims) {
-    const term = canonicalTerm(c.text);
+    const polarity = claimPolarity(c.text);
+    const term = canonicalTerm(polarity.core);
     const variants = variantsFor(term);
     const citation = verifyCitation(c, foldedRows, variants);
-    const found = citation ?? findInRows(foldedRows, variants);
+    // A quote that lives in a sibling row of the same product is still a citation (models slip on row numbers).
+    const found = citation ?? findInRows(foldedRows, variants) ?? findQuoteInRows(foldedRows, c.quote);
     if (!found) {
       removedClaims.push({ text: c.text, reason: "not found in the source cells" });
       issues.push(issue("claim.unsupported", "warn", `Claim "${c.text}" is not supported by the source`, { field: "claims", value: c.text, ec: "D2" }));
       reviewReasons.push(`AI claimed "${c.text}" but the source does not say it`);
-      stripTermFromText(variants);
+      stripTermFromText(variants, polarity.negated);
       strippedClaims += 1;
       continue;
     }
-    if (isNegated(corpusTokens, variants)) {
-      removedClaims.push({ text: c.text, reason: "the source explicitly negates it" });
-      issues.push(issue("claim.negated", "error", `Source says "not ${c.text}"; the claim was removed`, { field: "claims", value: c.text, ec: "B15" }));
-      reviewReasons.push(`AI asserted "${c.text}" but the source negates it`);
-      stripTermFromText(variants);
+    // "not frost-proof" against a source that says "not frost-proof" is a faithful claim; the two
+    // polarities disagreeing is the one thing that must never reach the storefront (EC-B15). The
+    // comparison needs the term itself in the source; a claim proven only by a quote in another
+    // language has nothing to compare against and stands on its citation.
+    const termInCorpus = variants.some((v) => corpus.includes(` ${v} `));
+    if (termInCorpus && polarity.negated !== isNegated(corpusTokens, variants)) {
+      removedClaims.push({ text: c.text, reason: polarity.negated ? "the source asserts it" : "the source explicitly negates it" });
+      issues.push(issue("claim.negated", "error", polarity.negated ? `Source says "${term}" but the claim denies it; the claim was removed` : `Source says "not ${c.text}"; the claim was removed`, { field: "claims", value: c.text, ec: "B15" }));
+      reviewReasons.push(polarity.negated ? `AI denied "${term}" but the source asserts it` : `AI asserted "${c.text}" but the source negates it`);
+      stripTermFromText(variants, polarity.negated);
       strippedClaims += 1;
       continue;
     }
+    claimedTerms.add(term);
     claims.push({
       text: c.text,
       source: `row ${found.row}, column ${found.column}`,
@@ -106,19 +120,29 @@ export function groundProductOutput(input: GroundingInput): GroundingResult {
   }
 
   // --- 3. lexicon sweep over everything the model wrote -------------------------
-  const claimedTerms = new Set(claims.map((c) => canonicalTerm(c.text)));
   for (const entry of CLAIM_LEXICON) {
     if (claimedTerms.has(entry.term)) continue;
-    const text = ` ${foldForMatch([title, descriptionText, ...Object.values(attributes), ...output.tags].join(" "))} `;
+    const listingText = [title, descriptionText, ...Object.values(attributes), ...output.tags].join(". ");
+    const text = ` ${foldForMatch(listingText)} `;
     const hit = entry.variants.find((v) => text.includes(` ${v} `));
     if (!hit) continue;
     const inSource = entry.variants.some((v) => corpus.includes(` ${v} `));
+    const sourceNegated = inSource && isNegated(corpusTokens, entry.variants);
+    if (isNegated(tokenizeClauses(listingText), entry.variants)) {
+      // The listing itself denies the term. Fine when the source denies it too; otherwise it is invented.
+      if (sourceNegated) continue;
+      issues.push(issue("claim.unsupported", "warn", inSource ? `Listing says "not ${entry.term}" but the source says "${entry.term}"` : `Listing says "not ${entry.term}" but the source never mentions it`, { value: entry.term, ec: "D2" }));
+      reviewReasons.push(inSource ? `Listing says "not ${entry.term}" but the source says it is` : `Listing says "not ${entry.term}" but the source does not mention it`);
+      stripTermFromText(entry.variants, true);
+      strippedClaims += 1;
+      continue;
+    }
     if (!inSource) {
       issues.push(issue("claim.unsupported", "warn", `"${entry.term}" appears in the listing but not in the source`, { value: entry.term, ec: "D2" }));
       reviewReasons.push(`Listing says "${entry.term}" but the source does not`);
       stripTermFromText(entry.variants);
       strippedClaims += 1;
-    } else if (isNegated(corpusTokens, entry.variants)) {
+    } else if (sourceNegated) {
       issues.push(issue("claim.negated", "error", `Source says "not ${entry.term}"; removed from the listing`, { value: entry.term, ec: "B15" }));
       reviewReasons.push(`Listing says "${entry.term}" but the source negates it`);
       stripTermFromText(entry.variants);
@@ -165,9 +189,10 @@ export function groundProductOutput(input: GroundingInput): GroundingResult {
   }
 
   // --- 6. mix-up check: the title must come from this product's rows (EC-D7) ------------
+  // Skipped for German/French sources: the English title is a translation and shares no tokens.
   let mixup = false;
   const titleTokens = foldForMatch(title).split(" ").filter((t) => t.length > 3);
-  if (titleTokens.length > 0 && corpusTokens.length > 0) {
+  if (!nonEnglish && titleTokens.length > 0 && corpusTokens.length > 0) {
     const overlap = titleTokens.filter((t) => corpus.includes(` ${t} `)).length / titleTokens.length;
     if (overlap < 0.34) {
       mixup = true;
@@ -203,7 +228,6 @@ export function groundProductOutput(input: GroundingInput): GroundingResult {
 
   // --- 9. confidence = min(model, heuristic) --------------------------------------------------
   const hasSourceTitle = !!group.title;
-  const nonEnglish = group.language.lang !== "en" && group.language.lang !== "und";
   const heuristic = {
     title: 100 - (hasSourceTitle ? 0 : 40) - (nonEnglish ? 10 : 0) - (mixup ? 50 : 0),
     description: 100 - (group.descriptionText ? 0 : 25) - unsupportedNumbers.size * 15 - strippedClaims * 20,
@@ -249,9 +273,10 @@ export function groundProductOutput(input: GroundingInput): GroundingResult {
   };
 
   /** Remove a claim term from the title, description and attributes (word-boundary, hyphen/space tolerant). */
-  function stripTermFromText(variants: string[]): void {
+  function stripTermFromText(variants: string[], withNegation = false): void {
     for (const v of variants) {
-      const pattern = new RegExp(`\\b${v.split(" ").map(escapeRegExp).join("[\\s-]+")}\\b[,;]?\\s*`, "gi");
+      const prefix = withNegation ? "(?:\\b(?:not|no|non|never|without)\\s+)?" : "";
+      const pattern = new RegExp(`${prefix}\\b${v.split(" ").map(escapeRegExp).join("[\\s-]+")}\\b[,;]?\\s*`, "gi");
       title = title.replace(pattern, "").replace(/\s{2,}/g, " ").replace(/\s+([,.;])/g, "$1").trim();
       if (descriptionHtml) descriptionHtml = descriptionHtml.replace(pattern, "").replace(/\s{2,}/g, " ");
       descriptionText = descriptionText.replace(pattern, "").replace(/\s{2,}/g, " ");
@@ -275,6 +300,33 @@ function canonicalTerm(text: string): string {
     if (entry.term === folded || entry.variants.includes(folded)) return entry.term;
   }
   return folded;
+}
+
+/**
+ * "Not frost-proof; bring indoors" → { core: "frost proof", negated: true }. Only the first clause
+ * carries the polarity; a claim is one statement, and the rest is qualification.
+ */
+export function claimPolarity(text: string): { core: string; negated: boolean } {
+  const firstClause = text.split(CLAUSE_SPLIT).find((s) => foldForMatch(s).length > 0) ?? text;
+  const tokens = foldForMatch(firstClause).split(" ").filter(Boolean);
+  let negated = false;
+  while (tokens.length > 1 && NEGATION_TOKENS.includes(tokens[0]!)) {
+    tokens.shift();
+    negated = true;
+  }
+  return { core: tokens.join(" "), negated };
+}
+
+/** Fold text into match tokens, keeping clause boundaries so a negation never leaks into the next sentence. */
+export function tokenizeClauses(text: string): string[] {
+  const out: string[] = [];
+  for (const clause of text.split(CLAUSE_SPLIT)) {
+    const tokens = foldForMatch(clause).split(" ").filter(Boolean);
+    if (tokens.length === 0) continue;
+    if (out.length > 0) out.push(BOUNDARY);
+    out.push(...tokens);
+  }
+  return out;
 }
 
 function variantsFor(term: string): string[] {
@@ -313,6 +365,19 @@ function findInRows(rows: Array<{ row: number; cells: Record<string, string> }>,
   return null;
 }
 
+/** The model's quote, looked for in every cell of the product's rows. One-word quotes prove nothing and are ignored. */
+function findQuoteInRows(rows: Array<{ row: number; cells: Record<string, string> }>, quoteRaw: string): Found | null {
+  const quote = foldForMatch(quoteRaw);
+  if (quote.split(" ").filter(Boolean).length < 2) return null;
+  for (const r of rows) {
+    for (const [column, folded] of Object.entries(r.cells)) {
+      const cell = ` ${folded} `;
+      if (cell.includes(` ${quote} `) || tokenContainment(quote, cell) >= 0.9) return { row: r.row, column, quote: quoteRaw.trim().slice(0, 200) };
+    }
+  }
+  return null;
+}
+
 function tokenContainment(needle: string, haystack: string): number {
   const n = needle.split(" ").filter(Boolean);
   if (n.length === 0) return 0;
@@ -320,7 +385,10 @@ function tokenContainment(needle: string, haystack: string): number {
   return n.filter((t) => h.has(t)).length / n.length;
 }
 
-/** True when every occurrence of the term in the corpus is preceded by a negation within three tokens (EC-B15). */
+/**
+ * True when every occurrence of the term is preceded by a negation within three tokens of the same
+ * clause (EC-B15). Tokens from `tokenizeClauses` carry boundaries; plain token arrays work too.
+ */
 export function isNegated(corpusTokens: string[], variants: string[]): boolean {
   let occurrences = 0;
   let negated = 0;
@@ -336,8 +404,14 @@ export function isNegated(corpusTokens: string[], variants: string[]): boolean {
       }
       if (!match) continue;
       occurrences += 1;
-      const window = corpusTokens.slice(Math.max(0, i - NEGATION_WINDOW), i);
-      if (window.some((t) => NEGATION_TOKENS.includes(t))) negated += 1;
+      for (let k = i - 1, steps = 0; k >= 0 && steps < NEGATION_WINDOW; k--, steps++) {
+        const t = corpusTokens[k]!;
+        if (t === BOUNDARY) break;
+        if (NEGATION_TOKENS.includes(t)) {
+          negated += 1;
+          break;
+        }
+      }
     }
   }
   return occurrences > 0 && negated === occurrences;

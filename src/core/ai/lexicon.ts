@@ -12,9 +12,9 @@ export interface ClaimTerm {
 
 export const CLAIM_LEXICON: ReadonlyArray<ClaimTerm> = [
   { term: "organic", variants: ["organic", "bio", "biologisch", "biologique", "oeko", "öko"] },
-  { term: "handmade", variants: ["handmade", "hand made", "handgefertigt", "handgemacht", "fait main", "fait a la main", "artisanal", "handcrafted", "hand crafted"] },
-  { term: "hand-thrown", variants: ["hand thrown", "handthrown", "handgedreht", "tourne a la main"] },
-  { term: "hand-painted", variants: ["hand painted", "handpainted", "handbemalt", "peint a la main"] },
+  { term: "handmade", variants: ["handmade", "hand made", "made by hand", "handgefertigt", "handgemacht", "fait main", "fait a la main", "artisanal", "handcrafted", "hand crafted"] },
+  { term: "hand-thrown", variants: ["hand thrown", "handthrown", "thrown by hand", "wheel thrown", "handgedreht", "tourne a la main"] },
+  { term: "hand-painted", variants: ["hand painted", "handpainted", "painted by hand", "handbemalt", "peint a la main"] },
   { term: "frost-proof", variants: ["frost proof", "frostproof", "frostsicher", "resistant au gel garanti", "frostfest"] },
   { term: "frost-resistant", variants: ["frost resistant", "frostresistant", "frostbestandig", "resistant au gel", "frost hardy"] },
   { term: "waterproof", variants: ["waterproof", "water proof", "wasserdicht", "etanche", "impermeable"] },
