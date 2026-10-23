@@ -12,6 +12,7 @@ export interface MatchBadge {
 const METHOD_LABELS: Record<string, string> = {
   image_column: "Image column",
   sku: "SKU",
+  sku_token: "SKU in name",
   sku_stem: "Stem",
   handle: "Handle",
   fuzzy: "Fuzzy",
@@ -22,6 +23,7 @@ const METHOD_LABELS: Record<string, string> = {
 const METHOD_DESCRIPTIONS: Record<string, string> = {
   image_column: "named in the sheet's image column",
   sku: "file name contains the SKU",
+  sku_token: "the SKU sits inside a longer file name, such as a camera name",
   sku_stem: "file name contains the SKU stem",
   handle: "file name matches the product handle",
   fuzzy: "file name is close to the product name",

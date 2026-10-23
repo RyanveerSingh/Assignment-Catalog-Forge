@@ -311,7 +311,7 @@ export interface ProductGroup {
 // Photos
 // ---------------------------------------------------------------------------
 
-export type PhotoMatchMethod = "image_column" | "sku" | "sku_stem" | "handle" | "fuzzy" | "none";
+export type PhotoMatchMethod = "image_column" | "sku" | "sku_token" | "sku_stem" | "handle" | "fuzzy" | "none";
 
 export interface PhotoMatch {
   filename: string;

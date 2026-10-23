@@ -41,9 +41,12 @@ export async function listPhotosForProducts(db: DbOrTx, productIds: string[]): P
     .orderBy(asc(photos.position));
 }
 
-export async function findPhotoBySha(db: DbOrTx, storeId: string, sha256: string): Promise<PhotoRecord | null> {
-  const [row] = await db.select().from(photos).where(and(eq(photos.storeId, storeId), eq(photos.sha256, sha256))).limit(1);
-  return row ?? null;
+/** A photo with the same bytes in this store; the one carrying the same file name is preferred, so a re-upload finds its own row. */
+export async function findPhotoBySha(db: DbOrTx, storeId: string, sha256: string, originalName?: string): Promise<PhotoRecord | null> {
+  const rows = await db.select().from(photos).where(and(eq(photos.storeId, storeId), eq(photos.sha256, sha256))).limit(50);
+  if (rows.length === 0) return null;
+  const wanted = originalName?.toLowerCase();
+  return (wanted ? rows.find((r) => r.originalName.toLowerCase() === wanted) : undefined) ?? rows[0] ?? null;
 }
 
 export async function insertPhoto(db: DbOrTx, input: typeof photos.$inferInsert): Promise<string> {

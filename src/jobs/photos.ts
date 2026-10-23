@@ -68,7 +68,13 @@ export const photosHandler: JobHandler = async ({ job, db, log, signal }) => {
       return;
     }
     const sha256 = sha256Hex(data);
-    const duplicate = await findPhotoBySha(db, storeId, sha256);
+    const duplicate = await findPhotoBySha(db, storeId, sha256, name);
+    if (duplicate && duplicate.originalName.toLowerCase() === name.toLowerCase()) {
+      // The same file re-uploaded (same bytes, same name): it is already attached to its product (EC-C10).
+      skipped += 1;
+      seenNames.add(name);
+      return;
+    }
     try {
       let blobId: string;
       let thumbBlobId: string;

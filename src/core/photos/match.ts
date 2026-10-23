@@ -1,7 +1,8 @@
 /**
  * Photo → product/variant matching (EC-C12, C13, C15, A17). Exact rungs first (image column,
- * SKU, product key, handle), then a cautious fuzzy rung; anything else goes to the unmatched bin
- * rather than to the wrong product. Only basenames are trusted: ZIP paths are untrusted input.
+ * SKU, product key, handle), then a SKU carried as tokens inside a camera name, then a cautious
+ * fuzzy rung; anything else goes to the unmatched bin rather than to the wrong product. Only
+ * basenames are trusted: ZIP paths are untrusted input.
  */
 import { slugify } from "../clean/row";
 import { foldForMatch } from "../clean/text";
@@ -37,8 +38,11 @@ interface Index {
   references: Reference[];
 }
 
-const SCORES: Readonly<Record<PhotoMatchMethod, number>> = { image_column: 100, sku: 95, sku_stem: 85, handle: 80, fuzzy: 60, none: 0 };
-const RANK: Readonly<Record<PhotoMatchMethod, number>> = { image_column: 0, sku: 1, sku_stem: 2, handle: 3, fuzzy: 4, none: 5 };
+const SCORES: Readonly<Record<PhotoMatchMethod, number>> = { image_column: 100, sku: 95, sku_token: 90, sku_stem: 85, handle: 80, fuzzy: 60, none: 0 };
+const RANK: Readonly<Record<PhotoMatchMethod, number>> = { image_column: 0, sku: 1, sku_token: 2, sku_stem: 3, handle: 4, fuzzy: 5, none: 6 };
+// A SKU hidden inside a camera name ("IMG_2031_WX-DC-L") must be at least two tokens or six characters, or "A1" would match everywhere.
+const TOKEN_MIN_PARTS = 2;
+const TOKEN_MIN_LENGTH = 6;
 const FUZZY_MIN_STEM = 6;
 const FUZZY_MAX_DISTANCE = 2;
 const URL_RE = /^https?:\/\//i;
@@ -101,7 +105,7 @@ export function matchPhotos(filenames: string[], groups: ProductGroup[]): PhotoM
       hit = same ? hitStripped : hitRaw;
       if (!same) sequence = null;
     }
-    if (!hit) hit = fuzzyHit(norm.stem, index);
+    if (!hit) hit = tokenHit(norm.stem, index) ?? fuzzyHit(norm.stem, index);
     pending.push({ filename, hit, sequence });
   }
 
@@ -127,6 +131,34 @@ function exactHit(stem: string, index: Index): Hit | null {
   const handle = index.handles.get(stem);
   if (handle !== undefined) return { productKey: handle, sku: null, method: "handle" };
   return null;
+}
+
+/**
+ * A SKU carried as a contiguous run of tokens inside a longer name ("IMG_2031_WX-DC-L" → WX-DC-L).
+ * The longest unique SKU wins; two different SKUs of the same length mean we do not know (EC-C13).
+ */
+function tokenHit(stem: string, index: Index): Hit | null {
+  const parts = stem.split(" ").filter(Boolean);
+  if (parts.length < TOKEN_MIN_PARTS + 1) return null;
+  let best: Target | null = null;
+  let bestLength = 0;
+  let bestCount = 0;
+  for (const candidate of index.skuList) {
+    const sku = candidate.folded.split(" ").filter(Boolean);
+    if (sku.length < TOKEN_MIN_PARTS && candidate.folded.length < TOKEN_MIN_LENGTH) continue;
+    if (sku.length >= parts.length) continue;
+    let found = false;
+    for (let i = 0; i + sku.length <= parts.length && !found; i++) found = sku.every((t, j) => parts[i + j] === t);
+    if (!found) continue;
+    const length = candidate.folded.length;
+    if (length > bestLength) {
+      best = candidate;
+      bestLength = length;
+      bestCount = 1;
+    } else if (length === bestLength) bestCount++;
+  }
+  if (!best || bestCount !== 1) return null;
+  return { productKey: best.productKey, sku: best.sku, method: "sku_token" };
 }
 
 /** Unique best SKU within two edits; ties mean we do not know, so the photo stays unmatched. */

@@ -134,6 +134,17 @@ describe("matchPhotos", () => {
     ]);
   });
 
+  it("EC-C13: a camera name carrying the SKU as a token run matches by sku_token, never on a bare short SKU", () => {
+    const coat = makeGroup("WX-DC", "Waxed Dog Coat", [makeVariant("WX-DC-L"), makeVariant("WX-DC-M")]);
+    const tiny = makeGroup("A1", "Tiny", [makeVariant("A1")]);
+    const { matches } = matchPhotos(["IMG_2031_WX-DC-L.jpg", "DSC_0417.jpg", "photo_a1_studio.jpg"], [coat, tiny, planter]);
+    expect(matches.map((m) => [m.filename, m.method, m.score, m.productKey, m.sku])).toEqual([
+      ["IMG_2031_WX-DC-L.jpg", "sku_token", 90, "WX-DC", "WX-DC-L"],
+      ["DSC_0417.jpg", "none", 0, null, null],
+      ["photo_a1_studio.jpg", "none", 0, null, null],
+    ]);
+  });
+
   it("EC-C13: fuzzy matching refuses ties and short stems", () => {
     const abc = makeGroup("ABC", "Alpha", [makeVariant("ABC-100"), makeVariant("ABC-200")]);
     const short = makeGroup("P1", "Zzz", [makeVariant("ABCD1")]);
