@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { groupCategories } from "@/components/storefront/categories";
 import { localizedCountryNames } from "@/components/storefront/country-names";
 import { t } from "@/components/storefront/i18n";
+import { ShopChrome } from "@/components/storefront/shop-chrome";
 import { ShopFooter } from "@/components/storefront/shop-footer";
 import { ShopHeader } from "@/components/storefront/shop-header";
 import { cachedCategories, cachedCategoryPhotos, cachedStore, loadStorefront } from "./storefront-context";
@@ -18,9 +19,9 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 }
 
 /**
- * Public storefront chrome. The root layout owns <html lang>, so the resolved locale goes on a
- * wrapper element; every text node below inherits it (EC-H2). hreflang alternates are skipped on
- * purpose: the locale is chosen by cookie/geo, not by URL, so there is no distinct URL per language.
+ * Public storefront chrome. The root layout owns <html lang>, so the resolved locale goes on the
+ * wrapper; every text node below inherits it (EC-H2). hreflang alternates are skipped on purpose:
+ * the locale is chosen by cookie/geo, not by URL, so there is no distinct URL per language.
  */
 export default async function StorefrontLayout({ children, params }: { children: React.ReactNode; params: Params }) {
   const { slug } = await params;
@@ -30,8 +31,8 @@ export default async function StorefrontLayout({ children, params }: { children:
   const countryNames = localizedCountryNames(ctx.locale, ctx.country);
 
   return (
-    <div lang={ctx.locale} className="flex min-h-dvh flex-col bg-paper text-ink">
-      <a href="#storefront-main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-sm focus:bg-ink focus:px-3 focus:py-2 focus:text-paper">
+    <ShopChrome locale={ctx.locale}>
+      <a href="#storefront-main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-ink focus:px-4 focus:py-2 focus:text-white">
         {t(ctx.locale, "skip")}
       </a>
       <ShopHeader slug={slug} storeName={ctx.store.name} locale={ctx.locale} country={ctx.country} countryNames={countryNames} families={families} photos={photos} />
@@ -39,6 +40,6 @@ export default async function StorefrontLayout({ children, params }: { children:
         {children}
       </main>
       <ShopFooter slug={slug} storeName={ctx.store.name} locale={ctx.locale} locales={ctx.store.locales} families={families} />
-    </div>
+    </ShopChrome>
   );
 }

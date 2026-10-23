@@ -64,13 +64,16 @@ export function VariantPicker({
   if (variants.length === 0) return <p className="text-ink-muted">{t(locale, "noVariants")}</p>;
 
   const dimensions = current?.dimensions ? formatDimensions(current.dimensions) : null;
+  const facts: Array<[string, string]> = current ? [[t(locale, "sku"), current.sku]] : [];
+  if (current?.weightGrams !== null && current?.weightGrams !== undefined) facts.push([t(locale, "weight"), formatWeight(current.weightGrams)]);
+  if (dimensions) facts.push([t(locale, "dimensions"), dimensions]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <div aria-live="polite" className="space-y-1">
         {current ? (
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="num text-2xl text-ink md:text-[28px]">{current.priceCents !== null ? formatMoney(current.priceCents, current.currency ?? fallbackCurrency, locale) : t(locale, "priceOnRequest")}</span>
+            <span className="num text-[28px] text-ink md:text-[32px]">{current.priceCents !== null ? formatMoney(current.priceCents, current.currency ?? fallbackCurrency, locale) : t(locale, "priceOnRequest")}</span>
             {current.compareAtCents !== null && current.priceCents !== null && current.compareAtCents > current.priceCents ? (
               <s className="num text-sm text-ink-muted" aria-label={t(locale, "previousPrice")}>
                 {formatMoney(current.compareAtCents, current.currency ?? fallbackCurrency, locale)}
@@ -84,10 +87,10 @@ export function VariantPicker({
       </div>
 
       {optionNames.map((name) => (
-        <fieldset key={name} className="space-y-2">
-          <legend className="text-xs font-medium uppercase tracking-[0.14em] text-ink-muted">
+        <fieldset key={name} className="space-y-3">
+          <legend className="text-[13px] text-ink-muted">
             {optionLabel(locale, name)}
-            {selected[name] ? <span className="ml-2 normal-case tracking-normal text-ink">{selected[name]}</span> : null}
+            {selected[name] ? <span className="ml-2 text-ink">{selected[name]}</span> : null}
           </legend>
           <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={optionLabel(locale, name)}>
             {(valuesByOption.get(name) ?? []).map((value) => {
@@ -103,9 +106,9 @@ export function VariantPicker({
                   title={available ? undefined : t(locale, "notAvailable")}
                   onClick={() => setSelected((s) => ({ ...s, [name]: value }))}
                   className={cn(
-                    "min-h-11 min-w-11 cursor-pointer rounded-sm border px-4 py-2 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-paper",
-                    checked ? "border-ink bg-ink text-paper" : "border-border bg-card text-ink hover:border-ink",
-                    !available && "cursor-not-allowed border-dashed text-ink-muted line-through opacity-60 hover:border-border",
+                    "min-h-11 min-w-11 cursor-pointer rounded-full px-4 py-2 text-[15px] outline-none ring-1 ring-inset transition-colors focus-visible:ring-2 focus-visible:ring-brand",
+                    checked ? "bg-ink text-white ring-ink" : "bg-card text-ink ring-line hover:ring-ink",
+                    !available && "cursor-not-allowed text-ink-muted line-through opacity-60 hover:ring-line",
                   )}
                 >
                   {value}
@@ -118,22 +121,14 @@ export function VariantPicker({
 
       {renderBuy ? renderBuy(current) : null}
 
-      {current ? (
-        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 border-t border-border pt-4 text-sm">
-          <dt className="text-ink-muted">{t(locale, "sku")}</dt>
-          <dd className="num">{current.sku}</dd>
-          {current.weightGrams !== null ? (
-            <>
-              <dt className="text-ink-muted">{t(locale, "weight")}</dt>
-              <dd className="num">{formatWeight(current.weightGrams)}</dd>
-            </>
-          ) : null}
-          {dimensions ? (
-            <>
-              <dt className="text-ink-muted">{t(locale, "dimensions")}</dt>
-              <dd className="num">{dimensions}</dd>
-            </>
-          ) : null}
+      {facts.length > 0 ? (
+        <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 border-t border-line pt-5 text-[14px]">
+          {facts.map(([label, value]) => (
+            <div key={label} className="contents">
+              <dt className="text-ink-muted">{label}</dt>
+              <dd className="num text-ink">{value}</dd>
+            </div>
+          ))}
         </dl>
       ) : null}
     </div>

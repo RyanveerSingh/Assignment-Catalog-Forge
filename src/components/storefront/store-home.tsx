@@ -1,37 +1,44 @@
+import type { ReactNode } from "react";
+import { AboutBand, type BandPhoto } from "./about-band";
 import type { CategoryFamily } from "./categories";
+import { CategoryCards } from "./category-cards";
 import type { CategoryPhoto } from "./category-photos";
-import { CategoryTiles } from "./category-tiles";
-import { HeroSlideshow } from "./hero-slideshow";
-import { formatList, plural, t } from "./i18n";
-import type { HeroSlide } from "./slideshow";
+import { CtaBand } from "./cta-band";
+import { Hero } from "./hero";
+import { formatList, nativeLocaleName, plural, t } from "./i18n";
+import { pickPhotographed, type HeroSlide } from "./slideshow";
+import { WhyCards, type WhyCard } from "./why-cards";
+
+export interface HomeStore {
+  name: string;
+  locales: string[];
+  countryLocaleMap: Record<string, string>;
+}
 
 /**
- * The store root above the grid: the slideshow of the newest photographed products, then the
- * store's own introduction (name, what it sells, how much of it) and the category tiles.
+ * The store root around the product grid (`children`): hero, the about sentence, the category
+ * cards, then below the grid the four facts and the language band. Every photo is a real product
+ * photo; the bands skip the ones the hero already shows so the page does not repeat itself.
  */
-export function StoreHome({ slug, locale, storeName, total, families, photos, slides }: { slug: string; locale: string; storeName: string; total: number; families: CategoryFamily[]; photos: CategoryPhoto[]; slides: HeroSlide[] }) {
-  const labels = families.map((f) => f.label);
-  const tagline = labels.length > 0 ? t(locale, labels.length > 4 ? "taglineMore" : "tagline", { families: formatList(locale, labels.slice(0, 4)) }) : null;
+export function StoreHome({ slug, locale, store, total, families, photos, slides, newest, children }: { slug: string; locale: string; store: HomeStore; total: number; families: CategoryFamily[]; photos: CategoryPhoto[]; slides: HeroSlide[]; newest: Array<{ images: Array<{ id: string; alt: string }>; title: string }>; children: ReactNode }) {
+  const languages = formatList(locale, store.locales.map(nativeLocaleName));
+  const bandPhotos = pickPhotographed(newest, slides.length, 6).map<BandPhoto>((p) => ({ imageId: p.images[0]?.id ?? "", alt: p.images[0]?.alt || p.title }));
+  const subline = t(locale, "heroSub", { store: store.name, products: plural(locale, "products", total), languages });
+  const whyCards: WhyCard[] = [
+    { title: t(locale, "why1Title"), body: t(locale, "why1Body"), photo: bandPhotos[1] ?? null },
+    { title: t(locale, "why2Title", { languages }), body: t(locale, "why2Body", { languages }), photo: bandPhotos[2] ?? null },
+    { title: t(locale, "why3Title"), body: t(locale, "why3Body"), photo: bandPhotos[3] ?? null },
+    { title: t(locale, "why4Title"), body: t(locale, "why4Body"), photo: bandPhotos[4] ?? null },
+  ];
 
   return (
     <>
-      <HeroSlideshow slides={slides} slug={slug} locale={locale} />
-      <section className="border-b border-border">
-        <div className="mx-auto max-w-6xl px-4 py-10 md:px-6 md:py-14">
-          <div className="grid gap-4 md:grid-cols-12 md:items-end md:gap-8">
-            <div className="md:col-span-8">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-ink-muted">{t(locale, "catalogue")}</p>
-              <h1 className="mt-3 font-display text-4xl leading-[1.02] text-ink md:text-6xl">{storeName}</h1>
-              {tagline ? <p className="mt-4 max-w-xl text-base text-ink-muted md:text-lg">{tagline}</p> : null}
-            </div>
-            <p className="num text-sm text-ink md:col-span-4 md:text-right">
-              {plural(locale, "products", total)}
-              {families.length > 0 ? <span className="text-ink-muted"> · {plural(locale, "categories", families.length)}</span> : null}
-            </p>
-          </div>
-          <CategoryTiles slug={slug} locale={locale} families={families} photos={photos} priorityImageId={slides[0]?.imageId} className="mt-10 md:mt-14" />
-        </div>
-      </section>
+      <Hero slides={slides} slug={slug} locale={locale} subline={subline} />
+      <AboutBand slug={slug} locale={locale} storeName={store.name} languages={languages} photo={bandPhotos[0] ?? null} />
+      <CategoryCards slug={slug} locale={locale} families={families} photos={photos} total={total} priorityImageId={slides[0]?.imageId} />
+      {children}
+      <WhyCards slug={slug} locale={locale} cards={whyCards} />
+      <CtaBand slug={slug} locale={locale} locales={store.locales} countryLocaleMap={store.countryLocaleMap} photo={bandPhotos[5] ?? null} />
     </>
   );
 }

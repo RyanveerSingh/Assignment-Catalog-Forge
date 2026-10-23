@@ -1,62 +1,83 @@
+import Image from "next/image";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
 import { flatLeaves, leafLabel, relatedLeaves, segments, titleCase, type CategoryFamily, type CategoryLeaf } from "./categories";
+import { pickCategoryPhoto, type CategoryPhoto } from "./category-photos";
 import { categoryHref, storeHref } from "./hrefs";
-import { formatList, plural, t } from "./i18n";
+import { plural, t } from "./i18n";
+import { storefrontImageUrl } from "./image-url";
+import { Paren, PAREN_LINK } from "./paren";
 
-const CHIP = "inline-flex h-11 cursor-pointer items-center whitespace-nowrap rounded-full border border-border bg-paper px-4 text-sm text-ink outline-none transition-colors hover:border-ink focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand";
-const EYEBROW = "text-xs font-medium uppercase tracking-[0.18em] text-ink-muted";
+const CHIP = `${PAREN_LINK} text-ink`;
 
 /**
- * Editorial band above the grid for category pages and deeper pages of the store root: where you
- * are, how much is here and the sibling (or child) categories. The store root itself opens with
- * `StoreHome` instead.
+ * Band above the grid for category pages and deeper pages of the store root: where you are, how
+ * much is here, the sibling (or child) categories as parenthesised links, and the newest photo
+ * beneath the path. The store root itself opens with `StoreHome` instead.
  */
-export function CollectionHero({ slug, locale, storeName, total, families, current }: { slug: string; locale: string; storeName: string; total: number; families: CategoryFamily[]; current?: string }) {
-  const chips: CategoryLeaf[] = current ? relatedLeaves(families, current).slice(0, 4) : flatLeaves(families).slice(0, 4);
-  const familyLabels = families.map((f) => f.label);
-  const tagline = !current && familyLabels.length > 0 ? t(locale, familyLabels.length > 4 ? "taglineMore" : "tagline", { families: formatList(locale, familyLabels.slice(0, 4)) }) : null;
+export function CollectionHero({ slug, locale, storeName, total, families, photos, current }: { slug: string; locale: string; storeName: string; total: number; families: CategoryFamily[]; photos: CategoryPhoto[]; current?: string }) {
+  const chips: CategoryLeaf[] = current ? relatedLeaves(families, current).slice(0, 6) : flatLeaves(families).slice(0, 6);
+  const photo = current ? pickCategoryPhoto(photos, current) : null;
 
   return (
-    <section className="border-b border-border bg-paper-deep/50">
-      <div className="mx-auto max-w-6xl px-4 py-10 md:px-6 md:py-14">
-        {current ? <Trail slug={slug} locale={locale} path={current} /> : <p className={EYEBROW}>{t(locale, "catalogue")}</p>}
-        <h1 className="mt-3 font-display text-4xl leading-[1.02] text-ink md:text-6xl">{current ? leafLabel(current) : storeName}</h1>
-        {tagline ? <p className="mt-4 max-w-xl text-base text-ink-muted md:text-lg">{tagline}</p> : null}
-        <div className="mt-6 flex flex-wrap items-center gap-2">
-          <span className="num mr-2 text-sm text-ink">{plural(locale, "products", total)}</span>
-          {current ? (
-            <Link href={storeHref(slug)} className={CHIP}>
-              {t(locale, "allProducts")}
-            </Link>
+    <section className="bg-paper">
+      <div className="mx-auto max-w-[1440px] px-5 pb-12 pt-8 md:px-8 md:pb-16 md:pt-14">
+        <div className="grid gap-8 md:grid-cols-12 md:items-end">
+          <div className={photo ? "md:col-span-8" : "md:col-span-12"}>
+            {current ? <Trail slug={slug} locale={locale} path={current} /> : <p className="text-[13px] text-ink-muted"><Paren>{t(locale, "catalogue")}</Paren></p>}
+            <h1 className="mt-6 font-grotesk text-[44px] leading-[0.98] md:text-[72px] lg:text-[88px]">
+              {current ? leafLabel(current) : storeName}
+              <span className="font-serif-italic mt-2 block text-[0.52em] leading-[1.1] text-ink-muted">{plural(locale, "products", total)}</span>
+            </h1>
+            {chips.length > 0 || current ? (
+              <ul className="mt-8 flex flex-wrap gap-x-5 gap-y-1">
+                {current ? (
+                  <li>
+                    <Link href={storeHref(slug)} className={CHIP}>
+                      <Paren>{t(locale, "allProducts")}</Paren>
+                    </Link>
+                  </li>
+                ) : null}
+                {chips.map((leaf) => (
+                  <li key={leaf.category}>
+                    <Link href={categoryHref(slug, leaf.category)} className={CHIP}>
+                      <Paren>
+                        {leaf.label} <span className="num ml-1 text-[13px] text-ink-muted">{leaf.n}</span>
+                      </Paren>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+          {photo ? (
+            <div className="md:col-span-4">
+              <div className="relative overflow-hidden rounded-3xl bg-paper-deep" style={{ aspectRatio: "4 / 5" }}>
+                <Image src={storefrontImageUrl(slug, photo.imageId)} alt={photo.alt} fill priority sizes="(min-width: 768px) 33vw, 100vw" className="object-cover" />
+              </div>
+            </div>
           ) : null}
-          {chips.map((leaf) => (
-            <Link key={leaf.category} href={categoryHref(slug, leaf.category)} className={CHIP}>
-              {leaf.label}
-            </Link>
-          ))}
         </div>
       </div>
     </section>
   );
 }
 
-/** "Home › Home & Garden › Decor": each ancestor links to its own (prefix-matched) collection. */
+/** "Home / Home & Garden / Decor": each ancestor links to its own (prefix-matched) collection. */
 function Trail({ slug, locale, path }: { slug: string; locale: string; path: string }) {
   const parts = segments(path);
   const parents = parts.slice(0, -1);
   const link = "cursor-pointer rounded-sm outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-brand";
   return (
-    <nav aria-label={t(locale, "breadcrumb")} className={EYEBROW}>
-      <ol className="flex flex-wrap items-center gap-1">
+    <nav aria-label={t(locale, "breadcrumb")} className="text-[13px] text-ink-muted">
+      <ol className="flex flex-wrap items-center gap-2">
         <li>
           <Link href={storeHref(slug)} className={link}>
             {t(locale, "home")}
           </Link>
         </li>
         {parents.map((seg, i) => (
-          <li key={i} className="flex items-center gap-1">
-            <ChevronRight aria-hidden className="size-3" />
+          <li key={i} className="flex items-center gap-2">
+            <span aria-hidden>/</span>
             <Link href={categoryHref(slug, parts.slice(0, i + 1).join(" > "))} className={link}>
               {titleCase(seg)}
             </Link>

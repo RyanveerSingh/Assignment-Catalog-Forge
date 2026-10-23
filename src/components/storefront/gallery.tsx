@@ -10,7 +10,7 @@ import { ImagePlaceholder } from "./image-placeholder";
 import { storefrontImageUrl } from "./image-url";
 import { zoomOrigin } from "./zoom-origin";
 
-const ARROW = "absolute top-1/2 hidden size-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-paper/90 text-ink hairline outline-none transition-colors hover:bg-paper focus-visible:ring-2 focus-visible:ring-brand md:inline-flex";
+const ARROW = "absolute top-1/2 hidden size-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-card/90 text-ink shadow-[var(--shadow-card)] outline-none transition-colors hover:bg-card focus-visible:ring-2 focus-visible:ring-brand md:inline-flex";
 /** Lens zoom only where there is a precise pointer to steer it: desktop widths with a mouse or trackpad. */
 const ZOOM_MEDIA = "(min-width: 768px) and (hover: hover) and (pointer: fine)";
 const ZOOM_SCALE = 1.8;
@@ -18,12 +18,12 @@ const ZOOM_SCALE = 1.8;
 /**
  * Below md the slides are a scroll-snap track: swiping is native scrolling and the active index is
  * read back from the scroll position. From md up the same slides stack and crossfade instead: the
- * incoming slide fades in on top while the outgoing one waits underneath, so the paper behind never
+ * incoming slide fades in on top while the outgoing one waits underneath, so the ground behind never
  * shows through mid-fade. Thumbnails, arrows and arrow keys drive both through one `go()`. On
  * desktop the active photo scales up under the pointer (a transform anchored at the cursor), so
- * the part being looked at stays put.
+ * the part being looked at stays put. `radius` lets the quick view use a smaller corner than the page.
  */
-export function Gallery({ images, storeSlug, title, locale }: { images: StorefrontImage[]; storeSlug: string; title: string; locale: string }) {
+export function Gallery({ images, storeSlug, title, locale, radius = "rounded-3xl" }: { images: StorefrontImage[]; storeSlug: string; title: string; locale: string; radius?: string }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const frame = useRef<number | null>(null);
   const [index, setIndex] = useState(0);
@@ -73,7 +73,7 @@ export function Gallery({ images, storeSlug, title, locale }: { images: Storefro
 
   if (count === 0) {
     return (
-      <div className="overflow-hidden rounded-sm hairline" style={{ aspectRatio: "4 / 5" }}>
+      <div className={cn("overflow-hidden bg-paper", radius)} style={{ aspectRatio: "4 / 5" }}>
         <ImagePlaceholder label={t(locale, "noImage")} />
       </div>
     );
@@ -90,7 +90,7 @@ export function Gallery({ images, storeSlug, title, locale }: { images: Storefro
           onMouseMove={onMouseMove}
           onMouseLeave={() => setZoom(null)}
           aria-live="polite"
-          className="flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain rounded-sm bg-paper-deep hairline outline-none [scrollbar-width:none] focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-paper md:relative md:snap-none md:cursor-zoom-in md:overflow-hidden [&::-webkit-scrollbar]:hidden"
+          className={cn("flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain bg-paper outline-none [scrollbar-width:none] focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-card md:relative md:snap-none md:cursor-zoom-in md:overflow-hidden [&::-webkit-scrollbar]:hidden", radius)}
           style={{ aspectRatio: "4 / 5" }}
         >
           {images.map((img, i) => {
@@ -115,13 +115,13 @@ export function Gallery({ images, storeSlug, title, locale }: { images: Storefro
         </div>
         {count > 1 ? (
           <>
-            <button type="button" onClick={() => go(index - 1)} disabled={index === 0} aria-label={t(locale, "previousImage")} className={cn(ARROW, "left-3 z-20 disabled:opacity-0")}>
-              <ChevronLeft aria-hidden className="size-5" />
+            <button type="button" onClick={() => go(index - 1)} disabled={index === 0} aria-label={t(locale, "previousImage")} className={cn(ARROW, "left-4 z-20 disabled:opacity-0")}>
+              <ChevronLeft aria-hidden className="size-5" strokeWidth={1.6} />
             </button>
-            <button type="button" onClick={() => go(index + 1)} disabled={index === count - 1} aria-label={t(locale, "nextImage")} className={cn(ARROW, "right-3 z-20 disabled:opacity-0")}>
-              <ChevronRight aria-hidden className="size-5" />
+            <button type="button" onClick={() => go(index + 1)} disabled={index === count - 1} aria-label={t(locale, "nextImage")} className={cn(ARROW, "right-4 z-20 disabled:opacity-0")}>
+              <ChevronRight aria-hidden className="size-5" strokeWidth={1.6} />
             </button>
-            <span aria-hidden className="num absolute bottom-3 right-3 rounded-sm bg-paper/90 px-2 py-0.5 text-xs text-ink hairline md:hidden">
+            <span aria-hidden className="num absolute bottom-4 right-4 rounded-full bg-card/90 px-3 py-1 text-xs text-ink md:hidden">
               {index + 1} / {count}
             </span>
           </>
@@ -140,8 +140,8 @@ export function Gallery({ images, storeSlug, title, locale }: { images: Storefro
                   aria-label={t(locale, "showImage", { n: i + 1, total: count })}
                   aria-current={active ? "true" : undefined}
                   className={cn(
-                    "relative block w-16 cursor-pointer overflow-hidden rounded-sm bg-paper-deep outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-paper md:w-20",
-                    active ? "ring-1 ring-ink" : "opacity-60 hairline hover:opacity-100",
+                    "relative block w-16 cursor-pointer overflow-hidden rounded-xl bg-paper outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-card md:w-20",
+                    active ? "ring-1 ring-ink" : "opacity-60 hover:opacity-100",
                   )}
                   style={{ aspectRatio: "4 / 5" }}
                 >

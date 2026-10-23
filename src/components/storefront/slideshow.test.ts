@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pickSlides, slideNumber, stepIndex } from "./slideshow";
+import { pickPhotographed, pickSlides, slideNumber, stepIndex } from "./slideshow";
 
 describe("stepIndex", () => {
   it.each([
@@ -35,6 +35,30 @@ describe("pickSlides", () => {
     expect(pickSlides([{ handle: "a", images: img(1) }]).map((p) => p.handle)).toEqual(["a"]);
     expect(pickSlides([{ handle: "a", images: img(0) }])).toEqual([]);
     expect(pickSlides([])).toEqual([]);
+  });
+});
+
+describe("pickPhotographed", () => {
+  const img = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `img-${i}` }));
+  const products = [
+    { handle: "a", images: img(1) },
+    { handle: "b", images: img(0) },
+    { handle: "c", images: img(1) },
+    { handle: "d", images: img(1) },
+  ];
+
+  it("skips the products the hero already shows and keeps the order", () => {
+    expect(pickPhotographed(products, 2, 1).map((p) => p.handle)).toEqual(["d"]);
+  });
+
+  it("wraps around a small catalogue instead of leaving a band without a photo", () => {
+    expect(pickPhotographed(products, 3, 2).map((p) => p.handle)).toEqual(["a", "c"]);
+    expect(pickPhotographed(products, 0, 5).map((p) => p.handle)).toEqual(["a", "c", "d"]);
+  });
+
+  it("yields nothing when no product has a photo", () => {
+    expect(pickPhotographed([{ handle: "b", images: img(0) }], 0, 2)).toEqual([]);
+    expect(pickPhotographed([], 1, 1)).toEqual([]);
   });
 });
 

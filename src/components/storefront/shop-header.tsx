@@ -1,30 +1,60 @@
 import Link from "next/link";
-import { AnnouncementStrip } from "./announcement-strip";
 import { Bag } from "./bag";
 import type { CategoryFamily } from "./categories";
 import type { CategoryPhoto } from "./category-photos";
-import { CategoryNav } from "./category-nav";
 import { CountrySwitcher } from "./country-switcher";
-import { storeHref } from "./hrefs";
+import { categoryHref, storeHref } from "./hrefs";
 import { nativeLocaleName, t } from "./i18n";
+import { MegaMenu } from "./mega-menu";
+import { MobileMenu } from "./mobile-menu";
 
-/** Announcement strip, utility strip (ship-to), wordmark row with the bag, then the category navigation. */
+const NAV_LINK = "inline-flex h-11 cursor-pointer items-center rounded-full px-3 text-[15px] opacity-80 outline-none transition-opacity hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-brand";
+
+/**
+ * One row, sticky: the store name, the family links with their mega menus, the country switcher
+ * and the bag. Colours come from the chrome variables on the wrapper, so the same markup is white
+ * over the hero and ink on a white bar once the hero has scrolled away; the bar itself eases
+ * between the two in 200 ms. The container is the positioning box of every mega menu panel.
+ */
 export function ShopHeader({ slug, storeName, locale, country, countryNames, families, photos }: { slug: string; storeName: string; locale: string; country: string | null; countryNames: Record<string, string>; families: CategoryFamily[]; photos: CategoryPhoto[] }) {
+  const home = storeHref(slug);
   return (
-    <header className="border-b border-border bg-paper">
-      <AnnouncementStrip lines={[t(locale, "announce1"), t(locale, "announce2"), t(locale, "announce3")]} />
-      <div className="border-b border-border">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 md:px-6">
-          <CountrySwitcher country={country} locale={locale} names={countryNames} language={nativeLocaleName(locale)} showLabel />
-        </div>
-      </div>
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 md:px-6 md:py-6">
-        <Link href={storeHref(slug)} className="font-display text-[28px] leading-none tracking-tight text-ink outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-4 focus-visible:ring-offset-paper md:text-[36px]">
+    <header
+      data-shop-header
+      className="sticky top-0 z-40 h-[var(--header-h)] text-[var(--chrome-fg)] transition-[color,background-color,box-shadow] duration-200 ease-out"
+      style={{ backgroundColor: "var(--chrome-bg)", boxShadow: "0 1px 0 var(--chrome-line)", backdropFilter: "blur(var(--chrome-blur))", WebkitBackdropFilter: "blur(var(--chrome-blur))" }}
+    >
+      <div className="relative mx-auto flex h-full max-w-[1440px] items-center justify-between gap-6 px-5 md:px-8">
+        <Link href={home} className="inline-flex min-h-11 cursor-pointer items-center rounded-full text-[17px] font-medium uppercase tracking-[0.16em] outline-none focus-visible:ring-2 focus-visible:ring-brand md:text-[19px]">
           {storeName}
         </Link>
-        <Bag slug={slug} locale={locale} />
+
+        {families.length > 0 ? (
+          <nav aria-label={t(locale, "categories")} className="hidden lg:block">
+            <ul className="flex items-center gap-1">
+              <li>
+                <Link href={home} className={NAV_LINK}>
+                  {t(locale, "allProducts")}
+                </Link>
+              </li>
+              {families.map((family) => (
+                <li key={family.family} className="group">
+                  <Link href={categoryHref(slug, family.family)} className={NAV_LINK}>
+                    {family.label}
+                  </Link>
+                  <MegaMenu slug={slug} locale={locale} family={family} photos={photos} />
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ) : null}
+
+        <div className="flex items-center gap-1 md:gap-3">
+          <CountrySwitcher country={country} locale={locale} names={countryNames} tone="chrome" className="hidden lg:flex" />
+          <Bag slug={slug} locale={locale} />
+          <MobileMenu slug={slug} storeName={storeName} locale={locale} country={country} countryNames={countryNames} language={nativeLocaleName(locale)} families={families} />
+        </div>
       </div>
-      <CategoryNav slug={slug} locale={locale} families={families} photos={photos} />
     </header>
   );
 }

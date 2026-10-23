@@ -1,21 +1,31 @@
 import Link from "next/link";
-import { PackageOpen } from "lucide-react";
+import { AccentText } from "./accent-text";
 import { t } from "./i18n";
+import { Paren, PAREN_LINK } from "./paren";
 
 /** Three honest empty states: nothing published, nothing in this category, or a page number past the end. */
 export function EmptyState({ locale, kind, href }: { locale: string; kind: "store" | "category" | "page"; href: string }) {
   const title = t(locale, kind === "store" ? "nothingPublished" : kind === "category" ? "nothingInCategory" : "pageEmpty");
   return (
-    <div className="flex flex-col items-center gap-4 rounded-sm border border-dashed border-border px-6 py-20 text-center md:py-28">
-      <PackageOpen aria-hidden className="size-8 text-brand" strokeWidth={1.4} />
-      <p className="font-display text-3xl leading-tight text-ink md:text-4xl">{title}</p>
-      {kind === "store" ? (
-        <p className="max-w-sm text-sm leading-relaxed text-ink-muted">{t(locale, "nothingPublishedHint")}</p>
-      ) : (
-        <Link href={href} className="mt-2 inline-flex h-11 cursor-pointer items-center rounded-sm bg-ink px-5 text-sm font-medium text-paper outline-none transition-colors hover:bg-brand focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-paper">
-          {t(locale, kind === "category" ? "browseAll" : "backToFirstPage")}
-        </Link>
-      )}
+    <div className="relative overflow-hidden rounded-3xl bg-paper px-6 py-24 md:px-12 md:py-32">
+      <span aria-hidden className="pointer-events-none absolute -bottom-[0.2em] right-4 select-none font-grotesk text-[160px] leading-none text-ink/[0.05] md:text-[280px]">
+        (0)
+      </span>
+      <div className="relative max-w-2xl">
+        <p className="text-[13px] text-ink-muted">
+          <Paren>{t(locale, "catalogue")}</Paren>
+        </p>
+        <p className="mt-5 font-grotesk text-[40px] leading-[1.02] text-ink md:text-[64px]">
+          <AccentText text={title} />
+        </p>
+        {kind === "store" ? (
+          <p className="mt-5 max-w-md text-[15px] leading-relaxed text-ink-muted md:text-base">{t(locale, "nothingPublishedHint")}</p>
+        ) : (
+          <Link href={href} className={`${PAREN_LINK} mt-6 text-ink`}>
+            <Paren>{t(locale, kind === "category" ? "browseAll" : "backToFirstPage")}</Paren>
+          </Link>
+        )}
+      </div>
     </div>
   );
 }

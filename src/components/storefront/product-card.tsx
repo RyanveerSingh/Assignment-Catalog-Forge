@@ -48,7 +48,8 @@ export function variantHints(variants: PublishedVariant[], locale: string): stri
 /**
  * The photo and the title both lead to the product; the title link is the one the keyboard and
  * assistive tech use, the photo overlay is a pointer convenience. Quick view sits on the photo as a
- * sibling of the link, never inside it, so the card stays valid HTML.
+ * sibling of the link, never inside it, so the card stays valid HTML. On hover the frame lifts by
+ * whole pixels and the photo either swaps to the second shot or scales a touch.
  */
 export function ProductCard({ product, storeSlug, locale, priority = false, now, fallbackCurrency }: { product: ProductCardData; storeSlug: string; locale: string; priority?: boolean; now?: number; fallbackCurrency: string }) {
   const [first, second] = product.images;
@@ -58,25 +59,25 @@ export function ProductCard({ product, storeSlug, locale, priority = false, now,
   const category = product.category ? leafLabel(product.category) : null;
   const href = productHref(storeSlug, product.handle);
   const colours = colourSwatches(product.variants);
+  const meta = [category, hints].filter(Boolean).join(" · ");
 
   return (
     <div className="group relative">
-      {/* The frame lifts by whole pixels so the "New" tag inside it stays crisp; only the photo scales. */}
-      <div className="relative overflow-hidden rounded-sm bg-paper-deep hairline motion-safe:transition-transform motion-safe:duration-300 motion-safe:ease-out motion-safe:group-hover:-translate-y-0.5" style={{ aspectRatio: "4 / 5" }}>
+      <div className="relative overflow-hidden rounded-2xl bg-paper transition-transform duration-300 ease-out motion-safe:group-hover:-translate-y-1" style={{ aspectRatio: "4 / 5" }}>
         {first ? (
           <>
             <Image
               src={storefrontImageUrl(storeSlug, first.id)}
               alt={first.alt || product.title}
               fill
-              sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+              sizes="(min-width: 1024px) 30vw, (min-width: 768px) 33vw, 50vw"
               priority={priority}
-              className={cn("object-cover", !second && "transition-transform duration-500 motion-safe:group-hover:scale-[1.03]")}
+              className={cn("object-cover", !second && "transition-transform duration-700 ease-out motion-safe:group-hover:scale-[1.04]")}
             />
             {second ? (
               // Hidden below md so phones never download a hover image they cannot hover.
               <div className="absolute inset-0 hidden md:block">
-                <Image src={storefrontImageUrl(storeSlug, second.id)} alt="" fill sizes="(min-width: 1024px) 25vw, 33vw" className="object-cover opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-within:opacity-100" />
+                <Image src={storefrontImageUrl(storeSlug, second.id)} alt="" fill sizes="(min-width: 1024px) 30vw, 33vw" className="object-cover opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100 group-focus-within:opacity-100" />
               </div>
             ) : null}
           </>
@@ -84,22 +85,25 @@ export function ProductCard({ product, storeSlug, locale, priority = false, now,
           <ImagePlaceholder label={category ?? t(locale, "noImage")} />
         )}
         <Link href={href} aria-hidden tabIndex={-1} className="absolute inset-0 cursor-pointer" />
-        {isNew ? <span className="pointer-events-none absolute left-2 top-2 rounded-sm bg-paper/95 px-2 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-ink hairline">{t(locale, "new")}</span> : null}
+        {isNew ? <span className="pointer-events-none absolute left-3 top-3 inline-flex h-8 items-center rounded-full bg-card/95 px-3 text-[12px] font-medium text-ink">{t(locale, "new")}</span> : null}
         {product.variants.length > 0 ? (
-          <QuickView slug={storeSlug} locale={locale} href={href} product={{ handle: product.handle, title: product.title, category, images: product.images, variants: product.variants, fallbackCurrency: product.currency ?? fallbackCurrency }} className="absolute inset-x-3 bottom-3 z-10" />
+          <QuickView slug={storeSlug} locale={locale} href={href} product={{ handle: product.handle, title: product.title, category, images: product.images, variants: product.variants, fallbackCurrency: product.currency ?? fallbackCurrency }} className="absolute bottom-3 left-3 z-10" />
         ) : null}
       </div>
-      <div className="mt-3 space-y-1">
-        <h3 lang={titleIsFallback ? "en" : undefined} className="font-display text-[17px] leading-snug text-ink md:text-lg">
-          <Link href={href} className="cursor-pointer rounded-sm outline-none group-hover:underline group-hover:underline-offset-4 focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-paper">
-            {product.title}
-          </Link>
-        </h3>
-        <p className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-sm text-ink">
+      {/* Title and price share a row from md up; on a phone's half-width column the price goes under the title. */}
+      <div className="mt-3 md:mt-4 md:flex md:items-start md:justify-between md:gap-4">
+        <div className="min-w-0">
+          <h3 lang={titleIsFallback ? "en" : undefined} className="font-grotesk text-[19px] leading-[1.12] text-ink md:text-[22px]">
+            <Link href={href} className="cursor-pointer rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-card">
+              {product.title}
+            </Link>
+          </h3>
+          {meta ? <p className="mt-1 text-[13px] text-ink-muted">{meta}</p> : null}
+          <ColourSwatches swatches={colours.swatches} more={colours.more} locale={locale} className="mt-2" />
+        </div>
+        <p className="num mt-2 text-[15px] text-ink md:mt-0 md:shrink-0 md:pt-0.5">
           <Price summary={summarizePrice(product.variants, product.priceFromCents, product.currency)} locale={locale} />
-          {hints ? <span className="text-xs text-ink-muted">{hints}</span> : null}
         </p>
-        <ColourSwatches swatches={colours.swatches} more={colours.more} locale={locale} className="pt-1" />
       </div>
     </div>
   );

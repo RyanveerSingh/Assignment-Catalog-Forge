@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "cn";
 import { buildCollectionHref, type StorefrontSort } from "./collection-href";
 import { t } from "./i18n";
+import { Paren, PAREN_LINK } from "./paren";
 
-const CELL = "inline-flex h-11 min-w-11 items-center justify-center gap-1 rounded-sm px-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-brand";
+const CELL = "num inline-flex size-11 items-center justify-center rounded-full text-[15px] outline-none focus-visible:ring-2 focus-visible:ring-brand";
 
 /** First, last and the neighbours of the current page; gaps collapse to an ellipsis. */
 function pageWindow(page: number, count: number): Array<number | "gap"> {
@@ -23,10 +23,8 @@ export function Pagination({ basePath, category, sort, page, pageCount, locale }
   if (pageCount <= 1) return null;
   const href = (p: number) => buildCollectionHref(basePath, { category, sort, page: p });
   return (
-    <nav aria-label={t(locale, "pagination")} className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6">
-      <Edge href={page > 1 ? href(page - 1) : null} rel="prev">
-        <ChevronLeft aria-hidden className="size-4" /> {t(locale, "previous")}
-      </Edge>
+    <nav aria-label={t(locale, "pagination")} className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-8">
+      <Edge href={page > 1 ? href(page - 1) : null} rel="prev" label={t(locale, "previous")} />
       <ol className="flex items-center gap-1">
         {pageWindow(page, pageCount).map((p, i) =>
           p === "gap" ? (
@@ -36,11 +34,11 @@ export function Pagination({ basePath, category, sort, page, pageCount, locale }
           ) : (
             <li key={p}>
               {p === page ? (
-                <span aria-current="page" className={cn(CELL, "num bg-ink text-paper")}>
+                <span aria-current="page" className={cn(CELL, "bg-ink text-white")}>
                   {p}
                 </span>
               ) : (
-                <Link href={href(p)} aria-label={t(locale, "goToPage", { page: p })} className={cn(CELL, "num cursor-pointer text-ink hover:bg-paper-deep")}>
+                <Link href={href(p)} aria-label={t(locale, "goToPage", { page: p })} className={cn(CELL, "cursor-pointer text-ink hover:bg-paper")}>
                   {p}
                 </Link>
               )}
@@ -48,23 +46,21 @@ export function Pagination({ basePath, category, sort, page, pageCount, locale }
           ),
         )}
       </ol>
-      <Edge href={page < pageCount ? href(page + 1) : null} rel="next">
-        {t(locale, "next")} <ChevronRight aria-hidden className="size-4" />
-      </Edge>
+      <Edge href={page < pageCount ? href(page + 1) : null} rel="next" label={t(locale, "next")} />
     </nav>
   );
 }
 
-function Edge({ href, rel, children }: { href: string | null; rel: "prev" | "next"; children: React.ReactNode }) {
+function Edge({ href, rel, label }: { href: string | null; rel: "prev" | "next"; label: string }) {
   if (!href)
     return (
-      <span aria-disabled="true" className={cn(CELL, "text-ink-muted/50")}>
-        {children}
+      <span aria-disabled="true" className={cn(PAREN_LINK, "text-ink-muted/50")}>
+        <Paren>{label}</Paren>
       </span>
     );
   return (
-    <Link href={href} rel={rel} className={cn(CELL, "cursor-pointer text-ink hover:bg-paper-deep")}>
-      {children}
+    <Link href={href} rel={rel} className={cn(PAREN_LINK, "text-ink")}>
+      <Paren>{label}</Paren>
     </Link>
   );
 }

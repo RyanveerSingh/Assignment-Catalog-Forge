@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLayoutEffect, useRef, useState } from "react";
-import { Compass } from "lucide-react";
+import { AccentText } from "./accent-text";
 import { storeHref } from "./hrefs";
 import { t } from "./i18n";
+import { Paren, PAREN_LINK } from "./paren";
 
 /**
  * The 404 route has no params of its own, so the store and the language come from the page it
@@ -33,14 +34,20 @@ export function NotFoundBody() {
   }
 
   return (
-    <div ref={ref} className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 py-20 text-center md:px-6 md:py-28">
-      <Compass aria-hidden className="size-8 text-brand" strokeWidth={1.4} />
-      <p className="num text-xs text-ink-muted">404</p>
-      <h1 className="font-display text-4xl leading-[1.04] text-ink md:text-5xl">{t(locale, "notFoundTitle")}</h1>
-      <p className="max-w-md text-sm leading-relaxed text-ink-muted">{t(locale, "notFoundHint")}</p>
-      <Link href={href} className="mt-2 inline-flex h-11 cursor-pointer items-center rounded-sm bg-ink px-5 text-sm font-medium text-paper outline-none transition-colors hover:bg-brand focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-paper">
-        {t(locale, "backToStore")}
-      </Link>
+    <div ref={ref} className="relative overflow-hidden bg-card">
+      <span aria-hidden className="pointer-events-none absolute -bottom-[0.2em] right-5 select-none font-grotesk text-[200px] leading-none text-ink/[0.05] md:text-[400px]">
+        (404)
+      </span>
+      <div className="relative mx-auto max-w-[1440px] px-5 py-24 md:px-8 md:py-40">
+        <p className="num text-[13px] text-ink-muted">404</p>
+        <h1 className="mt-5 max-w-3xl font-grotesk text-[44px] leading-[1.02] text-ink md:text-[72px] lg:text-[88px]">
+          <AccentText text={t(locale, "notFoundTitle")} />
+        </h1>
+        <p className="mt-6 max-w-md text-[15px] leading-relaxed text-ink-muted md:text-base">{t(locale, "notFoundHint")}</p>
+        <Link href={href} className={`${PAREN_LINK} mt-6 text-ink`}>
+          <Paren>{t(locale, "backToStore")}</Paren>
+        </Link>
+      </div>
     </div>
   );
 }
