@@ -34,10 +34,11 @@
     ".next-dash-dev/types/**/*.ts",
     ".next-dashdev/types/**/*.ts",
     ".next-landing/types/**/*.ts",
+    ".next-lprod/types/**/*.ts",
     ".next-shop/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",
-    ".next-lprod/types/**/*.ts"
+    ".next-share/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
