@@ -5,19 +5,24 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
-  CatalogForge design tokens — "foundry ledger".
-  Warm paper ground, ink text, one molten-amber accent, hairline borders, tabular numerals.
-  Status colours are semantic and never the only signal (text/icon always accompanies them).
+  CatalogForge design tokens, second system: "ice and ink".
+  Near-white cool ground, white rounded cards with soft layered shadows, one electric blue,
+  tight geometric display type. The legacy token names (paper, brand, hairline) stay so every
+  component recolours without a rewrite; new work should prefer the semantic names below.
 */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, "SFMono-Regular", Menlo, monospace;
-  --font-heading: var(--font-fraunces), "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-heading: var(--font-lexend), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-grotesk: var(--font-inter-tight), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-instrument), "Iowan Old Style", Georgia, serif;
   --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-soft: var(--brand-soft);
+  --color-accent-glow: var(--accent-glow);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
   --color-warning: var(--warning);
@@ -28,6 +33,10 @@
   --color-ink-muted: var(--ink-muted);
   --color-paper: var(--paper);
   --color-paper-deep: var(--paper-deep);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -57,66 +66,79 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.75);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-xl: calc(var(--radius) * 1.25);
+  --radius-2xl: calc(var(--radius) * 1.5);
+  --radius-3xl: calc(var(--radius) * 2);
+  --radius-4xl: calc(var(--radius) * 2.5);
+  --shadow-card: var(--shadow-card);
+  --shadow-float: var(--shadow-float);
+  --shadow-pop: var(--shadow-pop);
 }
 
 :root {
   color-scheme: light;
-  --paper: #f6f3ee;
-  --paper-deep: #ece7df;
-  --ink: #1a1714;
-  --ink-muted: #6b6259;
+  --paper: #f7f9fd;
+  --paper-deep: #eef3ff;
+  --surface: #ffffff;
+  --surface-2: #eef3ff;
+  --ink: #0f172a;
+  --ink-muted: #5f6b7f;
+  --line: #e3e8f1;
+  --line-strong: #cfd7e6;
 
-  --background: #f6f3ee;
-  --foreground: #1a1714;
-  --card: #fffcf8;
-  --card-foreground: #1a1714;
-  --popover: #fffcf8;
-  --popover-foreground: #1a1714;
-  --primary: #1a1714;
-  --primary-foreground: #f6f3ee;
-  --secondary: #ece7df;
-  --secondary-foreground: #1a1714;
-  --muted: #efeae2;
-  --muted-foreground: #6b6259;
-  --accent: #f1e9dd;
-  --accent-foreground: #1a1714;
-  --destructive: #b42318;
-  --border: #e2dbd1;
-  --input: #d9d1c6;
-  --ring: #b45309;
+  --background: #f7f9fd;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #2457f5;
+  --primary-foreground: #ffffff;
+  --secondary: #eef3ff;
+  --secondary-foreground: #0f172a;
+  --muted: #f1f4fa;
+  --muted-foreground: #5f6b7f;
+  --accent: #eef3ff;
+  --accent-foreground: #0f172a;
+  --destructive: #dc2626;
+  --border: #e3e8f1;
+  --input: #cfd7e6;
+  --ring: #2457f5;
 
-  --brand: #b45309;
-  --brand-foreground: #fff7ed;
-  --brand-soft: #fdebd3;
-  --success: #3b6d11;
-  --success-soft: #e6f0d8;
-  --warning: #b45309;
-  --warning-soft: #fdebd3;
-  --info: #3f5f8a;
-  --info-soft: #e1e8f2;
+  --brand: #2457f5;
+  --brand-strong: #1a46d9;
+  --brand-foreground: #ffffff;
+  --brand-soft: #e8eeff;
+  --accent-glow: rgba(36, 87, 245, 0.18);
+  --success: #15803d;
+  --success-soft: #e6f5ec;
+  --warning: #d97706;
+  --warning-soft: #fff4e5;
+  --info: #2457f5;
+  --info-soft: #e8eeff;
 
-  --chart-1: #b45309;
-  --chart-2: #1a1714;
-  --chart-3: #3b6d11;
-  --chart-4: #3f5f8a;
-  --chart-5: #9a3412;
-  --radius: 0.375rem;
+  --chart-1: #2457f5;
+  --chart-2: #0f172a;
+  --chart-3: #15803d;
+  --chart-4: #7c9cf6;
+  --chart-5: #d97706;
+  --radius: 0.875rem;
 
-  --sidebar: #fffcf8;
-  --sidebar-foreground: #1a1714;
-  --sidebar-primary: #1a1714;
-  --sidebar-primary-foreground: #f6f3ee;
-  --sidebar-accent: #f1e9dd;
-  --sidebar-accent-foreground: #1a1714;
-  --sidebar-border: #e2dbd1;
-  --sidebar-ring: #b45309;
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 30px -14px rgba(15, 23, 42, 0.14);
+  --shadow-float: 0 2px 6px rgba(15, 23, 42, 0.06), 0 18px 48px -16px rgba(36, 87, 245, 0.28);
+  --shadow-pop: 0 24px 64px -24px rgba(15, 23, 42, 0.28), 0 2px 8px rgba(15, 23, 42, 0.06);
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0f172a;
+  --sidebar-primary: #2457f5;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eef3ff;
+  --sidebar-accent-foreground: #0f172a;
+  --sidebar-border: #e3e8f1;
+  --sidebar-ring: #2457f5;
 }
 
 @layer base {
@@ -126,30 +148,17 @@
   html {
     @apply font-sans;
     font-feature-settings: "cv11", "ss01";
+    scroll-behavior: smooth;
   }
   body {
     @apply bg-background text-foreground;
-    position: relative;
     min-height: 100dvh;
-  }
-  /* Faint paper grain: pure CSS, no network, no layout cost. */
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    opacity: 0.035;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  }
-  body > * {
-    position: relative;
-    z-index: 1;
+    text-rendering: optimizeLegibility;
   }
   h1, h2, h3, .font-display {
     font-family: var(--font-heading);
-    font-variation-settings: "opsz" 72, "SOFT" 30, "WONK" 0;
-    letter-spacing: -0.01em;
+    font-weight: 600;
+    letter-spacing: -0.03em;
   }
   ::selection {
     background: var(--brand-soft);
@@ -167,16 +176,57 @@
   letter-spacing: -0.01em;
 }
 
+/* Soft one-pixel edge for flat panels that sit on the page ground. */
 @utility hairline {
-  box-shadow: 0 0 0 1px var(--border);
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+/* A raised white card: the unit of the second system. */
+@utility card-raised {
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow-card);
 }
 
 @utility rule-brand {
   border-left: 3px solid var(--brand);
 }
 
+/* Grotesk display and italic serif accent, the storefront's two voices. */
+@utility font-grotesk {
+  font-family: var(--font-grotesk);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+
+@utility font-serif-italic {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+/* Soft blue halo behind a hero or a feature band. */
+@utility glow-top {
+  background-image: radial-gradient(55% 45% at 50% 0%, var(--accent-glow), transparent 72%);
+}
+
+@utility glow-center {
+  background-image: radial-gradient(45% 45% at 50% 50%, var(--accent-glow), transparent 70%);
+}
+
+/* Text that fades out at the bottom of an overflowing block. */
+@utility fade-bottom {
+  mask-image: linear-gradient(to bottom, black 70%, transparent);
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
 @utility prose-product {
-  & p { margin: 0 0 0.75em; line-height: 1.6; }
+  & p { margin: 0 0 0.75em; line-height: 1.65; }
   & ul, & ol { margin: 0 0 0.75em 1.25em; }
   & li { margin-bottom: 0.25em; }
   & strong { font-weight: 600; }
@@ -195,12 +245,28 @@
   will-change: transform;
 }
 
+/* Skeleton shimmer for loading states. */
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+@utility skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 25%, #f7f9fd 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+  border-radius: var(--radius-md);
+}
+
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
-  .animate-marquee {
+  .animate-marquee, .skeleton {
     animation: none;
   }
 }
