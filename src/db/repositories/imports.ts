@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { DbOrTx } from "@/db/client";
-import { ACTIVE_IMPORT_STATUSES, importEvents, importFiles, importRows, imports, type ImportCounts, type ImportStatus } from "@/db/schema";
+import { ACTIVE_IMPORT_STATUSES, importEvents, importFiles, imports, type ImportCounts, type ImportStatus } from "@/db/schema";
 import { getBus } from "@/lib/events";
 
 export type ImportRow = typeof imports.$inferSelect;
@@ -11,6 +11,8 @@ export interface CreateImportInput {
   mode?: "fast" | "economy";
   budgetCents?: number;
   promptVersion?: string;
+  /** Free-form per-import options, such as `{ autoPublish: true }` (EC-F11). */
+  modelPolicy?: Record<string, unknown>;
 }
 
 export async function createImport(db: DbOrTx, input: CreateImportInput): Promise<ImportRow> {
@@ -22,6 +24,7 @@ export async function createImport(db: DbOrTx, input: CreateImportInput): Promis
       mode: input.mode ?? "fast",
       budgetCents: input.budgetCents ?? 500,
       promptVersion: input.promptVersion ?? "v1",
+      modelPolicy: input.modelPolicy ?? {},
       status: "uploading",
     })
     .returning();
@@ -165,5 +168,3 @@ export async function countRowsByStage(db: DbOrTx, importId: string): Promise<Re
   for (const r of result.rows) out[r.stage] = Number(r.n);
   return out;
 }
-
-export { importRows };

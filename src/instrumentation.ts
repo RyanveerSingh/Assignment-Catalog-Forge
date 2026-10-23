@@ -11,8 +11,9 @@ export async function register(): Promise<void> {
   try {
     await runMigrations();
     if (process.env.SEED_DEMO === "true") {
-      const { seedDemo } = await import("@/lib/seed");
+      const { seedDemo, seedShowcase } = await import("@/lib/seed");
       await seedDemo(getDb());
+      await seedShowcase(getDb());
     }
   } catch (err) {
     log.error({ err }, "boot migration/seed failed; continuing so /api/health can report it");

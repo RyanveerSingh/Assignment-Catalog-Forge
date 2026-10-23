@@ -15,6 +15,8 @@ export interface ImportRequest {
   budgetCents?: number;
   /** Set when the sheet came from a link; used as the import's display name. */
   name?: string;
+  /** "Publish products that pass every check" on the upload form, or `autoPublish: true` in JSON. */
+  autoPublish?: boolean;
 }
 
 export const MISSING_SHEET_MESSAGE = "Attach a CSV, XLSX or SQL dump as 'sheet', or send a Google Sheets link as 'sheetUrl'";
@@ -33,7 +35,7 @@ async function fromJson(req: Request): Promise<ImportRequest> {
   const o = body as Record<string, unknown>;
   const sheetUrl = typeof o.sheetUrl === "string" ? o.sheetUrl.trim() : "";
   if (!sheetUrl) throw new HttpError(400, "missing_sheet", MISSING_SHEET_MESSAGE);
-  return { ...(await sheetFromLink(sheetUrl)), photos: [], mode: modeOf(o.mode), budgetCents: budgetOf(o.budgetCents) };
+  return { ...(await sheetFromLink(sheetUrl)), photos: [], mode: modeOf(o.mode), budgetCents: budgetOf(o.budgetCents), autoPublish: o.autoPublish === true };
 }
 
 async function fromForm(form: FormData): Promise<ImportRequest> {
@@ -47,9 +49,10 @@ async function fromForm(form: FormData): Promise<ImportRequest> {
   }
   const mode = modeOf(form.get("mode"));
   const budgetCents = budgetOf(form.get("budgetCents"));
-  if (link) return { ...(await sheetFromLink(link)), photos, mode, budgetCents };
+  const autoPublish = ["true", "on", "1"].includes(String(form.get("autoPublish") ?? ""));
+  if (link) return { ...(await sheetFromLink(link)), photos, mode, budgetCents, autoPublish };
   if (!(file instanceof File)) throw new HttpError(400, "missing_sheet", MISSING_SHEET_MESSAGE);
-  return { sheet: { name: file.name, data: Buffer.from(await file.arrayBuffer()) }, photos, mode, budgetCents };
+  return { sheet: { name: file.name, data: Buffer.from(await file.arrayBuffer()) }, photos, mode, budgetCents, autoPublish };
 }
 
 async function sheetFromLink(link: string): Promise<Pick<ImportRequest, "sheet" | "name">> {

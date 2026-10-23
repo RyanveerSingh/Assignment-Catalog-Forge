@@ -19,6 +19,8 @@ export interface UploadInput {
   mode: "fast" | "economy";
   budgetCents?: number;
   name?: string;
+  /** Publish every product that passes all checks as soon as the import finishes; review items still wait (EC-F11). */
+  autoPublish?: boolean;
 }
 
 export interface UploadResult {
@@ -67,7 +69,7 @@ export async function acceptUpload(db: Db, input: UploadInput): Promise<UploadRe
   if (active) return { importId: active.id, reused: true, warnings: [...warnings, "This exact file is already being imported; showing the running import"] };
 
   const storage = getStorage();
-  const imp = await createImport(db, { storeId: input.storeId, name: input.name ?? sheet.name, mode: input.mode, budgetCents: input.budgetCents });
+  const imp = await createImport(db, { storeId: input.storeId, name: input.name ?? sheet.name, mode: input.mode, budgetCents: input.budgetCents, modelPolicy: input.autoPublish ? { autoPublish: true } : undefined });
   const blob = await storage.put(input.storeId, sheet.data, sniff.mime);
   await attachImportFile(db, { importId: imp.id, storeId: input.storeId, kind: "sheet", blobId: blob.id, sha256: blob.sha256, size: blob.size, mime: sniff.mime, originalName: sheet.name });
   for (const f of photoFiles) {

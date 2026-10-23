@@ -1,8 +1,9 @@
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import { appendImportEvent, getImportById, recomputeImportCounts, transitionImport, updateImport } from "@/db/repositories/imports";
 import { markProductsMissingFromImport } from "@/db/repositories/products";
+import { approveProduct } from "@/db/repositories/review";
 import { failOpenRows } from "@/db/repositories/rows";
-import { aiRequests, imports, type ImportCostSummary } from "@/db/schema";
+import { aiRequests, imports, products, type ImportCostSummary } from "@/db/schema";
 import { naiveCostMicros } from "@/providers/ai";
 import { JobError } from "@/queue/errors";
 import type { JobHandler } from "@/worker/loop";
@@ -44,6 +45,7 @@ export const finalizeHandler: JobHandler = async ({ job, db, log }) => {
       savedUsd: cost.savedMicros / 1_000_000,
       productsMissingFromThisUpload: missing,
     });
+    if (imp.modelPolicy.autoPublish === true) await autoPublish(db, imp.storeId, importId);
   } else {
     await transitionImport(db, importId, "finalizing", "needs_attention", { finishedAt: new Date(), error: `Row counts do not add up: ${terminal} terminal of ${imp.totalRows}` });
     await appendImportEvent(db, importId, "error", `Needs attention: ${terminal} rows reached a final state but the sheet has ${imp.totalRows}`, { counts });
@@ -63,6 +65,29 @@ export const finalizeHandler: JobHandler = async ({ job, db, log }) => {
     }
   }
 };
+
+/**
+ * "Publish products that pass every check": approve (and so publish) every draft of this import,
+ * and re-publish products that were already approved so a re-upload's new photos or text go live.
+ * Products that need review keep waiting for a person; approval is the same audited path the
+ * review drawer uses, so nothing is published that a reviewer could not have published (EC-F11).
+ */
+async function autoPublish(db: Parameters<JobHandler>[0]["db"], storeId: string, importId: string): Promise<void> {
+  const drafts = await db
+    .select({ id: products.id })
+    .from(products)
+    .where(and(eq(products.lastImportId, importId), inArray(products.status, ["draft", "approved"]), isNull(products.deletedAt)));
+  let published = 0;
+  for (const p of drafts) {
+    const result = await approveProduct(db, storeId, p.id, null);
+    if (result.ok) published += 1;
+  }
+  const waiting = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(products)
+    .where(and(eq(products.lastImportId, importId), eq(products.status, "needs_review")));
+  await appendImportEvent(db, importId, "info", `Auto-published ${published} product(s) that passed every check; ${waiting[0]?.n ?? 0} waiting for review`);
+}
 
 export async function summariseCost(db: Parameters<JobHandler>[0]["db"], importId: string): Promise<ImportCostSummary> {
   const rows = await db

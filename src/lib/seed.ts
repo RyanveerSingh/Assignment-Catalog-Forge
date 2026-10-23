@@ -1,8 +1,11 @@
-import { eq } from "drizzle-orm";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+import { eq, sql } from "drizzle-orm";
 import type { Db } from "@/db/client";
-import { stores, users } from "@/db/schema";
+import { imports, stores, users } from "@/db/schema";
 import { createStore, registerUser } from "./auth";
 import { getLogger } from "./logger";
+import { acceptUpload } from "./upload";
 
 export const DEMO_EMAIL = "demo@catalogforge.dev";
 export const DEMO_PASSWORD = "demo1234";
@@ -30,4 +33,35 @@ export async function seedDemo(db: Db): Promise<void> {
       log.info({ slug: s.slug }, "created demo store");
     }
   }
+}
+
+const SHOWCASE_SHEET = path.join("samples", "new-12.csv");
+const SHOWCASE_PHOTOS = path.join("samples", "photos-new-12.zip");
+
+/**
+ * A fresh deployment should open on a shop, not an empty table: the first boot imports the new-12
+ * sample with its photos into the demo store and auto-publishes everything that passes the checks.
+ * Runs once (skipped when the store already has an import) and never throws out of boot.
+ */
+export async function seedShowcase(db: Db): Promise<void> {
+  const log = getLogger({ component: "seed" });
+  const [store] = await db.select({ id: stores.id }).from(stores).where(eq(stores.slug, "demo")).limit(1);
+  if (!store) return;
+  const [count] = await db.select({ n: sql<number>`count(*)::int` }).from(imports).where(eq(imports.storeId, store.id));
+  if ((count?.n ?? 0) > 0) return;
+  const sheetPath = path.resolve(SHOWCASE_SHEET);
+  const photosPath = path.resolve(SHOWCASE_PHOTOS);
+  if (!existsSync(sheetPath) || !existsSync(photosPath)) {
+    log.warn({ sheetPath }, "showcase sample files not found; demo store starts empty");
+    return;
+  }
+  const result = await acceptUpload(db, {
+    storeId: store.id,
+    sheet: { name: "new-12.csv", data: readFileSync(sheetPath) },
+    photos: [{ name: "photos-new-12.zip", data: readFileSync(photosPath) }],
+    mode: "fast",
+    name: "Showcase catalogue (new-12.csv)",
+    autoPublish: true,
+  });
+  log.info({ importId: result.importId }, "showcase import queued for the demo store");
 }

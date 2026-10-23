@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { parseGoogleSheetsUrl } from "@/core/parse/google-sheets";
 import { storeApi } from "@/lib/client/api";
 import { FileRow, formatBytes } from "./file-row";
+import { DEFAULT_UPLOAD_OPTIONS, UploadOptions, type UploadOptionsValue } from "./upload-options";
 
 const MB = 1024 * 1024;
 /** Mirrors the server defaults (MAX_SHEET_BYTES, MAX_PHOTO_BYTES, MAX_ZIP_BYTES); the server re-checks (EC-A3). */
@@ -31,11 +32,6 @@ const ACCEPT = {
   "application/zip": [".zip"],
   "application/x-zip-compressed": [".zip"],
 };
-const MODES = [
-  { value: "fast", label: "Fast", hint: "Realtime API. Results in minutes." },
-  { value: "economy", label: "Economy", hint: "Batch API, about 50% cheaper, slower (up to hours)." },
-] as const;
-type Mode = (typeof MODES)[number]["value"];
 type Kind = "sheet" | "photo" | "zip";
 type Phase = "idle" | "uploading" | "processing";
 /** A validated Google Sheets link standing in for the sheet file (EC-A23). */
@@ -108,8 +104,7 @@ export function UploadPanel({ storeSlug }: { storeSlug: string }) {
   const [photos, setPhotos] = useState<File[]>([]);
   const [problems, setProblems] = useState<string[]>([]);
   const [notices, setNotices] = useState<string[]>([]);
-  const [mode, setMode] = useState<Mode>("fast");
-  const [budget, setBudget] = useState("5");
+  const [options, setOptions] = useState<UploadOptionsValue>(DEFAULT_UPLOAD_OPTIONS);
   const [phase, setPhase] = useState<Phase>("idle");
   const [progress, setProgress] = useState(0);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -175,7 +170,7 @@ export function UploadPanel({ storeSlug }: { storeSlug: string }) {
 
   const start = (): void => {
     if ((!sheet && !sheetLink) || busy) return;
-    const dollars = Number(budget);
+    const dollars = Number(options.budget);
     if (!Number.isFinite(dollars) || dollars <= 0) {
       setProblems(["Enter an AI budget above $0"]);
       return;
@@ -184,8 +179,9 @@ export function UploadPanel({ storeSlug }: { storeSlug: string }) {
     if (sheetLink) form.append("sheetUrl", sheetLink.url);
     else if (sheet) form.append("sheet", sheet, sheet.name);
     for (const p of photos) form.append("photos", p, p.name);
-    form.append("mode", mode);
+    form.append("mode", options.mode);
     form.append("budgetCents", String(Math.round(dollars * 100)));
+    form.append("autoPublish", String(options.autoPublish));
 
     const xhr = new XMLHttpRequest();
     xhrRef.current = xhr;
@@ -330,40 +326,7 @@ export function UploadPanel({ storeSlug }: { storeSlug: string }) {
         </ul>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-[1fr_200px]">
-        <fieldset className="flex min-w-0 flex-col gap-1.5">
-          <legend className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-ink-muted">AI mode</legend>
-          <div className="grid grid-cols-2 gap-px bg-border hairline">
-            {MODES.map((m) => (
-              <label
-                key={m.value}
-                className={cn(
-                  "flex cursor-pointer flex-col gap-0.5 bg-card px-3 py-2 transition-colors has-[:checked]:bg-brand-soft has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand has-[:focus-visible]:ring-inset",
-                  busy && "cursor-not-allowed opacity-60",
-                )}
-              >
-                <input type="radio" name={`${uid}-mode`} value={m.value} checked={mode === m.value} disabled={busy} onChange={() => setMode(m.value)} className="sr-only" />
-                <span className="text-sm font-medium text-ink">{m.label}</span>
-                <span className="text-xs text-ink-muted">{m.hint}</span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={`${uid}-budget`} className="text-[11px] font-medium uppercase tracking-wider text-ink-muted">
-            AI budget
-          </label>
-          <div className="relative">
-            <span aria-hidden className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-sm text-ink-muted">
-              $
-            </span>
-            <Input id={`${uid}-budget`} type="number" inputMode="decimal" min={1} step={1} value={budget} disabled={busy} onChange={(e) => setBudget(e.target.value)} aria-describedby={`${uid}-budget-hint`} className="num bg-card pl-6" />
-          </div>
-          <p id={`${uid}-budget-hint`} className="text-xs text-ink-muted">
-            The import pauses for your review when AI spend reaches this amount.
-          </p>
-        </div>
-      </div>
+      <UploadOptions uid={uid} value={options} onChange={setOptions} disabled={busy} />
 
       {busy ? (
         <div>
