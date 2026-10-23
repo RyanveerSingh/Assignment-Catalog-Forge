@@ -6,12 +6,13 @@ import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "../src/db/client";
 import { runMigrations } from "../src/db/migrate";
 import { attachImportFile, createImport, getImportById, updateImport } from "../src/db/repositories/imports";
-import { stores } from "../src/db/schema";
+import { stores, users } from "../src/db/schema";
 import { requestDrive } from "../src/jobs/drive";
 import { buildHandlers, onJobDead, onWorkerTick, QUEUE_LAYOUT } from "../src/jobs/registry";
+import { createStore } from "../src/lib/auth";
 import { getConfig } from "../src/lib/config";
 import { sha256Hex } from "../src/lib/crypto";
-import { seedDemo } from "../src/lib/seed";
+import { DEMO_EMAIL, seedDemo } from "../src/lib/seed";
 import { getStorage } from "../src/providers/storage";
 import { startWorker } from "../src/worker/loop";
 
@@ -36,8 +37,14 @@ async function main(): Promise<void> {
   await runMigrations();
   const db = getDb();
   await seedDemo(db);
-  const [store] = await db.select({ id: stores.id }).from(stores).where(eq(stores.slug, slug)).limit(1);
-  if (!store) throw new Error(`store ${slug} not found`);
+  let [store] = await db.select({ id: stores.id }).from(stores).where(eq(stores.slug, slug)).limit(1);
+  if (!store) {
+    // Unknown slug: create it under the demo user so real-model runs can start from an empty store.
+    const [owner] = await db.select({ id: users.id }).from(users).where(eq(users.email, DEMO_EMAIL)).limit(1);
+    if (!owner) throw new Error("demo user missing");
+    store = await createStore(db, owner.id, { name: slug, slug, defaultCurrency: "EUR" });
+    console.log(`created store ${slug}`);
+  }
 
   const buffer = readFileSync(path.resolve(file));
   const imp = await createImport(db, { storeId: store.id, name: path.basename(file), mode, budgetCents: 2_000 });
@@ -53,7 +60,7 @@ async function main(): Promise<void> {
   const handle = startWorker({
     db,
     handlers: buildHandlers(),
-    queues: QUEUE_LAYOUT.map((q) => (q.name === "ai" ? { ...q, concurrency: aiConcurrency } : q)),
+    queues: QUEUE_LAYOUT.map((q) => (q.name === "ai" || q.name === "translate" ? { ...q, concurrency: aiConcurrency } : q)),
     onDead: onJobDead,
     onTick: onWorkerTick,
     tickMs: 5_000,
