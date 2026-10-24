@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRightIcon } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import { cn } from "cn";
 import { Chip } from "@/components/ext/chip";
 import { settle, stagger } from "@/components/ext/motion";
 import { StatusBadge } from "@/components/ext/status-badge";
@@ -37,9 +36,7 @@ export function ImportRow({ imp, storeSlug, index, now, revealed }: { imp: Impor
         if (e.target instanceof Element && e.target.closest("a, button")) return;
         router.push(href);
       }}
-      className={cn(
-        "group relative grid cursor-pointer grid-cols-2 gap-x-4 gap-y-3 px-4 py-3.5 transition-[background-color,transform] duration-150 hover:-translate-y-px hover:bg-surface-2/50 md:grid-cols-[minmax(180px,2fr)_150px_minmax(160px,1.6fr)_80px_90px_90px_90px_20px] md:items-center md:gap-x-5 md:px-5",
-      )}
+      className="group relative grid cursor-pointer grid-cols-2 gap-x-4 gap-y-3 px-4 py-3.5 transition-[background-color,transform] duration-150 hover:-translate-y-px hover:bg-surface-2/50 md:grid-cols-[minmax(180px,2fr)_150px_minmax(160px,1.6fr)_80px_90px_90px_90px_20px] md:items-center md:gap-x-5 md:px-5"
     >
       <div className="col-span-2 min-w-0 md:col-span-1">
         <Link href={href} className="block truncate rounded-md text-[14px] font-medium text-ink outline-none focus-visible:ring-2 focus-visible:ring-brand">

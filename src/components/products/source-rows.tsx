@@ -112,7 +112,7 @@ const SEVERITY_CLASS: Record<Issue["severity"], string> = {
 };
 
 /** "price.ambiguous · EC-B5": the machine code and edge-case id, kept for the hover rather than the line. */
-export function issueCodeTitle(it: Issue): string {
+function issueCodeTitle(it: Issue): string {
   return it.ec ? `${it.code} · EC-${it.ec}` : it.code;
 }
 

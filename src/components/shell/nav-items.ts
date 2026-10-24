@@ -1,6 +1,6 @@
 import { BarChart3Icon, type LucideIcon, PackageIcon, SettingsIcon, StoreIcon, UploadCloudIcon } from "lucide-react";
 
-export interface NavItem {
+interface NavItem {
   key: "upload" | "products" | "storefront" | "metrics" | "settings";
   label: string;
   /** The section word the top bar prints above the page title. */

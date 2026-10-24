@@ -8,7 +8,7 @@ import { settle, stagger } from "./motion";
 import { Sparkline } from "./sparkline";
 import { CARD } from "./surfaces";
 
-export type StatTone = "neutral" | "brand" | "success" | "warning" | "danger" | "info";
+type StatTone = "neutral" | "brand" | "success" | "warning" | "danger" | "info";
 
 const ICON: Record<StatTone, string> = {
   neutral: "bg-surface-2 text-ink-muted",
@@ -26,7 +26,7 @@ const CONTEXT: Record<NonNullable<StatTileProps["contextTone"]>, string> = {
   danger: "text-destructive",
 };
 
-export interface StatTileProps {
+interface StatTileProps {
   label: string;
   value: number;
   format: (n: number) => string;
@@ -40,19 +40,18 @@ export interface StatTileProps {
   sparklineLabel?: string;
   /** Position in the row, for the entrance stagger. */
   index?: number;
-  className?: string;
 }
 
 /**
  * The dashboard's figure tile: a raised card with the label and an icon chip, a big Lexend number
- * that rolls to new values, a one-line context and an optional blue sparkline. The number and text
+ * that rolls to new values, a one-line context and an optional sparkline in the brand colour. The number and text
  * are plain server HTML (the real value is in the first paint); only opacity and transforms move.
  */
-export function StatTile({ label, value, format, icon: Icon, tone = "neutral", context, contextTone = "muted", sparkline, sparklineLabel, index = 0, className }: StatTileProps) {
+export function StatTile({ label, value, format, icon: Icon, tone = "neutral", context, contextTone = "muted", sparkline, sparklineLabel, index = 0 }: StatTileProps) {
   const reduce = useReducedMotion();
   const delay = stagger(index, 0.06);
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={settle(reduce, 0.45, delay)} className={cn(CARD, "flex flex-col gap-3 px-5 pt-4 pb-4", className)}>
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={settle(reduce, 0.45, delay)} className={cn(CARD, "flex flex-col gap-3 px-5 pt-4 pb-4")}>
       <div className="flex items-start justify-between gap-2">
         <span className="text-[12px] font-medium text-ink-muted">{label}</span>
         {Icon ? (

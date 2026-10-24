@@ -14,7 +14,6 @@ interface Props {
   href: string;
   className?: string;
   children: ReactNode;
-  "aria-label"?: string;
   /** Follow the pointer a few pixels while hovered; for the one or two buttons that matter most. */
   magnetic?: boolean;
 }

@@ -7,12 +7,10 @@ export interface HeroSlide {
   title: string;
   imageId: string;
   alt: string;
-  /** Leaf label of the product's category, already localised and title-cased. */
-  category: string | null;
   price: PriceSummary;
 }
 
-export const HERO_SLIDE_COUNT = 3;
+const HERO_SLIDE_COUNT = 3;
 export const HERO_INTERVAL_MS = 6000;
 /** The crossfade between two slides, in seconds; the Ken Burns scale keeps going until the slide has faded out. */
 export const HERO_FADE_S = 1.2;

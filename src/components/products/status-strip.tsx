@@ -15,7 +15,7 @@ interface Segment {
   key: string;
   label: string;
   statuses: ProductStatus[];
-  /* Blue tones for the healthy states, amber and red for what needs a person, ink for the rest. */
+  /* Brand orange for approved, amber and red for what needs a person, greys and a pale tint for the rest. */
   bar: string;
 }
 
@@ -24,7 +24,7 @@ const SEGMENTS: ReadonlyArray<Segment> = [
   { key: "draft", label: "Draft", statuses: ["draft"], bar: "bg-[#a8a6a0]" },
   { key: "needs_review", label: "Needs review", statuses: ["needs_review"], bar: "bg-warning" },
   { key: "failed", label: "Failed", statuses: ["failed"], bar: "bg-destructive" },
-  { key: "pending_ai", label: "Being written", statuses: ["pending_ai"], bar: "bg-[#b9c9fb]" },
+  { key: "pending_ai", label: "Being written", statuses: ["pending_ai"], bar: "bg-brand/35" },
   { key: "other", label: "Rejected or archived", statuses: ["rejected", "archived"], bar: "bg-ink/15" },
 ];
 

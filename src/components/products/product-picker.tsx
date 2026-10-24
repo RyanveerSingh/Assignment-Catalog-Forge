@@ -5,6 +5,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { cn } from "cn";
 import { ImageIcon, LinkIcon, SearchIcon } from "lucide-react";
 import { StatusBadge } from "@/components/ext/status-badge";
+import { TAP_TARGET } from "@/components/ext/surfaces";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -15,9 +16,6 @@ import { imageUrl, type ProductListItem, type ProductListResponse } from "./type
 
 const SEARCH_DEBOUNCE_MS = 250;
 const RESULT_LIMIT = 8;
-
-/** Invisible hit-area extension: the button stays 28 px tall on screen but accepts a 44 px tap (same trick as Checkbox/Switch). */
-export const TAP_TARGET = "relative after:absolute after:inset-x-0 after:-inset-y-2 after:content-['']";
 
 function productLabel(p: Pick<ProductListItem, "title" | "handle">): string {
   return p.title ?? p.handle;

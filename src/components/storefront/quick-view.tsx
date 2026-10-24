@@ -12,7 +12,7 @@ import { Gallery } from "./gallery";
 import { t } from "./i18n";
 import { Paren, PAREN_LINK } from "./paren";
 
-export interface QuickViewProduct {
+interface QuickViewProduct {
   handle: string;
   title: string;
   /** Leaf label, already title-cased. */

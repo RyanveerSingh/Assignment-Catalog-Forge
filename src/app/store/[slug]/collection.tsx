@@ -1,7 +1,7 @@
 import { AccentText } from "@/components/storefront/accent-text";
-import { groupCategories, leafLabel } from "@/components/storefront/categories";
+import { groupCategories } from "@/components/storefront/categories";
 import { CollectionHero } from "@/components/storefront/collection-hero";
-import { buildCollectionHref } from "@/components/storefront/collection-href";
+import { buildCollectionHref, type StorefrontSort } from "@/components/storefront/collection-href";
 import { EmptyState } from "@/components/storefront/empty-state";
 import { FallbackNotice } from "@/components/storefront/fallback-notice";
 import { storeHref } from "@/components/storefront/hrefs";
@@ -13,11 +13,11 @@ import { ProductGrid } from "@/components/storefront/product-grid";
 import { pickSlides, type HeroSlide } from "@/components/storefront/slideshow";
 import { SortMenu } from "@/components/storefront/sort-menu";
 import { StoreHome } from "@/components/storefront/store-home";
-import { cachedCategories, cachedCategoryPhotos, cachedProducts, loadStorefront, PAGE_SIZE, type StorefrontProduct, type StorefrontSort } from "./storefront-context";
+import { cachedCategories, cachedCategoryPhotos, cachedProducts, loadStorefront, PAGE_SIZE, type StorefrontProduct } from "./storefront-context";
 
 /**
- * Collection shared by the store root and the category route. Paging is plain links and the sort
- * menu is the only client island in the grid, so every state has a URL. The store root opens as a
+ * Collection shared by the store root and the category route. Paging is plain links and every sort
+ * choice is a navigation, so every state has a URL. The store root opens as a
  * home (hero, about, categories, then the grid, the four facts and the language band); category
  * pages and deeper pages keep the editorial band. Everything reads through the 30 s cache (EC-H6).
  */
@@ -93,5 +93,5 @@ export async function Collection({ slug, basePath, category, categoryInQuery, pa
 function toSlide(p: StorefrontProduct): HeroSlide[] {
   const image = p.images[0];
   if (!image) return [];
-  return [{ handle: p.handle, title: p.title, imageId: image.id, alt: image.alt || p.title, category: p.category ? leafLabel(p.category) : null, price: summarizePrice(p.variants, p.priceFromCents, p.currency) }];
+  return [{ handle: p.handle, title: p.title, imageId: image.id, alt: image.alt || p.title, price: summarizePrice(p.variants, p.priceFromCents, p.currency) }];
 }

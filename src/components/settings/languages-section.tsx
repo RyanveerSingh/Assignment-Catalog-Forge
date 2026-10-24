@@ -10,7 +10,7 @@ import { COUNTRY_CHOICES } from "@/core/i18n/locale";
 import { SaveBar, SectionCard, useSave } from "./section-card";
 import type { SectionProps } from "./settings-form";
 
-export const LOCALE_OPTIONS: ReadonlyArray<{ code: string; label: string }> = [
+const LOCALE_OPTIONS: ReadonlyArray<{ code: string; label: string }> = [
   { code: "de", label: "German" },
   { code: "fr", label: "French" },
   { code: "es", label: "Spanish" },

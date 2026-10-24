@@ -14,13 +14,13 @@ import type { ProductAction, ProductRow, RerunSettings } from "./types";
 type Pending = "approve" | "send_back" | "reject" | "delete" | null;
 
 export interface FooterNotice {
-  tone: "ok" | "error" | "info";
+  tone: "ok" | "error";
   text: string;
 }
 
 const PILL = "cursor-pointer rounded-full";
 
-/** The sticky action bar at the foot of the drawer: blue Approve first; every destructive or overriding choice gets an inline confirm instead of a modal. */
+/** The sticky action bar at the foot of the drawer: Approve first; every destructive or overriding choice gets an inline confirm instead of a modal. */
 export function ReviewFooter({ product, busy, notice, onAction }: { product: ProductRow; busy: boolean; notice: FooterNotice | null; onAction: (a: ProductAction) => Promise<boolean> }) {
   const [pending, setPending] = useState<Pending>(null);
   const [reason, setReason] = useState("");

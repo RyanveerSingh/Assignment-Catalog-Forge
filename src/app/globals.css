@@ -5,10 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
-  CatalogForge design tokens, third system: "white, ink and signal".
-  Three colours only: a white ground, near-black ink, and one signal orange used sparingly for
-  action and emphasis; warm greys carry structure. Tight geometric display type. The legacy token names (paper, brand, hairline) stay so every
-  component recolours without a rewrite; new work should prefer the semantic names below.
+  CatalogForge design tokens: a white ground, near-black ink, and one signal orange used sparingly for
+  action and emphasis; warm greys carry structure. Tight geometric display type.
 */
 @theme inline {
   --color-background: var(--background);
@@ -22,7 +20,6 @@
   --color-brand-strong: var(--brand-strong);
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-soft: var(--brand-soft);
-  --color-accent-glow: var(--accent-glow);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
   --color-warning: var(--warning);
@@ -34,18 +31,9 @@
   --color-paper: var(--paper);
   --color-paper-deep: var(--paper-deep);
   --color-paper-sheet: #fbfaf6;
-  --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -110,7 +98,6 @@
   --ring: #e4470f;
 
   --brand: #e4470f;
-  --brand-rgb: 228, 71, 15;
   --brand-strong: #c23a09;
   --brand-foreground: #ffffff;
   --brand-soft: #fdebe3;
@@ -132,15 +119,6 @@
   --shadow-card: 0 1px 2px rgba(17, 17, 17, 0.04), 0 10px 30px -14px rgba(17, 17, 17, 0.14);
   --shadow-float: 0 2px 6px rgba(17, 17, 17, 0.06), 0 18px 48px -16px rgba(17, 17, 17, 0.22);
   --shadow-pop: 0 24px 64px -24px rgba(17, 17, 17, 0.28), 0 2px 8px rgba(17, 17, 17, 0.06);
-
-  --sidebar: #ffffff;
-  --sidebar-foreground: #111111;
-  --sidebar-primary: #111111;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f2f1ed;
-  --sidebar-accent-foreground: #111111;
-  --sidebar-border: #e6e4de;
-  --sidebar-ring: #e4470f;
 }
 
 @layer base {
@@ -183,7 +161,7 @@
   box-shadow: 0 0 0 1px var(--line);
 }
 
-/* A raised white card: the unit of the second system. */
+/* A raised white card. */
 @utility card-raised {
   background: var(--surface);
   border-radius: var(--radius-xl);
@@ -208,18 +186,13 @@
   letter-spacing: -0.01em;
 }
 
-/* Soft blue halo behind a hero or a feature band. */
+/* Soft orange halo behind a hero or a feature band. */
 @utility glow-top {
   background-image: radial-gradient(55% 45% at 50% 0%, var(--accent-glow), transparent 72%);
 }
 
 @utility glow-center {
   background-image: radial-gradient(45% 45% at 50% 50%, var(--accent-glow), transparent 70%);
-}
-
-/* Text that fades out at the bottom of an overflowing block. */
-@utility fade-bottom {
-  mask-image: linear-gradient(to bottom, black 70%, transparent);
 }
 
 @utility no-scrollbar {
@@ -247,7 +220,7 @@
   will-change: transform;
 }
 
-/* The hero chips' idle drift: a compositor-only loop, so it never touches the main thread while scrolling. */
+/* The floating chips' idle drift: a compositor-only loop, so it never touches the main thread while scrolling. */
 @keyframes float-y {
   0%, 100% { transform: translateY(0); }
   25% { transform: translateY(calc(var(--float-amp, 6px) * -1)); }

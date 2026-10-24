@@ -4,7 +4,7 @@ import type { Transition } from "motion/react";
 export const EASE_OUT: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 /** The spring behind anything that slides into place (the nav pill, the bulk bar): firm, one small settle, no wobble. */
-export const SPRING: Transition = { type: "spring", stiffness: 480, damping: 38, mass: 0.8 };
+const SPRING: Transition = { type: "spring", stiffness: 480, damping: 38, mass: 0.8 };
 
 /**
  * A tween with the house easing. `reduce` is the value of `useReducedMotion()`: when the person asked

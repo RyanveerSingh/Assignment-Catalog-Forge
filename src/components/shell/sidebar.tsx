@@ -11,10 +11,10 @@ import { NAV_ITEMS, navHref } from "./nav-items";
 import { StoreSwitcher } from "./store-switcher";
 import { UserMenu } from "./user-menu";
 
-/** The blue mark beside the wordmark: a sheet becoming a card, in one stroke. */
-export function Logomark({ className }: { className?: string }) {
+/** The brand mark beside the wordmark: a sheet becoming a card, in one stroke. */
+function Logomark() {
   return (
-    <span aria-hidden className={cn("flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-brand text-brand-foreground shadow-[0_6px_16px_-6px_rgba(17,17,17,0.5)]", className)}>
+    <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-brand text-brand-foreground shadow-[0_6px_16px_-6px_rgba(17,17,17,0.5)]">
       <svg viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
         <path d="M4 5h5M4 9h4M4 13h3" />
         <path d="M10 10h6M13 7l3 3-3 3" />
@@ -23,9 +23,9 @@ export function Logomark({ className }: { className?: string }) {
   );
 }
 
-export function Wordmark({ className }: { className?: string }) {
+function Wordmark() {
   return (
-    <Link href="/" title="CatalogForge home" className={cn("inline-flex items-center gap-2.5 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-brand", className)}>
+    <Link href="/" title="CatalogForge home" className="inline-flex items-center gap-2.5 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-brand">
       <Logomark />
       <span className="font-display text-[19px] leading-none tracking-tight text-ink">
         Catalog<span className="text-brand">Forge</span>
@@ -36,7 +36,7 @@ export function Wordmark({ className }: { className?: string }) {
 
 /**
  * The left rail: wordmark, store, the five sections and, at the bottom, the shop link and the person.
- * One blue-soft pill slides between sections (`layoutId`); `idPrefix` keeps the desktop rail and the
+ * One brand-soft pill slides between sections (`layoutId`); `idPrefix` keeps the desktop rail and the
  * phone sheet from sharing a pill while both are mounted.
  */
 export function Sidebar({ user, store, stores, idPrefix, onNavigate }: { user: SessionUser; store: StoreAccess; stores: StoreAccess[]; idPrefix: string; onNavigate?: () => void }) {

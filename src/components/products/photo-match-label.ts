@@ -2,7 +2,7 @@
 
 export type MatchTone = "neutral" | "brand" | "warning";
 
-export interface MatchBadge {
+interface MatchBadge {
   label: string;
   tone: MatchTone;
   /** Longer form for the tooltip and screen readers. */

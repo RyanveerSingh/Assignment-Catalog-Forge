@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CheckCircle2, Clock, Copy, XCircle } from "lucide-react";
+import { TAP_TARGET } from "@/components/ext/surfaces";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCountdown, formatRelative } from "@/lib/format";
@@ -10,9 +11,6 @@ import type { WebhookDeliveryDto } from "@/lib/serializers";
 /** Presentational pieces of the Webhooks section: the delivery log, its status words and the one-time secret. */
 
 export const EVENT_LABELS: Record<string, string> = { "import.completed": "Import completed", "import.needs_attention": "Import needs attention", "webhook.test": "Test" };
-
-/** Invisible hit-area extension: the control stays 28 px tall on screen but accepts a 44 px tap (same trick as Checkbox/Switch). */
-export const TAP = "relative after:absolute after:inset-x-0 after:-inset-y-2 after:content-['']";
 
 /** Status is always icon + word, never colour alone. */
 export function DeliveryStatus({ status, attempt }: { status: WebhookDeliveryDto["status"]; attempt: number }) {
@@ -89,7 +87,7 @@ export function SecretReveal({ host, secret, onDismiss }: { host: string; secret
         <Button
           size="sm"
           variant="outline"
-          className={TAP}
+          className={TAP_TARGET}
           onClick={() => {
             navigator.clipboard
               .writeText(secret)
@@ -108,7 +106,7 @@ export function SecretReveal({ host, secret, onDismiss }: { host: string; secret
       <p className="text-xs text-ink-muted">
         Shown once. Verify <code className="num">X-CatalogForge-Signature</code> = sha256 HMAC of <code className="num">&lt;timestamp&gt;.&lt;body&gt;</code> with this secret.
       </p>
-      <Button size="xs" variant="ghost" className={TAP} onClick={onDismiss}>
+      <Button size="xs" variant="ghost" className={TAP_TARGET} onClick={onDismiss}>
         I have saved it
       </Button>
     </div>

@@ -3,7 +3,7 @@
  * the polyline and the first paint already carries the real shape.
  */
 
-export interface SparklineBox {
+interface SparklineBox {
   width: number;
   height: number;
   /** Inset so a stroke at the top or bottom edge is not clipped. */

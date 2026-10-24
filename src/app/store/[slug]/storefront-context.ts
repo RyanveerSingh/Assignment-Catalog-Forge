@@ -2,14 +2,11 @@ import { unstable_cache } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { SORT_KEYS, type StorefrontSort } from "@/components/storefront/collection-href";
-import { resolveLocale, type LocaleResolution } from "@/core/i18n/locale";
+import { resolveLocale } from "@/core/i18n/locale";
 import { getStorefrontDb } from "@/db/client";
 import type { CategoryPhoto } from "@/components/storefront/category-photos";
 import { getStorefrontProduct, getStorefrontStore, listStorefrontCategories, listStorefrontCategoryPhotos, listStorefrontProducts, type StorefrontRow, type StorefrontStore } from "@/db/repositories/storefront";
 import { singleFlight } from "@/lib/single-flight";
-
-export { categoryHref } from "@/components/storefront/hrefs";
-export type { StorefrontSort };
 
 /**
  * Server-only helpers shared by every storefront page. Everything reads through the dedicated
@@ -19,7 +16,7 @@ export type { StorefrontSort };
  */
 
 export const PAGE_SIZE = 24;
-export const COUNTRY_COOKIE = "cf_country";
+const COUNTRY_COOKIE = "cf_country";
 const REVALIDATE_SECONDS = 30;
 
 /**
@@ -28,11 +25,10 @@ const REVALIDATE_SECONDS = 30;
  */
 export type StorefrontProduct = Omit<StorefrontRow, "updatedAt" | "storeId" | "locale"> & { updatedAtMs: number };
 
-export interface StorefrontContext {
+interface StorefrontContext {
   store: StorefrontStore;
   locale: string;
   country: string | null;
-  source: LocaleResolution["source"];
 }
 
 export function parseSort(value: string | undefined): StorefrontSort {
@@ -64,7 +60,7 @@ export async function loadStorefront(slug: string): Promise<StorefrontContext> {
   const cookieCountry = jar.get(COUNTRY_COOKIE)?.value || null;
   const geoCountry = hdrs.get("cf-ipcountry") ?? hdrs.get("x-vercel-ip-country") ?? hdrs.get("x-country");
   const resolved = resolveLocale({ country: cookieCountry ?? geoCountry, map: store.countryLocaleMap, available: store.locales });
-  return { store, locale: resolved.locale, country: resolved.country, source: resolved.source };
+  return { store, locale: resolved.locale, country: resolved.country };
 }
 
 /** A re-uploaded photo is recognised rather than stored twice, so a product can list one blob several times; show it once. */

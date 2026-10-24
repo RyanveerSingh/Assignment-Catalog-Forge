@@ -21,8 +21,6 @@ import type { ImportDto, ImportEventDto } from "./import-live-types";
 import { RowsTable } from "./rows-table";
 import { isImportActive, SIDE_STATES, stepIndexFor } from "./stage-stepper";
 
-export type { ImportDto, ImportEventDto } from "./import-live-types";
-
 type ProgressPayload = ImportProgressEvent & { import?: ImportDto };
 
 const MAX_BACKOFF_MS = 10_000;

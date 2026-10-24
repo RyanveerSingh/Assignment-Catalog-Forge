@@ -7,7 +7,7 @@ import type { ImportDto } from "./import-live-types";
 import { PIPELINE_STEPS, stepIndexFor } from "./stage-stepper";
 
 /**
- * The blue card at the end of the overview row. While the worker owns an import it names the
+ * The brand-colour card at the end of the overview row. While the worker owns an import it names the
  * stage, shows the rows done and lights the pipeline up to that stage; otherwise it says so and
  * points at the drop zone. Plain HTML: the pulse is CSS, so it needs no JavaScript to be right.
  */

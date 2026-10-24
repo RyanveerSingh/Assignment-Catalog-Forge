@@ -17,12 +17,12 @@ const DOT: Record<StepState, string> = {
 };
 
 /**
- * The pipeline as a blue rail: a track between the first and last stage with a fill that eases to
+ * The pipeline as a rail: a track between the first and last stage with a fill that eases to
  * the current stage, and a dot with a label for each stage. `initial={false}` means an import opened
  * when already half done renders settled, with no replay. Side states (paused, failed, …) sit on the
  * last pipeline stage the client saw (`lastStage`).
  */
-export function LiveStageStepper({ status, lastStage, className }: { status: string; lastStage: string | null; className?: string }) {
+export function LiveStageStepper({ status, lastStage }: { status: string; lastStage: string | null }) {
   const reduce = useReducedMotion();
   const side = sideState(status);
   const currentIdx = side ? (lastStage ? stepIndexFor(lastStage) : -1) : stepIndexFor(status);
@@ -32,7 +32,7 @@ export function LiveStageStepper({ status, lastStage, className }: { status: str
   const edge = `${100 / (n * 2)}%`;
 
   return (
-    <div className={cn(CARD, "overflow-x-auto px-4 py-5 no-scrollbar max-md:[mask-image:linear-gradient(to_right,black_88%,transparent)] md:px-6", className)}>
+    <div className={cn(CARD, "overflow-x-auto px-4 py-5 no-scrollbar max-md:[mask-image:linear-gradient(to_right,black_88%,transparent)] md:px-6")}>
       <div className="relative min-w-[640px]">
         <div aria-hidden className="absolute top-3.5 h-1 rounded-full bg-surface-2" style={{ left: edge, right: edge }}>
           <motion.div className="h-full w-full origin-left rounded-full bg-brand" initial={false} animate={{ scaleX: fill }} transition={settle(reduce, 0.6)} />

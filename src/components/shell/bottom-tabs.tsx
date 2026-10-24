@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "cn";
 import { NAV_ITEMS, navHref } from "./nav-items";
 
-/** The phone's tab bar: five icons with labels, the active one in blue. Hidden from lg up where the rail takes over. */
+/** The phone's tab bar: five icons with labels, the active one in the brand colour. Hidden from lg up where the rail takes over. */
 export function BottomTabs({ storeSlug }: { storeSlug: string }) {
   const pathname = usePathname();
   return (

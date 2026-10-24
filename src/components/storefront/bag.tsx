@@ -10,6 +10,7 @@ import { formatMoney } from "@/core/i18n/locale";
 import { EASE_OUT, settle } from "@/components/ext/motion";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { bagCount, bagSubtotal, onBagAdd, onBagOpen, removeFromBag, setBagQty, useBag, type BagItem } from "./bag-store";
+import { productHref } from "./hrefs";
 import { plural, t } from "./i18n";
 import { storefrontImageUrl } from "./image-url";
 import { Paren, PAREN_LINK, PILL } from "./paren";
@@ -86,7 +87,7 @@ export function Bag({ slug, locale }: { slug: string; locale: string }) {
 }
 
 function BagLine({ item, index, slug, locale, reduce, onNavigate }: { item: BagItem; index: number; slug: string; locale: string; reduce: boolean | null; onNavigate: () => void }) {
-  const href = `/store/${encodeURIComponent(slug)}/p/${encodeURIComponent(item.handle)}`;
+  const href = productHref(slug, item.handle);
   const line = item.priceCents !== null && item.currency ? formatMoney(item.priceCents * item.qty, item.currency, locale) : t(locale, "priceOnRequest");
   return (
     // `layout` closes the gap with a transform when a line above is removed; the drawer remounts on open, so every line enters together.

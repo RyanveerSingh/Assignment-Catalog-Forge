@@ -13,11 +13,11 @@ const TONE_CLASS: Record<MatchTone, string> = {
 };
 
 /** The chip on each photo: method in words plus the score, so a weak fuzzy match or a manual pick is visible at a glance. */
-export function PhotoMatchBadge({ photo, className }: { photo: Pick<PhotoRow, "originalName" | "matchMethod" | "matchScore">; className?: string }) {
+function PhotoMatchBadge({ photo }: { photo: Pick<PhotoRow, "originalName" | "matchMethod" | "matchScore"> }) {
   const badge = matchBadge(photo.matchMethod, photo.matchScore);
   return (
     <Tooltip>
-      <TooltipTrigger render={<span tabIndex={0} className={cn("inline-flex h-5 max-w-full cursor-default items-center gap-1 truncate rounded-sm px-1.5 text-[10px] font-medium uppercase tracking-wide ring-1 ring-inset outline-none focus-visible:ring-2 focus-visible:ring-brand", TONE_CLASS[badge.tone], className)} />}>
+      <TooltipTrigger render={<span tabIndex={0} className={cn("inline-flex h-5 max-w-full cursor-default items-center gap-1 truncate rounded-sm px-1.5 text-[10px] font-medium uppercase tracking-wide ring-1 ring-inset outline-none focus-visible:ring-2 focus-visible:ring-brand", TONE_CLASS[badge.tone])} />}>
         <span className="truncate num">{badge.label}</span>
         <span className="sr-only">
           , {photo.originalName}, {badge.description}

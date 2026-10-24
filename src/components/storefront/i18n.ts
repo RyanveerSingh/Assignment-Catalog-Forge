@@ -1,6 +1,6 @@
 /**
  * The handful of UI strings the storefront adds around the translated product data. Product
- * content arrives already localised; this only covers chrome (bag, sort, delivery lines, labels).
+ * content arrives already localised; this only covers chrome (bag, sort, headings, labels).
  * Unknown locales fall back to English. No library: three small objects keyed by locale, one per
  * file so each stays readable.
  */
@@ -9,12 +9,11 @@ import { DE } from "./i18n-de";
 import { EN, type UiKey } from "./i18n-en";
 import { FR } from "./i18n-fr";
 
-export type { UiKey };
-export type StorefrontLocale = "en" | "de" | "fr";
+type StorefrontLocale = "en" | "de" | "fr";
 
 const DICT: Record<StorefrontLocale, Record<UiKey, string>> = { en: EN, de: DE, fr: FR };
 
-/** Language names as their speakers write them; used in the ship-to line, the footer and the fallback notice. */
+/** Language names as their speakers write them, as the switcher, the footer and the fallback notice show them. */
 const NATIVE_NAMES: Record<string, string> = { en: "English", de: "Deutsch", fr: "Français", es: "Español", it: "Italiano", nl: "Nederlands" };
 
 export function uiLocale(locale: string): StorefrontLocale {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { splitAccents, stripAccents } from "./accents";
+import { splitAccents } from "./accents";
 
 describe("splitAccents", () => {
   it.each([
@@ -14,10 +14,5 @@ describe("splitAccents", () => {
 
   it("leaves an unbalanced asterisk as text instead of dropping words", () => {
     expect(splitAccents("5 * 3 = 15")).toEqual([{ text: "5 * 3 = 15", accent: false }]);
-  });
-
-  it("stripAccents returns the words only", () => {
-    expect(stripAccents("Shop by *category*")).toBe("Shop by category");
-    expect(stripAccents("a * b")).toBe("a * b");
   });
 });

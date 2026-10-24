@@ -5,7 +5,7 @@
  * are left as text rather than swallowed.
  */
 
-export interface TextRun {
+interface TextRun {
   text: string;
   accent: boolean;
 }
@@ -19,11 +19,4 @@ export function splitAccents(text: string): TextRun[] {
     runs.push({ text: part, accent: i % 2 === 1 });
   });
   return runs;
-}
-
-/** The plain words, for `aria-label`s, `<title>`s and anywhere markup would read as noise. */
-export function stripAccents(text: string): string {
-  return splitAccents(text)
-    .map((r) => r.text)
-    .join("");
 }

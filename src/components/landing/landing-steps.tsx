@@ -102,7 +102,7 @@ function Mockup({ step }: { step: Step }) {
   );
 }
 
-/** Three wide white panels on an ice band, text and mockup alternating sides. */
+/** Three wide white panels on a grey band, text and mockup alternating sides. */
 export function LandingSteps() {
   return (
     <section id="how" aria-labelledby="steps-heading" className="scroll-mt-24 py-6 md:py-10">

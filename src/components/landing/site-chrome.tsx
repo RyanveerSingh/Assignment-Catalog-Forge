@@ -9,17 +9,17 @@ import { PressLink } from "./press";
 export const CONTAINER = "mx-auto w-full max-w-[1200px] px-4 md:px-6";
 
 /** The in-page sections and the shop, in the order the page tells its story. */
-export const NAV_LINKS: ReadonlyArray<{ href: string; label: string }> = [
+const NAV_LINKS: ReadonlyArray<{ href: string; label: string }> = [
   { href: "/#product", label: "Product" },
   { href: "/#how", label: "How it works" },
   { href: "/#numbers", label: "Numbers" },
   { href: SHOP_HREF, label: "Shop" },
 ];
 
-/** A blue tile with three sheet rows narrowing into a dot: rows in, a product out. */
-export function LogoMark({ className, size = 28 }: { className?: string; size?: number }) {
+/** An orange tile with three sheet rows narrowing into a dot: rows in, a product out. */
+export function LogoMark({ size = 28 }: { size?: number }) {
   return (
-    <svg aria-hidden width={size} height={size} viewBox="0 0 32 32" className={cn("shrink-0", className)}>
+    <svg aria-hidden width={size} height={size} viewBox="0 0 32 32" className="shrink-0">
       <rect width="32" height="32" rx="9" fill="var(--brand)" />
       <path d="M9 10.5h14M9 16h9.5M9 21.5h5" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" />
       <circle cx="22.5" cy="21.5" r="2.6" fill="#fff" />
@@ -27,20 +27,20 @@ export function LogoMark({ className, size = 28 }: { className?: string; size?: 
   );
 }
 
-export function Wordmark({ className }: { className?: string }) {
+export function Wordmark() {
   return (
-    <Link href="/" className={cn("flex items-center gap-2.5 rounded-lg focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none", className)} aria-label="CatalogForge home">
+    <Link href="/" className="flex items-center gap-2.5 rounded-lg focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none" aria-label="CatalogForge home">
       <LogoMark />
       <span className="font-display text-[17px] leading-none tracking-[-0.02em] text-ink md:text-[19px]">CatalogForge</span>
     </Link>
   );
 }
 
-/** The one blue action on every page: into the demo for a visitor, back to their store for a merchant. */
-export function PrimaryCta({ dashboardHref, className, label }: { dashboardHref: string | null; className?: string; label?: string }) {
+/** The header's one primary action: into the demo for a visitor, back to their store for a merchant. */
+function PrimaryCta({ dashboardHref, className }: { dashboardHref: string | null; className: string }) {
   return (
     <PressLink href={dashboardHref ?? DEMO_HREF} className={cn(buttonVariants({ size: "lg" }), "rounded-full px-5", className)}>
-      {label ?? (dashboardHref ? "Open dashboard" : "Open the demo")}
+      {dashboardHref ? "Open dashboard" : "Open the demo"}
       <ArrowRightIcon aria-hidden className="hidden size-4 md:block" />
     </PressLink>
   );
@@ -53,7 +53,7 @@ interface HeaderProps {
   dashboardHref?: string | null;
 }
 
-/** A white bar floating 16 px below the top edge, sticky and opaque (a blurred backdrop repaints on every scroll frame), with the wordmark, four links and the blue pill. */
+/** A white bar floating 16 px below the top edge, sticky and opaque (a blurred backdrop repaints on every scroll frame), with the wordmark, four links and the primary pill. */
 export function SiteHeader({ signIn = true, dashboardHref = null }: HeaderProps) {
   return (
     <header className="sticky top-3 z-40 px-3 pt-3 md:top-4 md:px-6 md:pt-4">

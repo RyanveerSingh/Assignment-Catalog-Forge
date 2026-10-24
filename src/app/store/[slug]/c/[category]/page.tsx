@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { leafLabel } from "@/components/storefront/categories";
+import { categoryHref } from "@/components/storefront/hrefs";
 import { Collection } from "../../collection";
-import { categoryHref, firstParam, parsePage, parseSort } from "../../storefront-context";
+import { firstParam, parsePage, parseSort } from "../../storefront-context";
 
 export const dynamic = "force-dynamic";
 

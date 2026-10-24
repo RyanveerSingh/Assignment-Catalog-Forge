@@ -1,6 +1,5 @@
 import type { LucideIcon } from "lucide-react";
 import { DatabaseIcon, FileDownIcon, GaugeIcon, ImagesIcon, LanguagesIcon, RefreshCwIcon, ShieldCheckIcon, WebhookIcon } from "lucide-react";
-import { cn } from "cn";
 import { LiveImportCard } from "./live-import-card";
 import { Reveal } from "./reveal";
 import { SectionHeading } from "./section-heading";
@@ -43,7 +42,7 @@ function FeatureCard({ feature, delay }: { feature: Feature; delay: number }) {
   );
 }
 
-/** The bento: four cards either side of the live import, the way netz lays out "everything your store runs on". */
+/** The bento: four feature cards either side of the live import. */
 export function LandingFeatures() {
   return (
     <section id="product" aria-labelledby="features-heading" className="scroll-mt-24 py-20 md:py-28">
@@ -56,7 +55,7 @@ export function LandingFeatures() {
             ))}
           </div>
           <Reveal delay={0.1} className="order-first h-full lg:order-none">
-            <LiveImportCard className={cn("h-full", "min-h-[420px]")} />
+            <LiveImportCard className="h-full min-h-[420px]" />
           </Reveal>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
             {RIGHT.map((f, i) => (

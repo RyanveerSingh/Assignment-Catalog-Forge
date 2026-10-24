@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertCircle, AlertTriangle, ChevronDown, ChevronRight, Loader2, Send, Trash2, WebhookIcon } from "lucide-react";
 import { cn } from "cn";
+import { TAP_TARGET } from "@/components/ext/surfaces";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +12,7 @@ import { api, ApiError, storeApi } from "@/lib/client/api";
 import { formatRelative } from "@/lib/format";
 import type { WebhookDeliveryDto, WebhookDto } from "@/lib/serializers";
 import { SaveStatus, SectionCard, useSave } from "./section-card";
-import { DeliveriesTable, DeliveryStatus, EVENT_LABELS, SecretReveal, TAP } from "./webhook-delivery-log";
+import { DeliveriesTable, DeliveryStatus, EVENT_LABELS, SecretReveal } from "./webhook-delivery-log";
 
 const EVENT_OPTIONS: ReadonlyArray<{ value: "import.completed" | "import.needs_attention"; label: string; hint: string }> = [
   { value: "import.completed", label: "Import completed", hint: "Every row reached Done, Needs review or Failed and the counts add up." },
@@ -189,7 +190,7 @@ function WebhookItem({
           <Button
             size="sm"
             variant="outline"
-            className={TAP}
+            className={TAP_TARGET}
             disabled={disabled || !hook.active || testSave.state.kind === "saving"}
             onClick={() =>
               void testSave.run(async () => {
@@ -203,20 +204,20 @@ function WebhookItem({
             {testSave.state.kind === "saving" ? <Loader2 aria-hidden className="animate-spin" /> : <Send aria-hidden />}
             Send test
           </Button>
-          <Button size="sm" variant="ghost" className={TAP} aria-expanded={open} aria-controls={panelId} onClick={() => setOpen((v) => !v)}>
+          <Button size="sm" variant="ghost" className={TAP_TARGET} aria-expanded={open} aria-controls={panelId} onClick={() => setOpen((v) => !v)}>
             {open ? <ChevronDown aria-hidden /> : <ChevronRight aria-hidden />}
             Deliveries
           </Button>
           <Button
             size="sm"
             variant="ghost"
-            className={TAP}
+            className={TAP_TARGET}
             disabled={disabled || toggleSave.state.kind === "saving"}
             onClick={() => void toggleSave.run(async () => onChange((await api<{ webhook: WebhookDto }>(item, { method: "PATCH", json: { active: !hook.active } })).webhook))}
           >
             {hook.active ? "Disable" : "Enable"}
           </Button>
-          <Button size="sm" variant="ghost" className={cn(TAP, "text-ink-muted hover:text-destructive")} disabled={disabled || confirming} aria-label={`Delete webhook for ${hostOf(hook.url)}`} onClick={() => setConfirming(true)}>
+          <Button size="sm" variant="ghost" className={cn(TAP_TARGET, "text-ink-muted hover:text-destructive")} disabled={disabled || confirming} aria-label={`Delete webhook for ${hostOf(hook.url)}`} onClick={() => setConfirming(true)}>
             <Trash2 aria-hidden />
             Delete
           </Button>
@@ -231,10 +232,10 @@ function WebhookItem({
             Delete the webhook for {hostOf(hook.url)}? Its delivery log goes with it.
           </span>
           <div className="ml-auto flex gap-2">
-            <Button size="sm" variant="destructive" autoFocus className={TAP} disabled={deleteSave.state.kind === "saving"} onClick={() => void deleteSave.run(async () => (await api(item, { method: "DELETE" }), onDeleted()))}>
+            <Button size="sm" variant="destructive" autoFocus className={TAP_TARGET} disabled={deleteSave.state.kind === "saving"} onClick={() => void deleteSave.run(async () => (await api(item, { method: "DELETE" }), onDeleted()))}>
               Yes, delete
             </Button>
-            <Button size="sm" variant="outline" className={TAP} onClick={() => setConfirming(false)}>
+            <Button size="sm" variant="outline" className={TAP_TARGET} onClick={() => setConfirming(false)}>
               Cancel
             </Button>
           </div>
@@ -314,7 +315,7 @@ function AddWebhookForm({ base, disabled, onCreated }: { base: string; disabled:
                   setEvents((cur) => (e.target.checked ? [...new Set([...cur, opt.value])] : cur.filter((v) => v !== opt.value)));
                   reset();
                 }}
-                className={cn("mt-1 size-3.5 cursor-pointer accent-brand disabled:cursor-not-allowed", TAP)}
+                className={cn("mt-1 size-3.5 cursor-pointer accent-brand disabled:cursor-not-allowed", TAP_TARGET)}
               />
               <Label htmlFor={id} className="min-h-6 cursor-pointer flex-col items-start gap-0.5">
                 <span>{opt.label}</span>
@@ -325,7 +326,7 @@ function AddWebhookForm({ base, disabled, onCreated }: { base: string; disabled:
         })}
       </fieldset>
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" size="sm" className={TAP} disabled={disabled || !valid || state.kind === "saving"}>
+        <Button type="submit" size="sm" className={TAP_TARGET} disabled={disabled || !valid || state.kind === "saving"}>
           {state.kind === "saving" ? <Loader2 aria-hidden className="animate-spin" /> : null}
           Add webhook
         </Button>

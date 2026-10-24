@@ -12,7 +12,7 @@ const CHIPS: ReadonlyArray<{ label: string; icon: LucideIcon; className: string;
 
 /**
  * The hero picture: a supplier sheet becoming a product card, with three chips floating around it.
- * The chips bob on a slow transform loop and a blue dot travels the arrow; under reduced motion both
+ * The chips bob on a slow transform loop and a brand-colour dot travels the arrow; under reduced motion both
  * stand still. While a file is held over the zone the arrow leans forward and the card lifts.
  */
 export function DropIllustration({ active, className }: { active: boolean; className?: string }) {
@@ -35,7 +35,7 @@ export function DropIllustration({ active, className }: { active: boolean; class
           <path d="M50 80q3-4 6 0t6 0t6 0t6 0t6 0" className="stroke-warning" strokeWidth={1.8} />
           <path d="M52 105l7 7M59 105l-7 7" className="stroke-destructive" strokeWidth={1.8} />
         </g>
-        {/* the arrow: one blue line with a dot travelling along it */}
+        {/* the arrow: one brand-colour line with a dot travelling along it */}
         <g className={cn("stroke-brand transition-transform duration-300 ease-out", active ? "translate-x-1.5" : "")} strokeWidth={2.2}>
           <path d="M108 75H150" />
           <path d="M142 67l8 8-8 8" />

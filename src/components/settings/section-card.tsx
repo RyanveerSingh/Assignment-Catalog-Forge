@@ -8,7 +8,7 @@ import { CARD } from "@/components/ext/surfaces";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/client/api";
 
-export type SaveState = { kind: "idle" } | { kind: "saving" } | { kind: "saved" } | { kind: "error"; message: string };
+type SaveState = { kind: "idle" } | { kind: "saving" } | { kind: "saved" } | { kind: "error"; message: string };
 
 /** One save lifecycle per section so each card reports its own success or failure inline. */
 export function useSave(): { state: SaveState; run: (fn: () => Promise<unknown>) => Promise<void>; reset: () => void } {

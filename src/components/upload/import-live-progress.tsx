@@ -12,7 +12,7 @@ const COUNT_KEYS = ["pending", "processing", "done", "needs_review", "failed"] a
 const DOT: Record<(typeof COUNT_KEYS)[number], string> = { pending: "bg-ink/25", processing: "bg-brand", done: "bg-success", needs_review: "bg-warning", failed: "bg-destructive" };
 
 /**
- * "Rows processed" under the figure tiles. The blue fill is a scale transform that eases to each
+ * "Rows processed" under the figure tiles. The brand-colour fill is a scale transform that eases to each
  * new fraction; `initial={false}` means an import opened half way through renders at that width
  * rather than growing from zero.
  */

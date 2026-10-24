@@ -2,7 +2,7 @@
 export const DEMO_HREF = "/login?demo=1";
 export const SHOP_HREF = "/store/demo";
 
-export interface AppLinks {
+interface AppLinks {
   upload: string;
   products: string;
   metrics: string;

@@ -12,7 +12,7 @@ export function formatBytes(n: number): string {
   return `${(n / MB).toFixed(1)} MB`;
 }
 
-export interface FileRowProps {
+interface FileRowProps {
   icon: LucideIcon;
   label: string;
   name: string;

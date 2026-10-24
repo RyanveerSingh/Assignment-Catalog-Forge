@@ -15,7 +15,7 @@ const SLIDERS: ReadonlyArray<{ key: keyof ChaosDto; label: string; hint: string 
   { key: "inventedClaimPct", label: "Invented claim", hint: "share of listings that get a claim the supplier negated slipped in; the grounding validator must block it and send the product to review" },
 ];
 
-/* A native range with a blue 20 px thumb on a thin track; the filled part of the track is painted by a gradient that follows the value. */
+/* A native range with a brand-colour 20 px thumb on a thin track; the filled part of the track is painted by a gradient that follows the value. */
 const RANGE =
   "h-2 w-full cursor-pointer appearance-none rounded-full bg-surface-2 outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 " +
   "[&::-webkit-slider-thumb]:size-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-brand [&::-webkit-slider-thumb]:shadow-[0_0_0_4px_var(--card),0_2px_8px_rgba(228,71,15,0.45)] [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-150 [&::-webkit-slider-thumb]:hover:scale-110 " +

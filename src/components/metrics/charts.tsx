@@ -5,9 +5,8 @@ import type { StoreMetrics } from "@/db/repositories/metrics";
 import { formatMicrosUsd, formatNumber, formatPercent, modelLabel, tierLabel } from "@/lib/format";
 
 /*
- * Chart tokens: --chart-1 blue for every single-series chart (nominal categories share one hue),
- * green / light blue / amber for the translation stack. Ink stays out of series fills except where
- * the legend and table twin carry identity.
+ * Chart tokens: --chart-1 orange for every single-series chart (nominal categories share one hue);
+ * orange / light orange / ink for the translation stack, whose legend and table twin carry identity.
  */
 const TICK = { fill: "var(--ink-muted)", fontSize: 11 } as const;
 const GRID = "var(--border)";

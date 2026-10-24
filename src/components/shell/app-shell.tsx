@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import type { SessionUser, StoreAccess } from "@/lib/auth";
 import { settle } from "@/components/ext/motion";
@@ -15,7 +15,7 @@ const SIDEBAR_WIDTH = 240;
 
 /**
  * The dashboard frame: a white rail on the left from lg up (a sheet on phones), the slim top bar,
- * the page on the ice ground and, on phones, the tab bar. The page content is keyed by pathname so
+ * the page on the paper ground and, on phones, the tab bar. The page content is keyed by pathname so
  * every route change fades and rises in (250 ms, transform and opacity only); search-param changes
  * keep the same key and never replay it.
  */
@@ -23,10 +23,6 @@ export function AppShell({ user, store, stores, demoMode, children }: { user: Se
   const reduce = useReducedMotion();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  // globals.css asks for smooth scrolling; Next wants the html element to say so too, or it warns on every route change.
-  useEffect(() => {
-    document.documentElement.dataset.scrollBehavior = "smooth";
-  }, []);
   return (
     <div className="min-h-dvh bg-paper">
       <aside className="fixed inset-y-0 left-0 z-40 hidden border-r border-border/80 bg-card lg:block" style={{ width: SIDEBAR_WIDTH }}>

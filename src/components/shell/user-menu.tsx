@@ -9,7 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { api } from "@/lib/client/api";
 
 /** Up to two initials from a name ("Demo Merchant" → "DM"); "?" when the name is blank. */
-export function initialsOf(name: string): string {
+function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   const first = parts[0]?.[0] ?? "";
   const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? "") : "";
@@ -17,9 +17,9 @@ export function initialsOf(name: string): string {
   return out || "?";
 }
 
-export function Avatar({ name, className }: { name: string; className?: string }) {
+function Avatar({ name }: { name: string }) {
   return (
-    <span aria-hidden className={cn("flex size-9 shrink-0 items-center justify-center rounded-full bg-ink text-[12px] font-semibold tracking-wide text-paper", className)}>
+    <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-full bg-ink text-[12px] font-semibold tracking-wide text-paper">
       {initialsOf(name)}
     </span>
   );
@@ -47,7 +47,7 @@ export function UserMenu({ user, compact = false }: { user: SessionUser; compact
           compact ? "rounded-full p-0.5 hover:bg-surface-2" : "w-full px-2.5 py-2 hover:bg-surface-2/70 aria-expanded:bg-surface-2/70",
         )}
       >
-        <Avatar name={user.name} className={compact ? "size-9" : undefined} />
+        <Avatar name={user.name} />
         {compact ? null : (
           <>
             <span className="flex min-w-0 flex-1 flex-col">

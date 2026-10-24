@@ -6,7 +6,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { cn } from "cn";
 import { spring } from "@/components/ext/motion";
 
-export const SETTINGS_SECTIONS: ReadonlyArray<{ id: string; label: string; icon: LucideIcon }> = [
+const SETTINGS_SECTIONS: ReadonlyArray<{ id: string; label: string; icon: LucideIcon }> = [
   { id: "store", label: "Store", icon: StoreIcon },
   { id: "languages", label: "Languages", icon: LanguagesIcon },
   { id: "translation", label: "Translation", icon: BookAIcon },
@@ -26,14 +26,14 @@ export function SettingsNav() {
   useEffect(() => {
     const sections = SETTINGS_SECTIONS.map((s) => document.getElementById(s.id)).filter((el): el is HTMLElement => el !== null);
     if (sections.length === 0) return;
-    const visible = new Map<string, number>();
+    const visible = new Set<string>();
     const observer = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
-          if (e.isIntersecting) visible.set(e.target.id, e.boundingClientRect.top);
+          if (e.isIntersecting) visible.add(e.target.id);
           else visible.delete(e.target.id);
         }
-        // The section whose top is closest to the top edge wins; ties go to document order.
+        // The first section in document order that is inside the band wins.
         const first = SETTINGS_SECTIONS.find((s) => visible.has(s.id));
         if (first) setActive(first.id);
       },

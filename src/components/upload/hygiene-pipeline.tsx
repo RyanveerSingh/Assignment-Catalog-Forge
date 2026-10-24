@@ -12,8 +12,8 @@ import { formatNumber, formatPercent } from "@/lib/format";
 
 const REFRESH_MS = 10_000;
 
-/* Chart slots, not new colours: green for what passed untouched, blue for what was repaired or
- * assumed, light blue for what was flagged, amber for conflicts and failures. */
+/* Chart slots, not new colours: green for what passed untouched, orange for what was repaired or
+ * assumed, grey for what was flagged, light orange for conflicts and failures. */
 const TONE_BG: Record<HygieneTone, string> = {
   good: "bg-chart-3",
   changed: "bg-chart-1",

@@ -1,6 +1,6 @@
 import { BanIcon, CheckIcon, PauseIcon, TriangleAlertIcon, XIcon } from "lucide-react";
 
-export interface PipelineStep {
+interface PipelineStep {
   key: string;
   label: string;
   /** Import statuses that mean "this step is running". */

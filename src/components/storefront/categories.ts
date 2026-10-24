@@ -4,7 +4,7 @@
  * `cachedCategories` and stay the link targets, only the labels change.
  */
 
-export interface CategoryCount {
+interface CategoryCount {
   category: string;
   n: number;
 }
@@ -42,11 +42,6 @@ export function leafLabel(path: string): string {
 
 export function familyOf(path: string): string {
   return segments(path)[0] ?? path;
-}
-
-/** The segments above the leaf, for an eyebrow line such as "Home & Garden › Decor". */
-export function parentSegments(path: string): string[] {
-  return segments(path).slice(0, -1).map(titleCase);
 }
 
 /**
@@ -87,7 +82,7 @@ export function flatLeaves(families: CategoryFamily[]): CategoryLeaf[] {
   return [...byLabel.values()].sort((a, b) => b.n - a.n || a.label.localeCompare(b.label));
 }
 
-export interface CategoryTile {
+interface CategoryTile {
   category: string;
   label: string;
   n: number;

@@ -11,7 +11,7 @@ const MAX_VALUE_LENGTH = 500;
  * Key/value rows for product attributes. Rows are kept in insertion order so a reviewer's edits do not
  * jump around; the record is rebuilt on every change because the API wants a plain object.
  */
-export function AttributesEditor({ value, onChange, disabled }: { value: Record<string, string>; onChange: (next: Record<string, string>) => void; disabled?: boolean }) {
+export function AttributesEditor({ value, onChange }: { value: Record<string, string>; onChange: (next: Record<string, string>) => void }) {
   const [newKey, setNewKey] = useState("");
   const [newValue, setNewValue] = useState("");
   const entries = Object.entries(value);
@@ -42,20 +42,19 @@ export function AttributesEditor({ value, onChange, disabled }: { value: Record<
       {entries.length === 0 ? <p className="text-xs text-ink-muted">No attributes.</p> : null}
       {entries.map(([key, val]) => (
         <div key={key} className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)_auto] items-center gap-1">
-          <Input aria-label={`Attribute name ${key}`} defaultValue={key} disabled={disabled} onBlur={(e) => rename(key, e.target.value)} className="h-7 text-xs md:text-xs" />
-          <Input aria-label={`Value of ${key}`} value={val} disabled={disabled} onChange={(e) => update(key, e.target.value)} className="h-7 text-xs md:text-xs" />
-          <Button type="button" variant="ghost" size="icon-xs" disabled={disabled} onClick={() => remove(key)} aria-label={`Remove attribute ${key}`} className="cursor-pointer text-ink-muted hover:text-destructive">
+          <Input aria-label={`Attribute name ${key}`} defaultValue={key} onBlur={(e) => rename(key, e.target.value)} className="h-7 text-xs md:text-xs" />
+          <Input aria-label={`Value of ${key}`} value={val} onChange={(e) => update(key, e.target.value)} className="h-7 text-xs md:text-xs" />
+          <Button type="button" variant="ghost" size="icon-xs" onClick={() => remove(key)} aria-label={`Remove attribute ${key}`} className="cursor-pointer text-ink-muted hover:text-destructive">
             <Trash2Icon />
           </Button>
         </div>
       ))}
       <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)_auto] items-center gap-1">
-        <Input aria-label="New attribute name" placeholder="Name" value={newKey} disabled={disabled} onChange={(e) => setNewKey(e.target.value)} className="h-7 text-xs md:text-xs" />
+        <Input aria-label="New attribute name" placeholder="Name" value={newKey} onChange={(e) => setNewKey(e.target.value)} className="h-7 text-xs md:text-xs" />
         <Input
           aria-label="New attribute value"
           placeholder="Value"
           value={newValue}
-          disabled={disabled}
           onChange={(e) => setNewValue(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -65,7 +64,7 @@ export function AttributesEditor({ value, onChange, disabled }: { value: Record<
           }}
           className="h-7 text-xs md:text-xs"
         />
-        <Button type="button" variant="outline" size="icon-xs" disabled={disabled || !newKey.trim()} onClick={add} aria-label="Add attribute" className="cursor-pointer">
+        <Button type="button" variant="outline" size="icon-xs" disabled={!newKey.trim()} onClick={add} aria-label="Add attribute" className="cursor-pointer">
           <PlusIcon />
         </Button>
       </div>

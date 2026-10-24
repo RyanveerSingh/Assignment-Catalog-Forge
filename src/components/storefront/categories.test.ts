@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { categoryTiles, flatLeaves, groupCategories, leafLabel, parentSegments, relatedLeaves, titleCase } from "./categories";
+import { categoryTiles, flatLeaves, groupCategories, leafLabel, relatedLeaves, titleCase } from "./categories";
 
 const LIST = [
   { category: "Home & Garden > Decor > Clocks", n: 1 },
@@ -91,12 +91,5 @@ describe("categoryTiles", () => {
     const many = groupCategories(Array.from({ length: 12 }, (_, i) => ({ category: `Family ${i}`, n: 1 })));
     expect(categoryTiles(many)).toHaveLength(8);
     expect(categoryTiles([])).toEqual([]);
-  });
-});
-
-describe("parentSegments", () => {
-  it("returns the segments above the leaf, title-cased", () => {
-    expect(parentSegments("home & garden > decor > Clocks")).toEqual(["Home & Garden", "Decor"]);
-    expect(parentSegments("Furniture")).toEqual([]);
   });
 });

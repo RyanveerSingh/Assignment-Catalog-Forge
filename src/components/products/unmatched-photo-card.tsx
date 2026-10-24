@@ -5,10 +5,11 @@ import { cn } from "cn";
 import { Undo2Icon, XIcon } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { settle, stagger } from "@/components/ext/motion";
+import { TAP_TARGET } from "@/components/ext/surfaces";
 import { Button } from "@/components/ui/button";
 import { formatRelative } from "@/lib/format";
 import type { PickedProduct, TrayPhoto } from "./photo-tray-types";
-import { ProductPicker, TAP_TARGET } from "./product-picker";
+import { ProductPicker } from "./product-picker";
 import { imageUrl } from "./types";
 
 /** One photo in the tray: a rounded card with the thumbnail, provenance, and the merchant's two choices. */

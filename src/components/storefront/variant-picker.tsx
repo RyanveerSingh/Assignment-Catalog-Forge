@@ -33,7 +33,7 @@ export function VariantPicker({
   variants: PublishedVariant[];
   locale: string;
   fallbackCurrency: string;
-  renderBuy?: (current: PublishedVariant | null) => ReactNode;
+  renderBuy: (current: PublishedVariant | null) => ReactNode;
 }) {
   const optionNames = useMemo(() => {
     const names: string[] = [];
@@ -119,7 +119,7 @@ export function VariantPicker({
         </fieldset>
       ))}
 
-      {renderBuy ? renderBuy(current) : null}
+      {renderBuy(current)}
 
       {facts.length > 0 ? (
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 border-t border-line pt-5 text-[14px]">

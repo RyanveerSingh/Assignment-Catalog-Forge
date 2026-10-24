@@ -9,7 +9,7 @@ import { formatList, nativeLocaleName, plural, t } from "./i18n";
 import { pickPhotographed, type HeroSlide } from "./slideshow";
 import { WhyCards, type WhyCard } from "./why-cards";
 
-export interface HomeStore {
+interface HomeStore {
   name: string;
   locales: string[];
   countryLocaleMap: Record<string, string>;

@@ -27,7 +27,7 @@ export interface ProductCardData {
 }
 
 /** "3 sizes · 2 colours", counted from the option values actually published. */
-export function variantHints(variants: PublishedVariant[], locale: string): string | null {
+function variantHints(variants: PublishedVariant[], locale: string): string | null {
   if (variants.length < 2) return null;
   const values = new Map<string, Set<string>>();
   for (const v of variants)

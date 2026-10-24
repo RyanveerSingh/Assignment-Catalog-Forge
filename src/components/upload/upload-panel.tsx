@@ -92,7 +92,7 @@ export function UploadPanel({ storeSlug }: { storeSlug: string }) {
     const notes: string[] = [];
     if (sheet) notes.push(`Replaced ${sheet.name} with the Google Sheets link (one sheet per import)`);
     setSheet(null);
-    setSheetLink({ url, sheetId: ref.sheetId, gid: ref.gid });
+    setSheetLink({ url, gid: ref.gid });
     setLinkText("");
     setProblems([]);
     setNotices(notes);

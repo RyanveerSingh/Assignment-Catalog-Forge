@@ -1,7 +1,6 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { cn } from "cn";
 import { spring } from "@/components/ext/motion";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -12,7 +11,7 @@ import type { RerunSettings } from "./types";
 type BulkAction = "approve" | "rerun";
 
 /**
- * The selection's action bar: a blue pill that springs up from the bottom centre of the screen when
+ * The selection's action bar: a brand-colour pill that springs up from the bottom centre of the screen when
  * rows are selected and drops away when the selection clears. Sits above the phone tab bar.
  */
 export function BulkBar({ count, needsReview, includeNeedsReview, busy, onIncludeChange, onApprove, onRerun, onClear }: { count: number; needsReview: number; includeNeedsReview: boolean; busy: BulkAction | null; onIncludeChange: (v: boolean) => void; onApprove: () => void; onRerun: (s: RerunSettings) => Promise<boolean>; onClear: () => void }) {
@@ -45,7 +44,7 @@ export function BulkBar({ count, needsReview, includeNeedsReview, busy, onInclud
               {busy === "approve" ? "Approving…" : `Approve ${approving}`}
             </Button>
             <BulkRerunPopover count={count} busy={busy === "rerun"} disabled={busy !== null} onQueue={onRerun} className="h-9 rounded-full border-0 bg-white/15 px-4 text-white shadow-none hover:bg-white/25 hover:text-white" />
-            <button type="button" disabled={busy !== null} onClick={onClear} className={cn("h-9 cursor-pointer rounded-full px-3 text-xs font-medium text-white/80 transition-colors hover:bg-white/15 hover:text-white focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none disabled:opacity-50")}>
+            <button type="button" disabled={busy !== null} onClick={onClear} className="h-9 cursor-pointer rounded-full px-3 text-xs font-medium text-white/80 transition-colors hover:bg-white/15 hover:text-white focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none disabled:opacity-50">
               Clear
             </button>
           </motion.div>

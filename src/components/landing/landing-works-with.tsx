@@ -8,7 +8,7 @@ const ROWS: ReadonlyArray<{ label: string; items: readonly string[] }> = [
   { label: "Writes", items: ["CSV", "JSON", "Shopify CSV", "Signed webhooks", "API keys", "Three languages"] },
 ];
 
-/** Two plain rows, the way netz lists its integrations: no logos, just the names. */
+/** Two plain rows of format names, no logos. */
 export function LandingWorksWith() {
   return (
     <section aria-labelledby="works-heading" className="py-20 md:py-28">

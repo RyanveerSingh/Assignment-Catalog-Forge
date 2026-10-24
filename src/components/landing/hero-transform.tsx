@@ -55,9 +55,9 @@ function Mojibake({ children }: { children: string }) {
 }
 
 /** The supplier's row as it arrived, in a small window-chrome frame. */
-export function RawSheet({ className }: { className?: string }) {
+export function RawSheet() {
   return (
-    <div className={cn("overflow-hidden rounded-2xl bg-card text-left shadow-[var(--shadow-card)] ring-1 ring-border", className)}>
+    <div className="overflow-hidden rounded-2xl bg-card text-left shadow-[var(--shadow-card)] ring-1 ring-border">
       <div className="flex items-center gap-2 border-b border-border bg-paper px-3 py-2">
         <span aria-hidden className="flex gap-1">
           <i className="size-2 rounded-full bg-line-strong" />
@@ -105,15 +105,14 @@ export function RawSheet({ className }: { className?: string }) {
 interface CardProps {
   lang: Lang;
   onLang: (l: Lang) => void;
-  className?: string;
 }
 
 /** The published listing, as the shop shows it, with the three languages to flip between. */
-export function ProductCard({ lang, onLang, className }: CardProps) {
+export function ProductCard({ lang, onLang }: CardProps) {
   const reduce = useReducedMotion();
   const current = LANGS.find((l) => l.code === lang) ?? LANGS[0];
   return (
-    <div className={cn("rounded-[24px] bg-card p-2 text-left shadow-[var(--shadow-pop)] ring-1 ring-border/70", className)}>
+    <div className="rounded-[24px] bg-card p-2 text-left shadow-[var(--shadow-pop)] ring-1 ring-border/70">
       <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-surface-2">
         <Image src="/landing/hero-vase.jpg" alt="Sage-green hand-turned stoneware vase, the product photo the supplier sent" fill sizes="300px" className="object-cover" />
         <span className="absolute top-2.5 left-2.5 rounded-full bg-card px-2 py-0.5 text-[10px] font-medium text-ink shadow-[var(--shadow-card)]">Published</span>

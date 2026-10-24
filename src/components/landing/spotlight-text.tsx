@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, type CSSProperties, type PointerEvent, type ReactNode } from "react";
-import { cn } from "cn";
 
 /*
  * The lit area is a blob made of a few circles. Each one trails the pointer at its own pace and drifts
@@ -32,7 +31,6 @@ interface Props {
   children: ReactNode;
   /** The same text laid out identically, in the colour the blob reveals. Defaults to `children` in orange. */
   lit?: ReactNode;
-  className?: string;
 }
 
 /**
@@ -41,7 +39,7 @@ interface Props {
  * CSS custom properties from one animation frame loop that runs only while the pointer is over the text
  * (and a moment after, while the blob fades), so nothing re-renders and nothing runs while scrolling.
  */
-export function SpotlightText({ children, lit, className }: Props) {
+export function SpotlightText({ children, lit }: Props) {
   const ref = useRef<HTMLSpanElement>(null);
   const state = useRef({ tx: 0, ty: 0, pts: BLOBS.map(() => ({ x: 0, y: 0 })), phase: BLOBS.map(() => Math.random() * 1000), raf: 0, until: 0 });
 
@@ -91,7 +89,7 @@ export function SpotlightText({ children, lit, className }: Props) {
   };
 
   return (
-    <span ref={ref} className={cn("spotlight relative block", className)} onPointerEnter={enter} onPointerMove={move} onPointerLeave={leave}>
+    <span ref={ref} className="spotlight relative block" onPointerEnter={enter} onPointerMove={move} onPointerLeave={leave}>
       {children}
       <span aria-hidden className="pointer-events-none absolute inset-0 select-none" style={OVERLAY_STYLE}>
         {lit ?? <span className="text-brand">{children}</span>}

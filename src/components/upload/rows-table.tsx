@@ -18,7 +18,7 @@ const COUNTS_DEBOUNCE_MS = 1_000;
 const FILTERS = ["all", "pending", "processing", "done", "needs_review", "failed"] as const;
 type Filter = (typeof FILTERS)[number];
 
-export interface RowCounts {
+interface RowCounts {
   pending: number;
   processing: number;
   done: number;

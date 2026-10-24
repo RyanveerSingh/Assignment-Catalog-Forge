@@ -21,12 +21,11 @@ export const ACCEPT = {
   "application/x-zip-compressed": [".zip"],
 };
 
-export type FileKind = "sheet" | "photo" | "zip";
+type FileKind = "sheet" | "photo" | "zip";
 
 /** A validated Google Sheets link standing in for the sheet file (EC-A23). */
 export interface SheetLink {
   url: string;
-  sheetId: string;
   gid: string | null;
 }
 

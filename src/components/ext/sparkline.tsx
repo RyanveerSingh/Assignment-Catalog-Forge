@@ -2,7 +2,6 @@
 
 import { useRef } from "react";
 import { motion, useInView, useReducedMotion } from "motion/react";
-import { cn } from "cn";
 import { settle } from "./motion";
 import { sparklineArea, sparklineCoords, sparklinePoints } from "./sparkline-points";
 
@@ -14,14 +13,14 @@ const BOX = { width: 120, height: 32, pad: 2 } as const;
  * reveal is a transform and the layout underneath never moves. The dot is an HTML overlay because
  * the SVG stretches to the tile width (`preserveAspectRatio="none"`) and would squash a circle.
  */
-export function Sparkline({ values, label, delay = 0, className }: { values: ReadonlyArray<number>; label: string; delay?: number; className?: string }) {
+export function Sparkline({ values, label, delay = 0 }: { values: ReadonlyArray<number>; label: string; delay?: number }) {
   const reduce = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, amount: 0.5 });
   const coords = sparklineCoords(values, BOX);
   const last = coords[coords.length - 1];
   return (
-    <div ref={ref} role="img" aria-label={label} className={cn("relative h-8 w-full", className)}>
+    <div ref={ref} role="img" aria-label={label} className="relative h-8 w-full">
       <svg viewBox={`0 0 ${BOX.width} ${BOX.height}`} preserveAspectRatio="none" className="absolute inset-0 size-full overflow-visible text-brand" aria-hidden>
         <polygon points={sparklineArea(values, BOX)} fill="currentColor" opacity={0.1} />
         <polyline points={sparklinePoints(values, BOX)} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />

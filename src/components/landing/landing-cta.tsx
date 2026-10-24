@@ -3,7 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { ArrowRightIcon, ArrowUpRightIcon, BarChart3Icon, PackageIcon, StoreIcon, UploadIcon, WebhookIcon } from "lucide-react";
 import { cn } from "cn";
 import { buttonVariants } from "@/components/ui/button";
-import { appLinks, SHOP_HREF } from "./landing-links";
+import { appLinks, DEMO_HREF, SHOP_HREF } from "./landing-links";
 import { PressLink } from "./press";
 import { SpotlightText } from "./spotlight-text";
 import { Reveal } from "./reveal";
@@ -13,7 +13,7 @@ interface Props {
   dashboardHref: string | null;
 }
 
-/** The closing panel: one ask, centred, on ice. */
+/** The closing panel: one ask, centred, on a grey card with a soft orange glow. */
 export function LandingCta({ dashboardHref }: Props) {
   return (
     <section aria-labelledby="cta-heading" className="py-6 md:py-10">
@@ -28,7 +28,7 @@ export function LandingCta({ dashboardHref }: Props) {
               </h2>
               <p className="mt-5 max-w-lg text-base leading-relaxed text-balance text-ink-muted md:text-lg">The demo account has sample sheets ready to drop in, from ten clean rows to ten thousand messy ones. Or bring the file your supplier just sent.</p>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-                <PressLink magnetic href={dashboardHref ?? appLinks(null).upload} className={cn(buttonVariants({ size: "lg" }), "rounded-full px-6")}>
+                <PressLink magnetic href={dashboardHref ?? DEMO_HREF} className={cn(buttonVariants({ size: "lg" }), "rounded-full px-6")}>
                   {dashboardHref ? "Open dashboard" : "Open the demo"}
                   <ArrowRightIcon aria-hidden className="size-4" />
                 </PressLink>
@@ -44,7 +44,7 @@ export function LandingCta({ dashboardHref }: Props) {
   );
 }
 
-/** Five doors into the product, the way netz closes with "Explore". */
+/** Five doors into the product: the dashboard pages, the shop and the API. */
 export function LandingExplore({ dashboardHref }: Props) {
   const links = appLinks(dashboardHref);
   const CARDS: ReadonlyArray<{ icon: LucideIcon; title: string; text: string; href: string; external?: boolean }> = [

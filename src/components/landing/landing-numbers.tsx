@@ -56,7 +56,7 @@ function CountUp({ stat }: { stat: Stat }) {
   );
 }
 
-/** The figures band: white cards on ice, big orange numbers that count up, eight things that were measured rather than claimed. */
+/** The figures band: white cards on a grey panel, big orange numbers that count up, eight things that were measured rather than claimed. */
 export function LandingNumbers() {
   return (
     <section id="numbers" aria-labelledby="numbers-heading" className="scroll-mt-24 py-6 md:py-10">

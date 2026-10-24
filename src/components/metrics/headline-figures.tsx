@@ -18,7 +18,7 @@ interface Figure {
 
 /**
  * The six numbers that answer "what has this done for me" before any chart: a white raised band
- * with the figures in blue. Every figure is already in the metrics payload; nothing is queried for it.
+ * with the figures in the brand colour. Every figure is already in the metrics payload; nothing is queried for it.
  */
 export function HeadlineFigures({ data }: { data: StoreMetrics }) {
   const reduce = useReducedMotion();

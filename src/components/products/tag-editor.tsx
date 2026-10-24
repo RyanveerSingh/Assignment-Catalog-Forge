@@ -8,7 +8,7 @@ const MAX_TAGS = 20;
 const MAX_TAG_LENGTH = 50;
 
 /** Chip editor: Enter or comma adds, Backspace on an empty input removes the last chip. Limits mirror the PATCH schema. */
-export function TagEditor({ id, value, onChange, disabled }: { id: string; value: string[]; onChange: (next: string[]) => void; disabled?: boolean }) {
+export function TagEditor({ id, value, onChange }: { id: string; value: string[]; onChange: (next: string[]) => void }) {
   const [draft, setDraft] = useState("");
 
   const commit = () => {
@@ -27,9 +27,8 @@ export function TagEditor({ id, value, onChange, disabled }: { id: string; value
               {tag}
               <button
                 type="button"
-                disabled={disabled}
                 onClick={() => onChange(value.filter((t) => t !== tag))}
-                className="inline-flex size-4 cursor-pointer items-center justify-center rounded-sm text-ink-muted hover:bg-accent hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-not-allowed"
+                className="inline-flex size-4 cursor-pointer items-center justify-center rounded-sm text-ink-muted hover:bg-accent hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                 aria-label={`Remove tag ${tag}`}
               >
                 <XIcon className="size-3" />
@@ -41,7 +40,7 @@ export function TagEditor({ id, value, onChange, disabled }: { id: string; value
       <Input
         id={id}
         value={draft}
-        disabled={disabled || value.length >= MAX_TAGS}
+        disabled={value.length >= MAX_TAGS}
         placeholder={value.length >= MAX_TAGS ? `Maximum ${MAX_TAGS} tags` : "Add a tag and press Enter"}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
