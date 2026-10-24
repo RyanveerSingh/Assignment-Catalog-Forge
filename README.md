@@ -2,7 +2,22 @@
 
 Drop in a messy supplier spreadsheet and a folder of photos; get a clean, reviewed, three-language product catalog with a live storefront. Built for the CatalogForge assignment by Ryanveer Singh.
 
-- **Live demo:** https://p01--catalog-forge--hhb44sdhtcg7.code.run (Northflank free plan + Neon Postgres; see "Deploying" below) · sign in with `demo@catalogforge.dev` / `demo1234`. The account is shared, so it is locked down: no API key, language or country-map changes, import budgets capped at $2, AI re-runs rate-limited (EDGE-CASES I12)
+> [!IMPORTANT]
+> **Live demo:** https://p01--catalog-forge--hhb44sdhtcg7.code.run
+>
+> **Evaluator login:** `demo@catalogforge.dev` / `demo1234` (type them on the sign-in page). Anyone can also click **Create an account** for a private store of their own.
+> Every account on the public site spends the same operator AI key, so all are locked down: no API key, language or country-map changes, import budgets capped at $2, AI re-runs rate-limited, at most 5 sign-ups per address per hour (EDGE-CASES I12).
+
+> [!NOTE]
+> **Accuracy at a glance** (real models: Haiku 5.5, with Sonnet 5.5 for photos and escalation; full table under [Measured numbers](#measured-numbers))
+> - **messy-120** (58 products, deliberately messy): product and variant **precision 100%, recall 100%**; price exactness **100%**; category **100%**; claim grounding **99.7%**; negated-claim violations **0**; review precision and recall **100%**; status accuracy **100%**.
+> - **new-12** (12 products seen in no other sample, German and French rows): recall **100%**, prices **100%**, category **100%**, claim grounding **100%**, negated violations **0**.
+> - **1,000-row sample:** the grouper recovers **477 of 477** products with no merges or splits; **3 of 7,924** translated fields failed verification and fell back to English with a flag.
+> - **Cost:** **$1.93 per 1,000 products** measured from the request log (realtime); Economy mode (Batch API) halves it.
+> - **Tests:** **2,140** automated tests in 80 files, including Postgres integration suites.
+>
+> The labelled samples come from this repository and the validator was tuned on them, so these figures show the catalogued messes are handled, not that every sheet scores 100%. See the honesty note under [Measured numbers](#measured-numbers).
+
 - **Sample files:** downloadable from the Upload tab (or `samples/`), from a 10-row happy path to a 10,000-row bulk sheet, a deliberately broken photo ZIP, a mysqldump with a `DROP TABLE` in it, and `new-12` + `photos-new-12.zip`: 12 products seen in no other sample (26 rows, 18 real openly licensed photos, credits in `samples/photos-src/new-12/CREDITS.md`) with German and French rows, six price formats, a weight in lbs, a `<script>` description, a SKU conflict, a duplicate, a row without a SKU and a negated claim; and `samples/houseplants-100/`: 121 rows that group into 103 products, 101 Wikimedia Commons photos named by SKU (credits in its `CREDITS.md`), two plants deliberately without a photo, and the mess its README lists (decimal commas, `€ 74`, `1.069,00 €`, `£42.50` with no currency column, `n/a`, `9 lbs`, `8 in x 35 in`, double-encoded German, a `<script>`, `rot`, a row without a SKU, a negated claim, a conflicting and an exact duplicate)
 - **Edge cases:** [EDGE-CASES.md](EDGE-CASES.md) (first commit with 138 entries, 166 today, statuses kept current) · **Plan:** [docs/PLAN.md](docs/PLAN.md) · **Render guide:** [docs/DEPLOY.md](docs/DEPLOY.md) · **Eval harness:** [eval/README.md](eval/README.md)
 
@@ -184,7 +199,7 @@ curl -X POST https://<host>/api/v1/imports -H "Authorization: Bearer cf_live_…
 | `DATABASE_URL` | Neon's **direct** (unpooled) URL. Migrations hold a session-level advisory lock and the queue, worker and dashboard share this pool (20 connections, above the embedded worker's 11 default slots); a transaction pooler cannot keep a session |
 | `DATABASE_POOL_URL` | Neon's pooled (`-pooler`) URL, optional; used by the storefront's read pool only. Neon's pooler rejects startup options, so `src/db/client.ts` skips the `statement_timeout` option on pooler URLs |
 | `WORKER_MODE=embedded`, `STORAGE_DRIVER=pg` | One process; photos live in Postgres |
-| `SEED_DEMO=false`, `DEMO_LOCKDOWN=true` | Boot does not re-seed; the shared demo account stays locked down (lockdown otherwise follows `SEED_DEMO`) |
+| `SEED_DEMO=false`, `DEMO_LOCKDOWN=true` | Boot does not re-seed; every account, the shared demo one and self-registered ones, stays locked down (lockdown otherwise follows `SEED_DEMO`) |
 | `AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY`, `APP_SECRET`, `APP_BASE_URL` | Real models, and the public URL |
 
 Recommended on the 256 MB free instance: `WORKER_CONCURRENCY=2` (the default queue drops to one slot, so photo processing and sheet parsing, the memory-heavy jobs, run one at a time), `VIPS_CONCURRENCY=1` (libvips, under sharp, uses one thread) and `NODE_OPTIONS=--max-old-space-size=192` (V8 collects garbage before the container limit). Leave `AI_CONCURRENCY` at its default 4: AI and translation jobs are network-bound and light on memory, so lowering it would only slow imports. Photo processing on a 0.1 vCPU instance was CPU-bound anyway, so the net effect is lower peak memory with no change to AI-stage speed.
@@ -199,7 +214,7 @@ Recommended on the 256 MB free instance: `WORKER_CONCURRENCY=2` (the default que
 
 The required features are built, and so are most bonus items, with gaps worth knowing about:
 
-- **Multi-store** works (every table and query is store-scoped, and the seed creates two stores), but there is no sign-up or store-creation screen; new stores come from the seed script.
+- **Multi-store** works (every table and query is store-scoped, and the seed creates two stores), and sign-up (`/signup`) creates an account with one store of its own, but there is no screen yet for adding a second store to an existing account; extra stores come from the seed script.
 - **The public API** creates imports and reads imports and products; it has no export endpoint. CSV, JSON and Shopify CSV export is in the dashboard only.
 - **Translation throughput.** Translation is one model call per product per locale. With real models it is the bottleneck: the 1,000-row run took 16 minutes end to end (≈ 62 rows/min), 12 of them translating. Batching several products per translation call is the fix.
 - **Storefront load numbers** were measured on a laptop, not on the deployed free tier, which has far less CPU and memory.
