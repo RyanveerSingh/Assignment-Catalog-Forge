@@ -144,7 +144,7 @@ export async function rematchPhotos(db: Db, storeId: string, importId: string): 
   const applied = await applyPhotoMatches(db, storeId, importId, result.matches);
   // A product that is already live (a re-upload, or an import that auto-published before its photos
   // finished processing) shows the new photos at once; words stay as published (EC-C13, F11).
-  for (const productId of applied.productIds) await republishIfLive(db, productId);
+  for (const productId of applied.productIds) await republishIfLive(db, storeId, productId);
   return { matched: applied.matched, unmatched: result.matches.filter((m) => m.method === "none").length, missing: result.missingReferences.length };
 }
 

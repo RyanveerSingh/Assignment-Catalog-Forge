@@ -135,7 +135,7 @@ export default async function ProductPage({ params }: { params: Params }) {
             <div className="space-y-12 md:col-span-7">
               {product.descriptionHtml ? (
                 <section aria-label="Description" lang={descriptionFallback ? "en" : undefined} className="max-w-prose">
-                  {/* Sanitised with sanitize-html at import and again before publish; this is the published snapshot, never raw supplier HTML. */}
+                  {/* Every locale's descriptionHtml (English, AI or manual translation) passes sanitizeDescriptionHtml in rebuildStorefrontRows right before the storefront row is written; manual translations are also sanitised when saved. */}
                   <div className="prose-product text-[16px] leading-relaxed text-ink md:text-[17px]" dangerouslySetInnerHTML={{ __html: product.descriptionHtml }} />
                 </section>
               ) : null}

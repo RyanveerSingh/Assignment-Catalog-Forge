@@ -1,4 +1,5 @@
 import { and, eq, notInArray } from "drizzle-orm";
+import { sanitizeDescriptionHtml } from "@/core/clean/html";
 import type { Db, DbOrTx } from "@/db/client";
 import { listPhotosForProducts } from "@/db/repositories/photos";
 import { getVariants } from "@/db/repositories/products";
@@ -22,9 +23,10 @@ function uniqueByBlob<T extends { blobId: string }>(rows: T[]): T[] {
  * Approve = copy the draft into the published snapshot and rebuild the storefront rows for every
  * locale. The storefront reads only those rows (EC-H1, H2, H6). Translations that are fresh, or
  * manual (even if outdated), are used; everything else falls back to English per field.
+ * Scoped by store so a guessed product id from another store publishes nothing (EC-I1).
  */
-export async function publishProduct(db: DbOrTx, productId: string): Promise<boolean> {
-  const [p] = await db.select().from(products).where(eq(products.id, productId)).limit(1);
+export async function publishProduct(db: DbOrTx, storeId: string, productId: string): Promise<boolean> {
+  const [p] = await db.select().from(products).where(and(eq(products.storeId, storeId), eq(products.id, productId))).limit(1);
   if (!p || !p.draft || p.deletedAt) return false;
   const [store] = await db.select({ locales: stores.locales }).from(stores).where(eq(stores.id, p.storeId)).limit(1);
   if (!store) return false;
@@ -50,14 +52,22 @@ export async function publishProduct(db: DbOrTx, productId: string): Promise<boo
     publishedAt: new Date().toISOString(),
     version: p.version,
   };
-  await db.update(products).set({ published: snapshot, publishedAt: new Date(), updatedAt: new Date() }).where(eq(products.id, productId));
-  await rebuildStorefrontRows(db, p.storeId, productId, p.handle, snapshot, store.locales);
+  await db.update(products).set({ published: snapshot, publishedAt: new Date(), updatedAt: new Date() }).where(and(eq(products.storeId, storeId), eq(products.id, productId)));
+  await rebuildStorefrontRows(db, storeId, productId, p.handle, snapshot, store.locales);
   return true;
+}
+
+/**
+ * The storefront renders descriptionHtml raw, so this is the last barrier: whatever wrote it (the model, a
+ * manual translation, an older row stored before write-time sanitising existed) it passes the allowlist here (EC-B11, I3).
+ */
+function safeDescriptionHtml(html: string | null): string | null {
+  return html ? sanitizeDescriptionHtml(html).html : null;
 }
 
 /** Rewrite storefront rows from the published snapshot plus current translations (also run after translation updates). */
 export async function rebuildStorefrontRows(db: DbOrTx, storeId: string, productId: string, handle: string, snapshot: PublishedSnapshot, locales: string[]): Promise<void> {
-  const trows = await db.select().from(translations).where(eq(translations.productId, productId));
+  const trows = await db.select().from(translations).where(and(eq(translations.storeId, storeId), eq(translations.productId, productId)));
   const priced = snapshot.variants.filter((v) => v.priceCents !== null);
   const currencies = new Set(priced.map((v) => v.currency));
   const priceFrom = priced.length ? Math.min(...priced.map((v) => v.priceCents as number)) : null;
@@ -72,7 +82,8 @@ export async function rebuildStorefrontRows(db: DbOrTx, storeId: string, product
       return { text: english, fallback: true };
     };
     const title = pick("title", snapshot.title);
-    const desc = pick("descriptionHtml", snapshot.descriptionHtml);
+    const descPicked = pick("descriptionHtml", snapshot.descriptionHtml);
+    const desc = { ...descPicked, text: safeDescriptionHtml(descPicked.text) };
     const metaTitle = pick("metaTitle", snapshot.seo.metaTitle);
     const metaDesc = pick("metaDescription", snapshot.seo.metaDescription);
     const fallbackFields = [title.fallback && "title", desc.fallback && "descriptionHtml", metaTitle.fallback && "metaTitle", metaDesc.fallback && "metaDescription"].filter((x): x is string => typeof x === "string");
@@ -122,14 +133,14 @@ export async function rebuildStorefrontRows(db: DbOrTx, storeId: string, product
       });
   }
   if (locales.length > 0) {
-    await db.delete(storefrontProducts).where(and(eq(storefrontProducts.productId, productId), notInArray(storefrontProducts.locale, locales)));
+    await db.delete(storefrontProducts).where(and(eq(storefrontProducts.storeId, storeId), eq(storefrontProducts.productId, productId), notInArray(storefrontProducts.locale, locales)));
   }
 }
 
-/** Remove a product from the storefront (reject, delete, archive) without touching the draft (EC-F2, H5). */
-export async function unpublishProduct(db: DbOrTx, productId: string): Promise<void> {
-  await db.delete(storefrontProducts).where(eq(storefrontProducts.productId, productId));
-  await db.update(products).set({ published: null, publishedAt: null, updatedAt: new Date() }).where(eq(products.id, productId));
+/** Remove a product from the storefront (reject, delete, archive) without touching the draft (EC-F2, H5). Store-scoped (EC-I1). */
+export async function unpublishProduct(db: DbOrTx, storeId: string, productId: string): Promise<void> {
+  await db.delete(storefrontProducts).where(and(eq(storefrontProducts.storeId, storeId), eq(storefrontProducts.productId, productId)));
+  await db.update(products).set({ published: null, publishedAt: null, updatedAt: new Date() }).where(and(eq(products.storeId, storeId), eq(products.id, productId)));
 }
 
 /**
@@ -137,14 +148,15 @@ export async function unpublishProduct(db: DbOrTx, productId: string): Promise<v
  * a photo is assigned by hand (EC-C13). Photos are deterministic, never AI output, so the snapshot's image
  * ids are refreshed from the matched photos here instead of waiting for a re-approve; words stay as published.
  */
-export async function republishIfLive(db: Db, productId: string): Promise<void> {
-  const [p] = await db.select({ storeId: products.storeId, handle: products.handle, published: products.published, deletedAt: products.deletedAt }).from(products).where(eq(products.id, productId)).limit(1);
+export async function republishIfLive(db: Db, storeId: string, productId: string): Promise<void> {
+  const [p] = await db.select({ handle: products.handle, published: products.published, deletedAt: products.deletedAt }).from(products).where(and(eq(products.storeId, storeId), eq(products.id, productId))).limit(1);
   if (!p?.published || p.deletedAt) return;
-  const [store] = await db.select({ locales: stores.locales }).from(stores).where(eq(stores.id, p.storeId)).limit(1);
+  const [store] = await db.select({ locales: stores.locales }).from(stores).where(eq(stores.id, storeId)).limit(1);
   if (!store) return;
+  // Only reached for a product proven above to belong to storeId, so the id-keyed photo and variant reads stay in-store.
   const snapshot = await withCurrentImages(db, productId, p.published);
-  if (snapshot !== p.published) await db.update(products).set({ published: snapshot, updatedAt: new Date() }).where(eq(products.id, productId));
-  await rebuildStorefrontRows(db, p.storeId, productId, p.handle, snapshot, store.locales);
+  if (snapshot !== p.published) await db.update(products).set({ published: snapshot, updatedAt: new Date() }).where(and(eq(products.storeId, storeId), eq(products.id, productId)));
+  await rebuildStorefrontRows(db, storeId, productId, p.handle, snapshot, store.locales);
 }
 
 /** The snapshot with image ids as the matched photos stand now; the same object back when nothing changed. */
@@ -161,7 +173,8 @@ async function withCurrentImages(db: DbOrTx, productId: string, snapshot: Publis
 export const publishHandler: JobHandler = async ({ job, db }) => {
   const productId = job.payload.productId as string | undefined;
   if (!productId) throw new JobError("publish job without productId", { retryable: false });
-  await publishProduct(db, productId);
+  if (!job.storeId) throw new JobError("publish job without storeId", { retryable: false });
+  await publishProduct(db, job.storeId, productId);
 };
 
 export function contentFields(content: ProductContent): Array<{ field: string; text: string; kind: "title" | "html" | "meta" | "plain" }> {

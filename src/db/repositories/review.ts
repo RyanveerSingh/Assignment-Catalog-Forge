@@ -1,5 +1,6 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { isPromptVersion } from "@/core/ai/prompts";
+import { htmlToText, sanitizeDescriptionHtml } from "@/core/clean/html";
 import type { Db } from "@/db/client";
 import { publishProduct, republishIfLive, unpublishProduct } from "@/jobs/publish";
 import { auditLog, products, translations, type ProductContent } from "@/db/schema";
@@ -8,7 +9,8 @@ import { wakeWorker } from "@/lib/events";
 
 /**
  * Merchant actions on products. Every change is audited, every edit becomes a manual override
- * that later AI runs and re-imports never overwrite (EC-F1–F7).
+ * that later AI runs and re-imports never overwrite (EC-F1–F7). Every read and write is filtered by the
+ * caller's store: a product id from another store behaves exactly like one that does not exist (EC-I1).
  */
 
 export interface ActionResult {
@@ -42,7 +44,7 @@ export async function updateProductDraft(
     await tx
       .update(products)
       .set({ draft: next, manualOverrides: overrides, version: p.version + 1, translatedAt: changedFields.length ? null : undefined, updatedAt: new Date() })
-      .where(eq(products.id, productId));
+      .where(and(eq(products.storeId, storeId), eq(products.id, productId)));
     await tx.insert(auditLog).values({ storeId, actorId, entity: "product", entityId: productId, action: "edit", diff: { fields: changedFields, before: pick(current, changedFields), after: pick(next, changedFields) } });
     wakeWorker();
     return { ok: true, version: p.version + 1 };
@@ -78,8 +80,8 @@ export async function approveProduct(db: Db, storeId: string, productId: string,
   if (!p.draft) return { ok: false, code: "no_draft", message: "The AI has not written this product yet" };
   if (p.status === "needs_review" && !opts.force) return { ok: false, code: "needs_review", message: "This product needs review; confirm to approve anyway" };
   if (p.status === "pending_ai" || p.status === "failed") return { ok: false, code: "not_ready", message: `Product is ${p.status.replace("_", " ")}` };
-  await db.update(products).set({ status: "approved", approvedAt: new Date(), sourceChangedAt: null, updatedAt: new Date() }).where(eq(products.id, productId));
-  await publishProduct(db, productId);
+  await db.update(products).set({ status: "approved", approvedAt: new Date(), sourceChangedAt: null, updatedAt: new Date() }).where(and(eq(products.storeId, storeId), eq(products.id, productId)));
+  await publishProduct(db, storeId, productId);
   await db.insert(auditLog).values({ storeId, actorId, entity: "product", entityId: productId, action: "approve", diff: { from: p.status, forced: Boolean(opts.force) } });
   return { ok: true };
 }
@@ -87,8 +89,8 @@ export async function approveProduct(db: Db, storeId: string, productId: string,
 export async function rejectProduct(db: Db, storeId: string, productId: string, actorId: string | null, reason: string | null): Promise<ActionResult> {
   const [p] = await db.select({ status: products.status }).from(products).where(and(eq(products.storeId, storeId), eq(products.id, productId))).limit(1);
   if (!p) return { ok: false, code: "not_found", message: "Product not found" };
-  await db.update(products).set({ status: "rejected", updatedAt: new Date() }).where(eq(products.id, productId));
-  await unpublishProduct(db, productId);
+  await db.update(products).set({ status: "rejected", updatedAt: new Date() }).where(and(eq(products.storeId, storeId), eq(products.id, productId)));
+  await unpublishProduct(db, storeId, productId);
   await db.insert(auditLog).values({ storeId, actorId, entity: "product", entityId: productId, action: "reject", diff: { from: p.status, reason } });
   return { ok: true };
 }
@@ -97,7 +99,7 @@ export async function sendBackProduct(db: Db, storeId: string, productId: string
   const [p] = await db.select({ status: products.status, reviewReasons: products.reviewReasons }).from(products).where(and(eq(products.storeId, storeId), eq(products.id, productId))).limit(1);
   if (!p) return { ok: false, code: "not_found", message: "Product not found" };
   const reasons = [...p.reviewReasons.filter((r) => !r.startsWith("Sent back:")), `Sent back: ${reason}`];
-  await db.update(products).set({ status: "needs_review", reviewReasons: reasons, updatedAt: new Date() }).where(eq(products.id, productId));
+  await db.update(products).set({ status: "needs_review", reviewReasons: reasons, updatedAt: new Date() }).where(and(eq(products.storeId, storeId), eq(products.id, productId)));
   await db.insert(auditLog).values({ storeId, actorId, entity: "product", entityId: productId, action: "send_back", diff: { from: p.status, reason } });
   return { ok: true };
 }
@@ -119,7 +121,7 @@ export async function rerunProductAi(db: Db, storeId: string, productId: string,
   await db
     .update(products)
     .set({ status: "pending_ai", aiBatchKey: batchKey, aiTier: opts.tier ?? null, promptVersion: opts.promptVersion ?? undefined, reviewReasons: [], updatedAt: new Date() })
-    .where(eq(products.id, productId));
+    .where(and(eq(products.storeId, storeId), eq(products.id, productId)));
   const { enqueue } = await import("@/queue/queue");
   await enqueue(db, { key: batchKey, type: "products.enrich", queue: "ai", priority: 20, storeId, importId: p.lastImportId ?? undefined, payload: { productIds: [productId], tier: opts.tier ?? "cheap", rerun: true, promptVersion: opts.promptVersion } });
   await db.insert(auditLog).values({ storeId, actorId, entity: "product", entityId: productId, action: "rerun_ai", diff: { from: p.status, tier: opts.tier ?? null, promptVersion: opts.promptVersion ?? null } });
@@ -128,16 +130,25 @@ export async function rerunProductAi(db: Db, storeId: string, productId: string,
 }
 
 export async function softDeleteProduct(db: Db, storeId: string, productId: string, actorId: string | null): Promise<ActionResult> {
-  await db.update(products).set({ deletedAt: new Date(), updatedAt: new Date() }).where(and(eq(products.storeId, storeId), eq(products.id, productId)));
-  await unpublishProduct(db, productId);
+  const deleted = await db
+    .update(products)
+    .set({ deletedAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(products.storeId, storeId), eq(products.id, productId)))
+    .returning({ id: products.id });
+  if (deleted.length === 0) return { ok: false, code: "not_found", message: "Product not found" };
+  await unpublishProduct(db, storeId, productId);
   await db.insert(auditLog).values({ storeId, actorId, entity: "product", entityId: productId, action: "delete", diff: null });
   return { ok: true };
 }
 
 export async function restoreProduct(db: Db, storeId: string, productId: string, actorId: string | null): Promise<ActionResult> {
-  await db.update(products).set({ deletedAt: null, updatedAt: new Date() }).where(and(eq(products.storeId, storeId), eq(products.id, productId)));
-  const [p] = await db.select({ status: products.status }).from(products).where(eq(products.id, productId)).limit(1);
-  if (p?.status === "approved") await publishProduct(db, productId);
+  const [p] = await db
+    .update(products)
+    .set({ deletedAt: null, updatedAt: new Date() })
+    .where(and(eq(products.storeId, storeId), eq(products.id, productId)))
+    .returning({ status: products.status });
+  if (!p) return { ok: false, code: "not_found", message: "Product not found" };
+  if (p.status === "approved") await publishProduct(db, storeId, productId);
   await db.insert(auditLog).values({ storeId, actorId, entity: "product", entityId: productId, action: "restore", diff: null });
   return { ok: true };
 }
@@ -180,18 +191,39 @@ export async function bulkRerunAi(db: Db, storeId: string, ids: string[], actorI
   return { queued, skipped };
 }
 
+/**
+ * A merchant's translation, made safe before it is stored: the description goes through the same allowlist
+ * as the PATCH route, every other field is plain text and loses all markup (EC-B11, I3). Unknown fields are
+ * refused rather than stored, since nothing would ever read them.
+ */
+export function cleanManualTranslation(field: string, text: string): { ok: true; text: string | null } | { ok: false } {
+  if (field === "descriptionHtml") return { ok: true, text: sanitizeDescriptionHtml(text).html };
+  const plainField = field === "title" || field === "metaTitle" || field === "metaDescription" || (field.startsWith("attributes.") && field.length > "attributes.".length);
+  if (!plainField) return { ok: false };
+  // htmlToText decodes entities, so "&lt;script&gt;" would come back as markup; drop angle brackets outright.
+  const plain = htmlToText(text).replace(/[<>]/g, "").trim();
+  return { ok: true, text: plain === "" ? null : plain };
+}
+
 /** A merchant's translation fix: wins over the AI, keyed to the current English (EC-F3). */
 export async function setManualTranslation(db: Db, storeId: string, productId: string, field: string, locale: string, text: string, actorId: string | null): Promise<ActionResult> {
+  const cleaned = cleanManualTranslation(field, text);
+  if (!cleaned.ok) return { ok: false, code: "invalid_field", message: `"${field}" cannot be translated` };
+  const safe = cleaned.text;
   const [p] = await db.select({ draft: products.draft }).from(products).where(and(eq(products.storeId, storeId), eq(products.id, productId))).limit(1);
   if (!p?.draft) return { ok: false, code: "not_found", message: "Product not found" };
   const english = englishFor(p.draft, field);
   const sourceHash = sha256Hex(english ?? "");
   await db
     .insert(translations)
-    .values({ productId, storeId, field, locale, sourceHash, text, origin: "manual", status: "fresh", updatedAt: new Date() })
-    .onConflictDoUpdate({ target: [translations.productId, translations.field, translations.locale], set: { sourceHash, text, origin: "manual", status: "fresh", error: null, updatedAt: new Date() } });
-  await db.insert(auditLog).values({ storeId, actorId, entity: "translation", entityId: `${productId}:${field}:${locale}`, action: "manual_fix", diff: { text } });
-  await republishIfLive(db, productId);
+    .values({ productId, storeId, field, locale, sourceHash, text: safe, origin: "manual", status: "fresh", updatedAt: new Date() })
+    .onConflictDoUpdate({
+      target: [translations.productId, translations.field, translations.locale],
+      set: { sourceHash, text: safe, origin: "manual", status: "fresh", error: null, updatedAt: new Date() },
+      setWhere: eq(translations.storeId, storeId),
+    });
+  await db.insert(auditLog).values({ storeId, actorId, entity: "translation", entityId: `${productId}:${field}:${locale}`, action: "manual_fix", diff: { text: safe } });
+  await republishIfLive(db, storeId, productId);
   return { ok: true };
 }
 

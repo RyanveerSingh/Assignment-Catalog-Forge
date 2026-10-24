@@ -1,4 +1,5 @@
 import "@/lib/env";
+import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDb, getDb, type Db } from "@/db/client";
 import { runMigrations } from "@/db/migrate";
@@ -6,6 +7,9 @@ import { createImport, getImport } from "@/db/repositories/imports";
 import { applyPhotoMatches, insertPhoto, listPhotosForImport } from "@/db/repositories/photos";
 import { getProduct, upsertProductFromGroup } from "@/db/repositories/products";
 import { listProducts } from "@/db/repositories/products-query";
+import { approveProduct, bulkApprove, bulkRerunAi, rejectProduct, rerunProductAi, restoreProduct, sendBackProduct, setManualTranslation, softDeleteProduct, updateProductDraft } from "@/db/repositories/review";
+import { auditLog, products, storefrontProducts, translations, type ProductContent } from "@/db/schema";
+import { publishProduct, republishIfLive, unpublishProduct } from "@/jobs/publish";
 import { createStore, getUserStore, registerUser } from "@/lib/auth";
 import { resetConfigForTests } from "@/lib/config";
 import type { ProductGroup } from "@/core/types";
@@ -92,6 +96,66 @@ describe.skipIf(!process.env.DATABASE_URL)("store isolation (integration)", () =
     expect(a.created).toBe(true);
     expect(b.created).toBe(true);
     expect(a.productId).not.toBe(b.productId);
+  });
+
+  describe("write paths", () => {
+    let liveA: string;
+
+    async function snapshotOfA() {
+      const [p] = await db.select({ status: products.status, deletedAt: products.deletedAt, draft: products.draft, published: products.published, version: products.version, reviewReasons: products.reviewReasons }).from(products).where(eq(products.id, liveA));
+      const rows = await db.select({ locale: storefrontProducts.locale, title: storefrontProducts.title, descriptionHtml: storefrontProducts.descriptionHtml }).from(storefrontProducts).where(eq(storefrontProducts.productId, liveA)).orderBy(storefrontProducts.locale);
+      const trows = await db.select({ field: translations.field, locale: translations.locale, text: translations.text }).from(translations).where(eq(translations.productId, liveA));
+      return { product: p, rows, trows };
+    }
+
+    beforeAll(async () => {
+      const stamp = Date.now();
+      liveA = (await upsertProductFromGroup(db, storeA, importA, group(`LIVE-${stamp}`))).productId;
+      const draft: ProductContent = { title: "Store A pot", descriptionHtml: "<p>Store A copy</p>", category: null, tags: [], attributes: {}, seo: { metaTitle: null, metaDescription: null } };
+      await db.update(products).set({ draft, status: "draft" }).where(eq(products.id, liveA));
+      expect(await approveProduct(db, storeA, liveA, null)).toEqual({ ok: true });
+    });
+
+    it("EC-I1: store B cannot delete, restore, approve, reject, send back, edit, re-run or translate store A's product", async () => {
+      const before = await snapshotOfA();
+      expect(before.rows.length).toBeGreaterThan(0);
+      expect(before.product?.published).not.toBeNull();
+
+      const notFound = { ok: false, code: "not_found" };
+      expect(await softDeleteProduct(db, storeB, liveA, userB)).toMatchObject(notFound);
+      expect(await restoreProduct(db, storeB, liveA, userB)).toMatchObject(notFound);
+      expect(await approveProduct(db, storeB, liveA, userB, { force: true })).toMatchObject(notFound);
+      expect(await rejectProduct(db, storeB, liveA, userB, "x")).toMatchObject(notFound);
+      expect(await sendBackProduct(db, storeB, liveA, userB, "x")).toMatchObject(notFound);
+      expect(await updateProductDraft(db, storeB, liveA, { title: "Hijacked" }, before.product?.version ?? 0, userB)).toMatchObject(notFound);
+      expect(await rerunProductAi(db, storeB, liveA, userB, {})).toMatchObject(notFound);
+      expect(await setManualTranslation(db, storeB, liveA, "title", "de", "Gekapert", userB)).toMatchObject(notFound);
+      expect(await bulkApprove(db, storeB, [liveA], userB, { includeNeedsReview: true })).toEqual({ approved: [], skipped: [] });
+      expect(await bulkRerunAi(db, storeB, [liveA], userB, {})).toEqual({ queued: [], skipped: [] });
+
+      expect(await snapshotOfA()).toEqual(before);
+    });
+
+    it("EC-I1: publish, unpublish and republish do nothing to a product outside the given store", async () => {
+      const before = await snapshotOfA();
+      await unpublishProduct(db, storeB, liveA);
+      expect(await publishProduct(db, storeB, liveA)).toBe(false);
+      await republishIfLive(db, storeB, liveA);
+      expect(await snapshotOfA()).toEqual(before);
+    });
+
+    it("EC-I1: store B deleting store A's product writes no audit entry in store B", async () => {
+      await softDeleteProduct(db, storeB, liveA, userB);
+      const rows = await db.select({ id: auditLog.id }).from(auditLog).where(and(eq(auditLog.storeId, storeB), eq(auditLog.entityId, liveA)));
+      expect(rows).toEqual([]);
+    });
+
+    it("EC-I1: the owning store can still delete and restore its own product", async () => {
+      expect(await softDeleteProduct(db, storeA, liveA, null)).toEqual({ ok: true });
+      expect(await db.select().from(storefrontProducts).where(eq(storefrontProducts.productId, liveA))).toEqual([]);
+      expect(await restoreProduct(db, storeA, liveA, null)).toEqual({ ok: true });
+      expect((await db.select().from(storefrontProducts).where(eq(storefrontProducts.productId, liveA))).length).toBeGreaterThan(0);
+    });
   });
 
   it("EC-I1: a photo matched by key or SKU attaches only to this store's product, never to the same key elsewhere", async () => {

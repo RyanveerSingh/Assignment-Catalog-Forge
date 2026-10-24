@@ -3,14 +3,13 @@ import { getDb } from "@/db/client";
 import { assignPhotoToProduct, dismissPhoto, restorePhoto } from "@/db/repositories/photos";
 import { republishIfLive } from "@/jobs/publish";
 import { HttpError, json, withApi } from "@/lib/http";
+import { isUuid } from "@/lib/ids";
 import { requireStore } from "@/lib/session";
 
 type Ctx = { params: Promise<{ slug: string; id: string }> };
 
-const UUID_RE = /^[0-9a-f-]{36}$/i;
-
 const actionSchema = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("assign"), productId: z.string().regex(UUID_RE) }),
+  z.object({ action: z.literal("assign"), productId: z.string().refine(isUuid, "productId must be a UUID") }),
   z.object({ action: z.literal("dismiss") }),
   z.object({ action: z.literal("restore") }),
 ]);
@@ -19,7 +18,7 @@ const actionSchema = z.discriminatedUnion("action", [
 export const PATCH = withApi(async (req: Request, { params }: Ctx) => {
   const { slug, id } = await params;
   const { store, user } = await requireStore(slug);
-  if (!UUID_RE.test(id)) throw new HttpError(404, "photo_not_found", "Photo not found");
+  if (!isUuid(id)) throw new HttpError(404, "photo_not_found", "Photo not found");
   const parsed = actionSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) throw new HttpError(400, "invalid_body", "Invalid photo action", parsed.error.issues);
   const db = getDb();
@@ -39,6 +38,6 @@ export const PATCH = withApi(async (req: Request, { params }: Ctx) => {
     throw new HttpError(notFound ? 404 : 409, result.code ?? "error", result.message ?? "Action failed");
   }
   // A live product shows its photos from the storefront rows, so rebuild them now rather than on the next approve.
-  if (a.action === "assign") await republishIfLive(db, a.productId);
+  if (a.action === "assign") await republishIfLive(db, store.id, a.productId);
   return json({ ok: true });
 });
