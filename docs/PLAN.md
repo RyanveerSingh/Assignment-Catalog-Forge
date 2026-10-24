@@ -38,7 +38,7 @@ flowchart LR
 One repo, one Node codebase, two run modes:
 
 - `WORKER_MODE=embedded` (free deployment): the Next.js server starts the worker loop in the same process at boot.
-- `WORKER_MODE=separate` (local docker-compose, paid hosts): `src/worker` runs as its own process/container and can be killed independently, which is what the restart scene in the recording shows.
+- `WORKER_MODE=separate` (local docker-compose, paid hosts): `src/worker` runs as its own process/container and can be killed independently to demonstrate a restart (the integration test `EC-E1` does the same in code).
 
 ### Design principles
 
@@ -403,7 +403,7 @@ Plan written at 02:16 IST on Thu 23 Oct → ~45 h remain. Code freeze at 20:00 I
 | Fri 12:00 | Metrics tab + savings meter; eval harness + golden set + A/B; auth + multi-store + isolation test; webhooks; public API; Shopify CSV (in this priority order; cut from the end if behind) | `feat(metrics)`, `feat(eval)`, `feat(auth)`, `feat(api)` |
 | Fri 17:00 | Production 10k run on Render; crash the process on purpose; collect numbers; fix what breaks | `fix: …`, `perf: …` |
 | Fri 20:00 | **Code freeze.** README (architecture, setup, scale strategy, cost strategy, numbers, write-up answers), EDGE-CASES.md status pass, screenshots/GIFs | `docs: …` |
-| Fri 22:00 | Ryanveer records the video from the shot list; final EDGE-CASES.md honesty pass | |
+| Fri 22:00 | Ryanveer records the video; final EDGE-CASES.md honesty pass | |
 | Fri 23:00 | Email sent (repo link, demo URL, recording, write-up) | |
 
 Cut order if we fall behind (last cut first): Shopify CSV → public API → webhooks → A/B UI → Playwright → metrics charts (keep the numbers as tables). Never cut: restart resume, dedupe, grounding validator, storefront isolation, EDGE-CASES.md.
@@ -415,19 +415,21 @@ Cut order if we fall behind (last cut first): Shopify CSV → public API → web
 - [ ] Repo with full history; first commit = `EDGE-CASES.md`
 - [ ] README: architecture diagram, setup (local via docker-compose; prod via Render + Neon), stack and decisions, scale strategy, cost strategy, screenshots/GIFs, write-up answers (hardest part, accuracy approach, measured numbers, 1M×8 analysis, learnings, how AI was used)
 - [ ] EDGE-CASES.md with statuses, updated through the build
-- [ ] Live demo on Render with demo login, sample files downloadable from the Upload tab, demo mode when no key is set, Settings page to add a key
-- [ ] Screen recording 3–5 min (shot list below)
+- [ ] Live demo with demo login, sample files downloadable from the Upload tab, demo mode when no key is set, Settings page to add a key. Deployed as the Docker image on Northflank's free plan (London) with Neon Postgres (Frankfurt): https://p01--catalog-forge--hhb44sdhtcg7.code.run. The shared demo account is locked down (`src/lib/demo-lockdown.ts`)
+- [ ] Screen recording, 6–8 min, following the recording plan below
 - [ ] Measured numbers: rows/min (1k and 10k, Fast and Economy, local and hosted), storefront p50/p95/p99 with and without an import, cost per 1,000 products per scenario, eval accuracy per field
 
-**Recording shot list (each scene is one click thanks to the chaos panel):**
-1. Upload `messy-120.csv` + `photos-messy.zip` → pre-flight (issues, estimate) → run → the data-hygiene flow fills in stage by stage (duplicates collapsed, mojibake and HTML repaired, prices and units normalised, routing split, grounding gate).
-2. Review drawer on a German-source product: hover a claim chip and watch the exact quoted words light up in the source cell; a Guardrail badge for a blocked claim ("source says 'not frost-proof'"); toggle "Show cleaning" to see `1.299,00 €` become 129900 cents EUR and `3.96 lbs` become grams; photo badges showing SKU / stem / manual matches.
-3. Products tab: the "Unmatched photos" tray → assign an orphan photo to a product → open the storefront page and the image is there.
-4. Upload `dump-mysql.sql` (a mysqldump with a `DROP TABLE` in it) and show it parses to the same rows; paste a public Google Sheets link and show it imports.
-5. Upload `bulk-10000.csv` → live progress → open the storefront in another tab, switch country to DE/FR, mobile view → run autocannon in a terminal while importing.
-6. Settings → "Crash worker now" mid-import: the event log shows the reaper reclaiming the abandoned jobs, the import resumes with counts unchanged, the storefront tab never stopped responding.
-7. Chaos: 429 at 50% → "Paused — resuming in X" → auto-resume; invalid JSON injection → retry visible in the event log; "invented claim" at 100% → re-run a product and watch the Guardrail badge block "frost-proof" against "not frost-proof".
-8. Metrics: throughput, the cost-strategies table (Sonnet everywhere vs routed vs actual vs Batch), savings meter, translation coverage and outdated count; Products: edit a translation, change the English, see Out of date.
+**Recording plan.** The video walks the live site with `samples/houseplants-100/` (121 rows, 103 products, 101 photos), imported fresh into the Second Store because the Demo Store already holds it:
+1. Landing page: the problem and the one-line promise.
+2. Live import: upload the sheet + photo ZIP, the stage stepper (Queued → Parsing → Cleaning → Grouping → Writing → Translating → Finalizing → Done), the counts, the event log, the cost tile.
+3. The cleaning on real rows: "What we fixed in your sheet", then "Show cleaning" on the decimal comma, `£` with no currency column, `n/a` price, imperial units, the mojibake title, the pasted `<script>`, the row without a SKU, the duplicate row and the SKU with two prices.
+4. Review queue: the SKU conflict, the missing price and the photo-less products with their reasons; claim chips citing source cells; approve one.
+5. Storefront in EN/DE/FR, a product page, the phone preview in the dashboard.
+6. Metrics (Demo Store): cost per product, model routing, the cost-strategies table.
+7. Technical tour: Postgres queue with leases, heartbeats and the reaper; idempotency keys; deterministic cleaner vs AI; grounding validator; translation sentinels; storefront read pool and cache versioning; SSE with polling fallback; store isolation; demo lockdown; upload caps; tests; Docker on Northflank + Neon.
+8. Close.
+
+The crash, chaos, SQL-dump, Google-Sheets and 10k scenes from the first shot list are out of this cut to keep it inside 8 minutes. The features are still there, and the integration tests and README cover them.
 
 ---
 
@@ -442,7 +444,7 @@ Constraint from Ryanveer: nothing paid. Verified on 2026-10-23 that everything b
 | 3 | **Render account** (Free) | Hosts the web process with the embedded worker. No card. | Sign up at render.com with GitHub. When I say so, click "New → Blueprint", pick the repo (I will commit `render.yaml`), and paste the env vars I give you. The free service spins down after 15 min idle and wakes in ~1 min; the dashboard polls while open so a watched import keeps it awake. |
 | 4 | **Neon account** (Free) | Postgres for production. 1 GB, 100 compute-hours/month, no card, data never deleted. | Sign up at neon.com with GitHub, create a project `catalogforge` (region: Frankfurt or Singapore, closest to Render's region), copy the **direct** connection string into Render's env as `DATABASE_URL` and the **pooled** one as `DATABASE_POOL_URL`. |
 | 5 | **Docker Desktop running** | Local Postgres via docker-compose. Done. | Keep it running. |
-| 6 | **The screen recording** | Only you can record and narrate. | OBS or Loom (free), 3–5 min, following the shot list in section 15. |
+| 6 | **The screen recording** | Only you can record and narrate. | OBS or Loom (free), 6–8 min, following the recording plan in section 15. |
 | 7 | Optional: a real supplier sheet | Extra messy test data. | Drop it into `samples/private/` (git-ignored). |
 
 Everything else (pnpm, autocannon, sample data, taxonomy file, golden set, `render.yaml`) I will install or generate.
