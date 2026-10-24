@@ -118,6 +118,8 @@ export interface ExpandOptions {
 }
 
 const round1 = (n: number): number => Math.round(n * 10) / 10;
+/** A lone thousands dot and no decimals ("1.299"): the mess `priceAmbiguous` writes. */
+const AMBIGUOUS_PRICE = /^\d{1,3}(?:\.\d{3})+$/;
 
 /** Base dims scaled to a size option; a "NN cm" label is the diameter (or height for tall items). */
 function scaledDims(base: Dims, size: SizeOption | null): Dims {
@@ -304,6 +306,8 @@ export function buildGroundTruth(opts: GroundTruthOptions): GroundTruthFile {
     }
     acc.sourceRows.push(rowNumber);
     if (row.kind === "conflict") acc.reasons.add("sku_conflict");
+    // "1.299" could be 1.299 or 1,299: the app sends it to review rather than publish a guess (EC-B5).
+    if (AMBIGUOUS_PRICE.test(row.cells.price ?? "")) acc.reasons.add("price_unclear");
     if (row.truth && !acc.variants.has(row.truth.sku)) acc.variants.set(row.truth.sku, row.truth);
   }
 

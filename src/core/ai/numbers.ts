@@ -45,3 +45,31 @@ export function collectSourceNumbers(group: ProductGroup): Set<string> {
   }
   return out;
 }
+
+/** A unit, percent or degree straight after a number: "100%", "-10 °C", "5-year". */
+const UNIT_AFTER_RE = /^[\s-]?(?:%|°|"|(?:cm|mm|m|inch|inches|ft|kg|g|lbs?|oz|l|ml|cl|litres?|liters?|degrees?|grad|w|watts?|v|kw|mah|lm|lumens?|h|hrs?|hours?|years?|yrs?|months?|jahre?|ans?)(?![\p{L}\p{N}]))/iu;
+const CONTEXT_CHARS = 30;
+
+export interface NumberInContext {
+  value: string;
+  /** The number as written with its unit: "100%", "10 °C". */
+  written: string;
+  /** A unit, percent sign or degree follows it. */
+  unit: boolean;
+  /** The words around it in the same sentence, for finding a claim term next to it. */
+  context: string;
+}
+
+/** Every number in the text with what surrounds it; the audit treats a number tied to a unit or a claim as a claim. */
+export function numbersInContext(text: string): NumberInContext[] {
+  const out: NumberInContext[] = [];
+  for (const m of text.matchAll(NUMBER_RE)) {
+    const start = m.index ?? 0;
+    const end = start + m[0].length;
+    const unit = UNIT_AFTER_RE.exec(text.slice(end));
+    const before = text.slice(Math.max(0, start - CONTEXT_CHARS), start).split(/[.!?;\n]\s/).pop() ?? "";
+    const after = text.slice(end, end + CONTEXT_CHARS).split(/[.!?;\n](?:\s|$)/)[0] ?? "";
+    out.push({ value: normalizeNumber(m[0]), written: `${m[0]}${unit ? unit[0] : ""}`.trim(), unit: unit !== null, context: `${before}${m[0]}${after}` });
+  }
+  return out;
+}

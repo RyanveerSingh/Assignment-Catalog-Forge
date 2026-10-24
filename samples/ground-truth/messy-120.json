@@ -2336,8 +2336,10 @@
         "flat-packed"
       ],
       "categoryPrefix": "Furniture > Tables > Side Tables",
-      "expectedReviewReasons": [],
-      "expectedStatus": "done",
+      "expectedReviewReasons": [
+        "price_unclear"
+      ],
+      "expectedStatus": "needs_review",
       "language": "en",
       "negatedClaims": [],
       "photos": [

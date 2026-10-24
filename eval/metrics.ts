@@ -221,7 +221,7 @@ export function scorePair(derived: DerivedProduct, truth: GroundTruthProduct): P
       negatedViolations += 1;
       violations.push(`claim "${c}" (source negates "${negated}")`);
     }
-    const asserted = listingFields.reduce((n, field) => n + countAsserted(foldClaim(field), negated), 0);
+    const asserted = listingFields.reduce((n, field) => n + countAsserted(field, negated), 0);
     if (asserted > 0) {
       negatedViolations += asserted;
       violations.push(`"${negated}" asserted ${asserted}× in the listing text`);

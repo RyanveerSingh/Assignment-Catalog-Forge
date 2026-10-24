@@ -194,6 +194,18 @@ describe("scorePair: claims", () => {
     expect(countAsserted("not really ever truly frost proof", "frost proof")).toBe(1);
     expect(countAsserted("frost proof is not what this is", "frost proof")).toBe(1);
   });
+
+  it.each([
+    ["This pot isn't frost-proof.", "frost proof", 0],
+    ["Glaze doesn't make it dishwasher safe; hand wash only.", "dishwasher safe", 0],
+    ["Dishwasher-safe? No. Hand wash only.", "dishwasher safe", 0],
+    ["Dishwasher safe: no", "dishwasher safe", 0],
+    ["Cannot go in the dishwasher, frostproof", "frost proof", 1],
+    ["Nicht frostsicher", "frostsicher", 0],
+    ["Dishwasher safe, no lid", "dishwasher safe", 1],
+  ])("EC-B15: countAsserted(%j, %j) uses the validator's negation rule → %i", (text, phrase, expected) => {
+    expect(countAsserted(text, phrase)).toBe(expected);
+  });
 });
 
 describe("scorePair: status and review reasons", () => {

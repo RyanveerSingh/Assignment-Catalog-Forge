@@ -293,7 +293,7 @@ describe("groundProductOutput", () => {
     const fine = groundProductOutput({ output: output({ description_html: "<p>Hand-made in natural jute, hand-thrown look.</p>" }), group, rows });
     expect(fine.reviewReasons.some((x) => x.includes("made in"))).toBe(false);
     const invented = groundProductOutput({ output: output({ description_html: "<p>Hand-thrown terracotta planter. Made in Portugal.</p>" }), group, rows });
-    expect(invented.reviewReasons).toContain('Listing says "made in" but the source does not');
+    expect(invented.reviewReasons).toContain('Listing says "Made in Portugal" but the source does not say it was made there');
     expect(invented.content.descriptionHtml).not.toMatch(/made in/i);
   });
 

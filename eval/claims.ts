@@ -2,8 +2,8 @@
  * Claim comparison for the eval: folding, allow-list matching, negation counting and the eval's own
  * citation check against the raw rows. Pure; shared by metrics.ts and the report.
  */
+import { negatedAt, tokenizeClauses } from "@/core/ai/negation";
 import { foldForMatch, repairMojibake } from "@/core/clean/text";
-
 
 /** Lower-case, accent-free, punctuation → space: "Dishwasher-Safe" and "dishwasher safe" compare equal. */
 export function foldClaim(text: string): string {
@@ -54,21 +54,22 @@ export function assertsNegated(claim: string, negated: string): boolean {
   return claim === negated || subset(tokens(claim), tokens(negated)) || claim === negated.replace(/ /g, "");
 }
 
-const NEGATIONS: ReadonlySet<string> = new Set(["not", "no", "non", "never", "without", "nicht", "kein", "keine", "ohne", "pas", "sans", "aucun", "aucune", "jamais"]);
-const NEGATION_WINDOW = 3;
-
-/** Occurrences of `phrase` in folded `text` that are not negated within three tokens before ("not frost-proof" does not count). */
+/**
+ * Occurrences of `phrase` in `text` that the validator would read as asserted. Negation is decided by
+ * the validator's own rule (EC-B15): a negation within three tokens before ("not", "isn't", "cannot",
+ * "kein") or a bare answer after ("Dishwasher-safe? No"). Pass the listing text as written: the
+ * clause punctuation is what makes "Dishwasher-safe? No." a denial.
+ */
 export function countAsserted(text: string, phrase: string): number {
-  const words = tokens(text);
-  const forms = [tokens(phrase)];
+  const words = tokenizeClauses(text);
+  const forms = [tokens(foldForMatch(phrase))];
   if (forms[0].length > 1) forms.push([forms[0].join("")]);
   let count = 0;
   for (const needle of forms) {
     if (needle.length === 0) continue;
     for (let i = 0; i + needle.length <= words.length; i++) {
       if (!needle.every((t, j) => words[i + j] === t)) continue;
-      const before = words.slice(Math.max(0, i - NEGATION_WINDOW), i);
-      if (!before.some((t) => NEGATIONS.has(t))) count += 1;
+      if (!negatedAt(words, i, needle.length)) count += 1;
     }
   }
   return count;

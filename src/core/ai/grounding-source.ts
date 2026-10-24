@@ -1,5 +1,7 @@
 import { foldForMatch, repairMojibake } from "@/core/clean/text";
-import { findNegatedSpan, tokenizeClauses } from "./negation";
+import { contradictedPhrase, ownSpellings } from "./claim-support";
+import type { ClaimTerm } from "./lexicon";
+import { findDeniedUse, findNegatedSpan, tokenizeClauses } from "./negation";
 import { locateQuote } from "./quote";
 import type { AiClaim } from "./schema";
 
@@ -103,4 +105,38 @@ export function findNegationInRows(rows: SourceRowCells[], variants: string[]): 
     }
   }
   return null;
+}
+
+/** The cell that rules out the use a "-safe" term promises: "Not suitable for dishwasher or microwave". */
+export function findDeniedUseInRows(rows: SourceRowCells[], uses: readonly string[]): Found | null {
+  for (const r of rows) {
+    for (const [column, cell] of Object.entries(r.cells)) {
+      const tokens = tokenizeClauses(cell.text);
+      const span = findDeniedUse(tokens, uses);
+      if (span) return { row: r.row, column, quote: asWritten(cell, tokens.slice(span.start, span.end).join(" ")) };
+    }
+  }
+  return null;
+}
+
+/** Where the source denies a lexicon term, by spelling, paraphrase or ruled-out use. */
+export function findDenialInRows(rows: SourceRowCells[], entry: ClaimTerm): Found | null {
+  return findNegationInRows(rows, ownSpellings(entry)) ?? findNegationInRows(rows, entry.synonyms ?? []) ?? findDeniedUseInRows(rows, entry.uses ?? []);
+}
+
+/** The cell whose denial the claim asserts ("Frost-proof down to -10 °C" against "not frost-proof"). */
+export function findContradictionInRows(rows: SourceRowCells[], claim: string): Found | null {
+  for (const r of rows) {
+    for (const [column, cell] of Object.entries(r.cells)) {
+      const tokens = tokenizeClauses(cell.text);
+      const phrase = contradictedPhrase(claim, tokens);
+      if (phrase) return { row: r.row, column, quote: asWritten(cell, tokens.slice(phrase.start, phrase.end).join(" ")) };
+    }
+  }
+  return null;
+}
+
+/** The text of a named cell, for judging a claim against the whole cell its quote came from. */
+export function cellText(rows: SourceRowCells[], row: number, column: string): string {
+  return rows.find((r) => r.row === row)?.cells[column]?.text ?? "";
 }
