@@ -80,7 +80,6 @@ export function SiteFooter({ dashboardHref = null }: { dashboardHref?: string | 
       <div className="border-t border-border">
         <div className={cn(CONTAINER, "flex flex-col gap-2 py-5 text-xs text-ink-muted sm:flex-row sm:items-center sm:justify-between")}>
           <span>© 2026 CatalogForge. All rights reserved.</span>
-          <span>Every figure on this page is measured on the sample files in the repository.</span>
         </div>
       </div>
     </footer>

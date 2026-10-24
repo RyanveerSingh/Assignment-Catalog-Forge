@@ -16,15 +16,19 @@ interface Stat {
   detail: string;
 }
 
-/* Every figure is measured on the sample files in the repository or counted in it; the README lists the method. */
+/*
+ * Each figure must match the README's "Measured numbers" table or a count in the repository. Counts
+ * that grow (tests) are floors so they stay true; the import time is the run the live-import panel
+ * on this page replays, so the two never disagree.
+ */
 const STATS: readonly Stat[] = [
-  { value: 100, decimals: 0, suffix: "%", label: "accuracy on the messy sample", detail: "SKU, price, title, category and status all correct on the 120-row sheet, real models, measured by the eval harness" },
-  { value: 99.7, decimals: 1, suffix: "%", label: "of claims traced to a cell", detail: "The exact quote behind each claim is re-found in the source row by an independent check" },
-  { value: 1.93, decimals: 2, prefix: "$", label: "per 1,000 products", detail: "Written and translated into German and French, routed to the cheapest capable model; Batch mode halves it" },
-  { value: 53, decimals: 0, suffix: " s", label: "from upload to a stocked shop", detail: "26 rows, 12 products and 18 photos, cleaned, written, translated and published" },
-  { value: 10000, decimals: 0, label: "rows in one import", detail: "The 10,000-row sample runs end to end in nine minutes on a laptop, every row accounted for" },
-  { value: 155, decimals: 0, label: "edge cases catalogued", detail: "Written down before the first line of code, each with what happens, what the product does and a test" },
-  { value: 1683, decimals: 0, label: "automated tests", detail: "Parsers, cleaners, grouping, grounding, queue, storefront and store isolation, run before every commit" },
+  { value: 100, decimals: 0, suffix: "%", label: "price and SKU match on the labelled messy sample", detail: "Real models against our own hand-labelled 120-row sheet (58 products): every price and every SKU matched the ground truth. One sample, scored by the eval harness" },
+  { value: 99.7, decimals: 1, suffix: "%", label: "of claims traced to a cell", detail: "Same run: the exact quote behind each claim is re-found in the source row by the eval's own check" },
+  { value: 1.93, decimals: 2, prefix: "$", label: "per 1,000 products, written and translated", detail: "Real models, realtime, from the request log of the 1,000-row sample: $0.51 for the English listing, $1.42 for German and French. That sample has no photos, so no vision calls" },
+  { value: 77, decimals: 0, suffix: " s", label: "from upload to a stocked shop", detail: "The real-model run the import panel above replays: 26 rows, 12 products and 18 photos, written, translated and 9 products published" },
+  { value: 10000, decimals: 0, label: "rows in one import", detail: "The 10,000-row sample ran end to end in 7.2 minutes with the demo provider and two workers on a laptop, every row accounted for" },
+  { value: 161, decimals: 0, label: "edge cases catalogued", detail: "138 written down before the first line of code, the rest added as building turned them up; each records what happens, what the product does and its status" },
+  { value: 1600, decimals: 0, suffix: "+", label: "automated tests", detail: "Parsers, cleaners, grouping, grounding, queue, storefront and store isolation; npm run check runs them all" },
   { value: 3, decimals: 0, label: "languages per listing", detail: "English written from the rows, German and French translated with sentinel checks on numbers and tags" },
 ];
 
@@ -56,13 +60,13 @@ function CountUp({ stat }: { stat: Stat }) {
   );
 }
 
-/** The figures band: white cards on a grey panel, big orange numbers that count up, eight things that were measured rather than claimed. */
+/** The figures band: white cards on a grey panel, big orange numbers that count up, each one measured on a sample run or counted in the repository. */
 export function LandingNumbers() {
   return (
     <section id="numbers" aria-labelledby="numbers-heading" className="scroll-mt-24 py-6 md:py-10">
       <div className={CONTAINER}>
         <div className="rounded-[32px] bg-surface-2 px-4 py-14 sm:px-6 md:py-20 lg:px-10">
-          <SectionHeading id="numbers-heading" eyebrow="Measured, not promised" title="Every number here comes from a run you can repeat" />
+          <SectionHeading id="numbers-heading" eyebrow="Measured, not promised" title="Measured on the sample files, or counted in the repository" />
           <dl className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {STATS.map((s, i) => (
               <Reveal key={s.label} delay={Math.min(i, 7) * 0.05} className="h-full">
@@ -76,7 +80,7 @@ export function LandingNumbers() {
               </Reveal>
             ))}
           </dl>
-          <p className="mt-6 text-center text-xs text-ink-muted">Runs against the sample files in the repository, with the request log as the source; the README shows how each one is taken.</p>
+          <p className="mt-6 text-center text-xs text-ink-muted">Runs used the sample files in the repository. The import time is the run replayed above; the README&apos;s &ldquo;Measured numbers&rdquo; table lists the others and how to repeat them.</p>
         </div>
       </div>
     </section>
