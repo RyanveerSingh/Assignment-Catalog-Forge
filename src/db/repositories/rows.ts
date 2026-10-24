@@ -89,12 +89,28 @@ export async function markDuplicateRows(db: DbOrTx, importId: string, duplicates
   }
 }
 
-/** Terminal row status rolls up from the product outcome (EC-E9). */
-export async function setRowsStatusForProduct(db: DbOrTx, productId: string, status: RowStatus, failureReason: string | null = null): Promise<number> {
+/**
+ * Terminal row status rolls up from the product outcome (EC-E9). Pass the import: a product is shared
+ * by every import that touched it, and one import's outcome must not rewrite another's rows (EC-E8).
+ * Without an import id every import's rows for the product are updated (legacy callers only).
+ */
+export async function setRowsStatusForProduct(db: DbOrTx, productId: string, status: RowStatus, failureReason: string | null = null, importId: string | null = null): Promise<number> {
   const rows = await db
     .update(importRows)
     .set({ status, failureReason, stage: "done", lockedAt: null, updatedAt: new Date() })
-    .where(eq(importRows.productId, productId))
+    .where(importId ? and(eq(importRows.importId, importId), eq(importRows.productId, productId)) : eq(importRows.productId, productId))
+    .returning({ id: importRows.id });
+  return rows.length;
+}
+
+/** A clean job that gave up: its chunk's uncleaned rows end as Failed with the reason, so counts add up (EC-E9). */
+export async function failChunkRows(db: DbOrTx, importId: string, chunkIndex: number, reason: string): Promise<number> {
+  const from = chunkIndex * ROW_CHUNK_SIZE + 1;
+  const to = from + ROW_CHUNK_SIZE - 1;
+  const rows = await db
+    .update(importRows)
+    .set({ status: "failed", stage: "done", failureReason: reason.slice(0, 500), lockedAt: null, updatedAt: new Date() })
+    .where(and(eq(importRows.importId, importId), gte(importRows.rowNumber, from), lte(importRows.rowNumber, to), eq(importRows.stage, "parsed")))
     .returning({ id: importRows.id });
   return rows.length;
 }

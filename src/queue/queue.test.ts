@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb, type Db } from "@/db/client";
 import { runMigrations } from "@/db/migrate";
-import { backoffMs, claim, complete, enqueue, fail, hasPendingWork, heartbeat, isQueuePaused, pauseQueue, queueDepth, reapStalled, resumeQueue } from "./queue";
+import { backoffMs, claim, complete, enqueue, enqueueMany, fail, hasPendingWork, heartbeat, isQueuePaused, pauseQueue, queueDepth, reapStalled, resumeQueue, reviveDeadJobsForImport } from "./queue";
 
 describe("backoffMs", () => {
   it("doubles per attempt with jitter and caps at five minutes", () => {
@@ -85,13 +85,53 @@ describe.skipIf(!process.env.DATABASE_URL)("queue (integration)", () => {
     await enqueue(db, { key: "stalled", type: "t" });
     const job = await claim(db, "default", "dead-worker", 1);
     expect(job).not.toBeNull();
-    expect(await reapStalled(db)).toBe(0); // lease still valid
+    expect((await reapStalled(db)).requeued).toBe(0); // lease still valid
     await new Promise((r) => setTimeout(r, 1_200));
-    expect(await reapStalled(db)).toBe(1);
+    expect(await reapStalled(db)).toEqual({ requeued: 1, dead: [] });
     const again = await claim(db, "default", "w2");
     expect(again?.key).toBe("stalled");
     expect(again?.attempts).toBe(2);
     expect(again?.lastError).toMatch(/lease expired/);
+  });
+
+  it("EC-E10: a job whose worker dies on every attempt is retired as dead by the reaper, not requeued forever", async () => {
+    await enqueue(db, { key: "crash-loop", type: "t", maxAttempts: 2 });
+    // Attempt 1: the worker dies (no fail/complete); the reaper requeues.
+    expect((await claim(db, "default", "w1"))?.attempts).toBe(1);
+    await db.execute(sql`update jobs set locked_until = now() - interval '1 second' where key = 'crash-loop'`);
+    expect(await reapStalled(db)).toEqual({ requeued: 1, dead: [] });
+    // Attempt 2 is the last one; the worker dies again.
+    expect((await claim(db, "default", "w2"))?.attempts).toBe(2);
+    await db.execute(sql`update jobs set locked_until = now() - interval '1 second' where key = 'crash-loop'`);
+    const reaped = await reapStalled(db);
+    expect(reaped.requeued).toBe(0);
+    expect(reaped.dead.map((j) => [j.key, j.status, j.attempts])).toEqual([["crash-loop", "dead", 2]]);
+    expect(reaped.dead[0]?.lastError).toMatch(/last attempt/);
+    expect(await claim(db, "default", "w3")).toBeNull();
+    // A second reaper pass (another worker) does not report it again, so onDead runs once.
+    expect(await reapStalled(db)).toEqual({ requeued: 0, dead: [] });
+  });
+
+  it("EC-E9: reconciler-style enqueue never revives a dead job; the explicit Retry path does", async () => {
+    await enqueue(db, { key: "poison", type: "t", maxAttempts: 1, importId: "00000000-0000-4000-8000-000000000001" });
+    const j = await claim(db, "default", "w");
+    expect(await fail(db, j!, "w", "always fails", { retryable: true, retryAfterMs: 0 })).toBe("dead");
+    expect((await enqueue(db, { key: "poison", type: "t" }, { reviveDead: false })).inserted).toBe(false);
+    expect(await enqueueMany(db, [{ key: "poison", type: "t" }], { reviveDead: false })).toBe(0);
+    expect(await claim(db, "default", "w")).toBeNull();
+    expect((await queueDepth(db)).default.dead).toBe(1);
+
+    expect(await reviveDeadJobsForImport(db, "00000000-0000-4000-8000-000000000001")).toBe(1);
+    const again = await claim(db, "default", "w");
+    expect(again?.key).toBe("poison");
+    expect(again?.attempts).toBe(1);
+  });
+
+  it("reconciler-style enqueue still revives a completed job (the work needs doing again)", async () => {
+    await enqueue(db, { key: "redo", type: "t" });
+    const j = await claim(db, "default", "w");
+    await complete(db, j!.id, "w");
+    expect((await enqueue(db, { key: "redo", type: "t" }, { reviveDead: false })).inserted).toBe(true);
   });
 
   it("heartbeat extends the lease and fails once the job is no longer ours", async () => {
@@ -99,7 +139,7 @@ describe.skipIf(!process.env.DATABASE_URL)("queue (integration)", () => {
     const job = await claim(db, "default", "w1", 1);
     expect(await heartbeat(db, job!.id, "w1", 60)).toBe(true);
     await new Promise((r) => setTimeout(r, 1_200));
-    expect(await reapStalled(db)).toBe(0); // heartbeat extended it
+    expect((await reapStalled(db)).requeued).toBe(0); // heartbeat extended it
     expect(await heartbeat(db, job!.id, "someone-else", 60)).toBe(false);
   });
 

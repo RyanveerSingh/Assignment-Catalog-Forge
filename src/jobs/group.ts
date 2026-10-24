@@ -56,7 +56,7 @@ export const groupHandler: JobHandler = async ({ job, db, log, signal }) => {
       for (const r of group.sourceRows) productIdByRow.set(r, up.productId);
       const reusable = !up.sourceChanged && up.previousStatus && up.previousStatus !== "pending_ai" && up.previousStatus !== "failed";
       if (reusable) {
-        await setRowsStatusForProduct(tx, up.productId, up.previousStatus === "needs_review" ? "needs_review" : "done");
+        await setRowsStatusForProduct(tx, up.productId, up.previousStatus === "needs_review" ? "needs_review" : "done", null, importId);
         return "unchanged" as const;
       }
       const tier = routeTier(group, photoCount > 0 ? group.images.length || 1 : 0).tier;

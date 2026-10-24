@@ -179,8 +179,14 @@ export function mapError(err: unknown): AiError {
     return new AiError("network", "Could not reach the AI provider", { cause: err });
   }
   if (err instanceof Anthropic.APIError) {
-    if (err.status === 529 || (err.status !== undefined && err.status >= 500)) {
-      return new AiError("overloaded", `AI provider error ${err.status}`, { status: err.status, retryAfterMs: 30_000, cause: err });
+    // Only 529 means "overloaded, back off": it pauses the AI queue for everyone without burning an
+    // attempt. A plain 5xx may be specific to this request, so it retries with normal backoff and
+    // counts toward max attempts; a request that always 500s ends dead instead of looping (EC-D10).
+    if (err.status === 529) {
+      return new AiError("overloaded", `AI provider overloaded (${err.status})`, { status: err.status, retryAfterMs: 30_000, cause: err });
+    }
+    if (err.status !== undefined && err.status >= 500) {
+      return new AiError("unknown", `AI provider error ${err.status}`, { status: err.status, cause: err });
     }
     return new AiError("unknown", `AI provider error ${err.status ?? ""}: ${err.message}`, { status: err.status, cause: err });
   }

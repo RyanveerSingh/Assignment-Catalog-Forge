@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { buildTranslateSystemPrompt, renderTranslateUserText, type TranslateInput } from "@/core/ai/prompts";
 import { aiTranslateBatchSchema } from "@/core/ai/schema";
 import { protectText, verifyAndRestore, type ProtectedText } from "@/core/translate/protect";
@@ -137,13 +137,45 @@ export const translateHandler: JobHandler = async ({ job, db, log }) => {
   }
 
   await db.update(products).set({ translatedAt: new Date(), aiCostMicros: p.aiCostMicros + totalCost, updatedAt: new Date() }).where(eq(products.id, productId));
-  await republishIfLive(db, productId);
+  await republishIfLive(db, p.storeId, productId);
   log.info({ locales: locales.length, translated: translatedCount, cached: cachedCount, failed: failedCount, costMicros: totalCost }, "translated");
   if (job.importId) {
     if (failedCount > 0) await appendImportEvent(db, job.importId, "warn", `${failedCount} translation(s) failed verification for "${p.draft.title}"; English will be shown for those fields`, { productId });
     await driveImport(db, job.importId);
   }
 };
+
+/**
+ * A translate job that is dead must not hold its import in `translating` forever (EC-E9). Every field
+ * without a usable translation is recorded as failed, which the storefront already serves as the
+ * English fallback with a flag (the same path as a failed placeholder check), and the product is
+ * marked as translated so the import can finalize. Manual translations are never touched.
+ * Returns the number of fields marked failed.
+ */
+export async function failProductTranslations(db: Db, productId: string, reason: string): Promise<number> {
+  const [p] = await db.select().from(products).where(eq(products.id, productId)).limit(1);
+  if (!p) return 0;
+  let failed = 0;
+  if (p.draft && !p.deletedAt) {
+    const [store] = await db.select({ locales: stores.locales }).from(stores).where(eq(stores.id, p.storeId)).limit(1);
+    const locales = (store?.locales ?? []).filter((l) => l !== "en");
+    const fields = contentFields(p.draft);
+    const existing = await db.select().from(translations).where(eq(translations.productId, productId));
+    const model = p.aiModel ?? "unknown";
+    for (const locale of locales) {
+      for (const f of fields) {
+        const sourceHash = sha256Hex(f.text);
+        const current = existing.find((t) => t.locale === locale && t.field === f.field);
+        if (current?.origin === "manual") continue;
+        if (current && current.status === "fresh" && current.sourceHash === sourceHash) continue;
+        await upsertTranslation(db, { productId, storeId: p.storeId, field: f.field, locale, sourceHash, text: null, status: "failed", model, costMicros: 0, error: `translation gave up: ${reason}`.slice(0, 2000) });
+        failed += 1;
+      }
+    }
+  }
+  await db.update(products).set({ translatedAt: new Date(), updatedAt: new Date() }).where(and(eq(products.id, productId), isNull(products.translatedAt)));
+  return failed;
+}
 
 async function upsertTranslation(db: Db, row: { productId: string; storeId: string; field: string; locale: string; sourceHash: string; text: string | null; status: "fresh" | "failed"; model: string; costMicros: number; error: string | null }): Promise<void> {
   await db
@@ -163,7 +195,7 @@ async function translateFailure(db: Db, importId: string | null, err: unknown): 
     case "overloaded": {
       const ms = err.retryAfterMs ?? 60_000;
       if (importId) await pauseImport(db, importId, new Date(Date.now() + ms), `Rate limited by the AI provider; resuming in ${Math.ceil(ms / 60_000)} min`);
-      return new JobError(err.message, { pauseQueue: { queue: "translate", untilMs: ms, reason: "Rate limited by the AI provider" }, cause: err });
+      return new JobError(err.message, { pauseQueue: { queue: "translate", untilMs: ms, reason: "Rate limited by the AI provider", limitRefunds: err.kind === "overloaded" }, cause: err });
     }
     case "auth":
     case "billing":

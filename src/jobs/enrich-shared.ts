@@ -134,7 +134,7 @@ export async function applyEnrichResponse(
     });
     if (!ok) continue;
     applied += 1;
-    await setRowsStatusForProduct(db, p.id, grounded.status === "needs_review" ? "needs_review" : "done");
+    await setRowsStatusForProduct(db, p.id, grounded.status === "needs_review" ? "needs_review" : "done", null, imp.id);
     if (grounded.status === "needs_review") needsReview += 1;
     if (grounded.blocked.length > 0) {
       await appendImportEvent(db, imp.id, "warn", `Blocked ${grounded.blocked.length} claim(s) in "${grounded.content.title}" that the source does not support`, { productId: p.id, blocked: grounded.blocked });
@@ -193,7 +193,7 @@ export async function translateAiFailure(db: Db, importId: string, job: Job, pro
     }
     case "overloaded": {
       const ms = err.retryAfterMs ?? 30_000;
-      return new JobError(err.message, { pauseQueue: { queue: "ai", untilMs: ms, reason: "AI provider overloaded" }, cause: err });
+      return new JobError(err.message, { pauseQueue: { queue: "ai", untilMs: ms, reason: "AI provider overloaded", limitRefunds: true }, cause: err });
     }
     case "auth":
     case "billing": {
@@ -204,7 +204,7 @@ export async function translateAiFailure(db: Db, importId: string, job: Job, pro
     case "refusal": {
       for (const id of productIds) {
         await failProduct(db, id, err.kind === "refusal" ? "AI declined to process this product" : `AI request rejected: ${err.message}`);
-        await setRowsStatusForProduct(db, id, "failed", err.kind === "refusal" ? "AI declined" : "AI request rejected");
+        await setRowsStatusForProduct(db, id, "failed", err.kind === "refusal" ? "AI declined" : "AI request rejected", importId);
       }
       await recomputeImportCounts(db, importId);
       await appendImportEvent(db, importId, "error", `${productIds.length} product(s) failed: ${err.message}`);
@@ -223,7 +223,7 @@ export async function failEnrichBatch(db: Db, job: Job, reason: string): Promise
   const productIds = (job.payload.productIds as string[] | undefined) ?? [];
   for (const id of productIds) {
     await failProduct(db, id, reason);
-    await setRowsStatusForProduct(db, id, "failed", reason.slice(0, 500));
+    await setRowsStatusForProduct(db, id, "failed", reason.slice(0, 500), importId);
   }
   if (importId) {
     await recomputeImportCounts(db, importId);

@@ -14,7 +14,8 @@ import { jobs, queueState, type JobStatus, type QueueName } from "@/db/schema";
  * - A key is in the table at most once. Enqueueing an existing queued/running job does nothing.
  * - `claim` hands a job to exactly one worker (FOR UPDATE SKIP LOCKED) and leases it until
  *   `locked_until`; `heartbeat` extends the lease; `reapStalled` returns expired leases to the queue.
- * - Failures retry with exponential backoff until `max_attempts`, then the job is `dead`.
+ * - Failures (including lease expiries) retry with exponential backoff until `max_attempts`, then the
+ *   job is `dead`. Only an explicit user action brings a dead job back.
  */
 
 export type Job = typeof jobs.$inferSelect;
@@ -42,11 +43,21 @@ export function backoffMs(attempt: number, random: () => number = Math.random): 
   return Math.round(base + jitter);
 }
 
+export interface EnqueueOptions {
+  /**
+   * Whether a `dead` job with the same key is brought back. True for explicit user actions (Retry,
+   * re-run AI). The reconciler passes false: reviving a poison job on every tick pays for the same
+   * failing model call forever and keeps its import from ever finishing.
+   */
+  reviveDead?: boolean;
+}
+
 /**
  * Insert a job. Returns `inserted: false` when the key already exists in a queued or running state.
- * A completed/failed/dead job with the same key is revived (used by the Retry button).
+ * A completed/failed job with the same key is revived; a dead one only when `reviveDead` (default true).
  */
-export async function enqueue(db: DbOrTx, spec: JobSpec): Promise<{ inserted: boolean }> {
+export async function enqueue(db: DbOrTx, spec: JobSpec, opts: EnqueueOptions = {}): Promise<{ inserted: boolean }> {
+  const revivable: JobStatus[] = opts.reviveDead === false ? ["completed", "failed"] : ["completed", "failed", "dead"];
   const rows = await db
     .insert(jobs)
     .values({
@@ -79,19 +90,29 @@ export async function enqueue(db: DbOrTx, spec: JobSpec): Promise<{ inserted: bo
         completedAt: null,
         updatedAt: new Date(),
       },
-      setWhere: inArray(jobs.status, ["completed", "failed", "dead"]),
+      setWhere: inArray(jobs.status, revivable),
     })
     .returning({ id: jobs.id });
   return { inserted: rows.length > 0 };
 }
 
-export async function enqueueMany(db: DbOrTx, specs: JobSpec[]): Promise<number> {
+export async function enqueueMany(db: DbOrTx, specs: JobSpec[], opts: EnqueueOptions = {}): Promise<number> {
   let inserted = 0;
   for (const spec of specs) {
-    const r = await enqueue(db, spec);
+    const r = await enqueue(db, spec, opts);
     if (r.inserted) inserted += 1;
   }
   return inserted;
+}
+
+/** The explicit Retry path: give every dead job of an import a fresh set of attempts. */
+export async function reviveDeadJobsForImport(db: DbOrTx, importId: string): Promise<number> {
+  const rows = await db
+    .update(jobs)
+    .set({ status: "queued", attempts: 0, runAt: new Date(), lockedUntil: null, workerId: null, completedAt: null, updatedAt: new Date() })
+    .where(and(eq(jobs.importId, importId), eq(jobs.status, "dead")))
+    .returning({ id: jobs.id });
+  return rows.length;
 }
 
 export async function isQueuePaused(db: DbOrTx, queue: QueueName): Promise<{ paused: boolean; until: Date | null; reason: string | null }> {
@@ -190,14 +211,34 @@ export async function fail(db: DbOrTx, job: Job, workerId: string, error: string
   return exhausted ? "dead" : "retry";
 }
 
-/** Return jobs whose lease expired (worker died) to the queue. The attempt already counted (EC-E10). */
-export async function reapStalled(db: DbOrTx): Promise<number> {
-  const rows = await db
-    .update(jobs)
-    .set({ status: "queued", lockedUntil: null, workerId: null, lastError: "lease expired (worker stalled or died)", updatedAt: new Date() })
-    .where(and(eq(jobs.status, "running"), lt(jobs.lockedUntil, new Date())))
-    .returning({ id: jobs.id });
-  return rows.length;
+export interface ReapResult {
+  /** Jobs returned to the queue for another attempt. */
+  requeued: number;
+  /** Jobs that had already used their last attempt; the caller runs the same dead-job handling as `fail`. */
+  dead: Job[];
+}
+
+/**
+ * Return jobs whose lease expired (worker died) to the queue. The attempt already counted at claim
+ * (EC-E10), so a job that keeps crashing its worker runs out of attempts here and is retired as dead
+ * instead of being handed out forever: a crashed process never reaches `fail`.
+ */
+export async function reapStalled(db: DbOrTx): Promise<ReapResult> {
+  const result = await db.execute<Record<string, unknown>>(sql`
+    update jobs
+       set status = case when attempts >= max_attempts then 'dead' else 'queued' end,
+           last_error = case when attempts >= max_attempts
+                             then 'lease expired on the last attempt (worker stalled or died every time)'
+                             else 'lease expired (worker stalled or died)' end,
+           locked_until = null,
+           worker_id = null,
+           updated_at = now()
+     where status = 'running' and locked_until < now()
+    returning *
+  `);
+  const reaped = result.rows.map(normalizeJobRow);
+  const dead = reaped.filter((j) => j.status === "dead");
+  return { requeued: reaped.length - dead.length, dead };
 }
 
 export async function pauseQueue(db: DbOrTx, queue: QueueName, until: Date, reason: string): Promise<void> {

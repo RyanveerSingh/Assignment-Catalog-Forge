@@ -21,14 +21,16 @@ export interface UpsertGroupResult {
  * Published snapshots are never touched here (EC-F4); manual overrides are preserved (EC-F1).
  */
 export async function upsertProductFromGroup(db: DbOrTx, storeId: string, importId: string, group: ProductGroup): Promise<UpsertGroupResult> {
+  // pg advisory lock keyed on the product key serialises two imports touching the same product (EC-E8).
+  // It must be taken before reading `existing`: otherwise both imports see "no product yet" and the
+  // second one's insert hits the unique key. Transaction-scoped, so callers run this inside a transaction.
+  await db.execute(sql`select pg_advisory_xact_lock(hashtext(${`${storeId}:${group.productKey}`}))`);
+
   const [existing] = await db
     .select({ id: products.id, status: products.status, sourceHash: products.sourceHash, handle: products.handle, published: products.published, deletedAt: products.deletedAt })
     .from(products)
     .where(and(eq(products.storeId, storeId), eq(products.productKey, group.productKey)))
     .limit(1);
-
-  // pg advisory lock keyed on the product key serialises two imports touching the same product (EC-E8).
-  await db.execute(sql`select pg_advisory_xact_lock(hashtext(${`${storeId}:${group.productKey}`}))`);
 
   if (!existing) {
     const handle = await uniqueHandle(db, storeId, slugify(group.title ?? group.productKey) || slugify(group.productKey) || "product");

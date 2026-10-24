@@ -5,8 +5,12 @@ export interface JobErrorOptions {
   retryable?: boolean;
   /** Override the exponential backoff for the next attempt. */
   retryAfterMs?: number;
-  /** Pause a whole queue (rate limit, provider down, bad API key). The job is re-queued without consuming an attempt. */
-  pauseQueue?: { queue: QueueName; untilMs: number; reason: string };
+  /**
+   * Pause a whole queue (rate limit, provider down, bad API key). The job is re-queued without consuming an attempt.
+   * `limitRefunds` caps those free re-queues for one job (an overloaded provider can fail one job forever); a
+   * rate limit leaves it unset, because waiting out a quota must never kill the job (EC-E11).
+   */
+  pauseQueue?: { queue: QueueName; untilMs: number; reason: string; limitRefunds?: boolean };
   cause?: unknown;
 }
 
