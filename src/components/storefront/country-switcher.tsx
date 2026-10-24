@@ -68,7 +68,8 @@ export function CountrySwitcher({
               });
             }}
             className={cn(
-              "cursor-pointer appearance-none py-0 pr-7 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-wait disabled:opacity-60",
+              // The open list is drawn by the OS on a light surface; over the hero the select's text is white, so options set their own colours.
+              "cursor-pointer appearance-none py-0 pr-7 text-[13px] outline-none [&_option]:bg-card [&_option]:text-ink focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-wait disabled:opacity-60",
               chrome ? "h-9 rounded-full border-0 bg-transparent pl-1 pr-6 font-medium text-current" : "h-8 rounded-sm border border-border bg-card pl-2 text-ink",
               !chrome && showLabel && "border-transparent bg-transparent pl-0 font-medium",
             )}

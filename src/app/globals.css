@@ -134,6 +134,11 @@
     @apply bg-background text-foreground;
     min-height: 100dvh;
     text-rendering: optimizeLegibility;
+    /* Caret browsing (F7) would park a blinking cursor in any text that is clicked; only fields show one. */
+    caret-color: transparent;
+  }
+  input, textarea, [contenteditable="true"] {
+    caret-color: auto;
   }
   h1, h2, h3, .font-display {
     font-family: var(--font-heading);

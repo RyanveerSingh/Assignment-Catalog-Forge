@@ -8,10 +8,10 @@ import { LoginForm } from "./login-form";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Sign in" };
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; demo?: string }> }) {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const user = await currentUser();
   if (user) redirect("/app");
-  const { error, demo } = await searchParams;
+  const { error } = await searchParams;
   return (
     <div className="flex min-h-dvh flex-col">
       <SiteHeader signIn={false} />
@@ -23,11 +23,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <LogoMark size={40} />
           <p className="mt-6 text-sm font-medium text-brand">Merchant sign-in</p>
           <h1 className="font-display mt-2 text-[34px] leading-none text-ink">Sign in</h1>
-          <p className="mt-3 text-sm leading-relaxed text-ink-muted">
-            The demo is one shared merchant account with stores already set up for English, German and French and sample sheets to drop in; anything you upload there is visible to other visitors.
-          </p>
+          <p className="mt-3 text-sm leading-relaxed text-ink-muted">Sign in to your store to upload a supplier sheet, review what the AI wrote and publish it.</p>
           {error === "no-store" ? <p className="mt-4 rounded-xl bg-warning-soft px-3.5 py-2.5 text-sm text-ink ring-1 ring-warning/30">Your account has no store yet.</p> : null}
-          <LoginForm prefillDemo={demo === "1"} />
+          <LoginForm />
         </div>
       </main>
       <SiteFooter />

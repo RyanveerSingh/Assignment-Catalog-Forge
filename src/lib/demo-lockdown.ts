@@ -40,8 +40,10 @@ export function isDemoLockdown(): boolean {
   return resolveDemoLockdown(getConfig());
 }
 
+/** Every account is locked on a public deployment: self-registered accounts spend the same operator key as the demo one. */
 export function isLockedDemoUser(user: { email: string }): boolean {
-  return isDemoLockdown() && user.email.trim().toLowerCase() === DEMO_EMAIL;
+  void user;
+  return isDemoLockdown();
 }
 
 export function demoLocked(detail: string): HttpError {
