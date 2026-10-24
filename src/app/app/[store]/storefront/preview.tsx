@@ -19,6 +19,18 @@ const DEVICES = [
 ] as const;
 
 /**
+ * Phones have no scrollbar, so the phone frame hides the shop's: it still scrolls by wheel and touch.
+ * The shop is same-origin, so a style tag can go straight into the frame's document.
+ */
+function hideScrollbar(frame: HTMLIFrameElement): void {
+  const doc = frame.contentDocument;
+  if (!doc?.head) return;
+  const style = doc.createElement("style");
+  style.textContent = "html,body{scrollbar-width:none}html::-webkit-scrollbar,body::-webkit-scrollbar{display:none}";
+  doc.head.appendChild(style);
+}
+
+/**
  * The published shop inside a device frame: a browser window for desktop, a phone for mobile. One
  * iframe at a time (it is a full page); the frame cross-fades when the device changes.
  */
@@ -81,7 +93,16 @@ export function StorefrontPreview({ storeSlug, initialCountry }: { storeSlug: st
                 <div aria-hidden className="relative h-10 bg-background">
                   <span className="absolute top-2 left-1/2 h-6 w-28 -translate-x-1/2 rounded-full bg-ink" />
                 </div>
-                <iframe key={frameKey} title="Storefront preview" src={src} onLoad={() => setLoading(false)} className="block h-[720px] w-full border-0 bg-paper" />
+                <iframe
+                  key={frameKey}
+                  title="Storefront preview"
+                  src={src}
+                  onLoad={(e) => {
+                    setLoading(false);
+                    hideScrollbar(e.currentTarget);
+                  }}
+                  className="block h-[720px] w-full border-0 bg-paper"
+                />
               </div>
             </div>
           )}
