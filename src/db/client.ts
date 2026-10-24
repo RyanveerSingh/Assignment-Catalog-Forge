@@ -14,6 +14,14 @@ let storefrontPool: Pool | null = null;
 let mainDb: Db | null = null;
 let storefrontDb: Db | null = null;
 
+/**
+ * A transaction-mode pooler (PgBouncer, Neon's "-pooler" host) refuses startup options, so the
+ * statement timeout is only sent on direct connections.
+ */
+function isPooler(connectionString: string): boolean {
+  return /-pooler\.|pgbouncer=true/.test(connectionString);
+}
+
 function makePool(connectionString: string, max: number, statementTimeoutMs?: number): Pool {
   const pool = new Pool({
     connectionString,
@@ -21,15 +29,19 @@ function makePool(connectionString: string, max: number, statementTimeoutMs?: nu
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
     // Sent in the startup packet, so every connection carries the timeout without a racing SET query.
-    ...(statementTimeoutMs ? { options: `-c statement_timeout=${statementTimeoutMs}` } : {}),
+    ...(statementTimeoutMs && !isPooler(connectionString) ? { options: `-c statement_timeout=${statementTimeoutMs}` } : {}),
   });
   pool.on("error", (err) => getLogger({ component: "db" }).error({ err }, "idle client error"));
   return pool;
 }
 
-/** Main pool: dashboard writes, workers, migrations. */
+/**
+ * Main pool: dashboard writes, workers, migrations. Sized above the embedded worker's slot count
+ * (about eleven) so polling slots can never hold every connection while a page waits, which a
+ * remote database's round trips otherwise make likely.
+ */
 export function getPool(): Pool {
-  if (!mainPool) mainPool = makePool(getConfig().DATABASE_URL, 10);
+  if (!mainPool) mainPool = makePool(getConfig().DATABASE_URL, 20);
   return mainPool;
 }
 

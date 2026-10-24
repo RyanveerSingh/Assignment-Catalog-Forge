@@ -25,5 +25,8 @@ COPY --from=build /app/drizzle ./drizzle
 COPY --from=build /app/src ./src
 COPY --from=build /app/tsconfig.json ./tsconfig.json
 COPY --from=build /app/samples ./samples
+# Run unprivileged as `node` (uid 1000, which Hugging Face Spaces requires); it must own .next for the page cache.
+RUN chown -R node:node /app
+USER node
 EXPOSE 3000
 CMD ["npm", "run", "start"]
