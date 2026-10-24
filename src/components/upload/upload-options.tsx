@@ -18,7 +18,7 @@ export interface UploadOptionsValue {
   autoPublish: boolean;
 }
 
-export const DEFAULT_UPLOAD_OPTIONS: UploadOptionsValue = { mode: "fast", budget: "5", autoPublish: false };
+export const DEFAULT_UPLOAD_OPTIONS: UploadOptionsValue = { mode: "fast", budget: "5", autoPublish: true };
 
 interface Props {
   uid: string;

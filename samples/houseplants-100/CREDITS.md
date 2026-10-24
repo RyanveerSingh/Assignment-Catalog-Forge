@@ -1,0 +1,105 @@
+# Photo credits
+
+Each photo is the Wikipedia lead image for the plant, from Wikimedia Commons, used under the licence shown. File names match the SKU in the sheet.
+
+- `ADI-RAD.jpg` (Maidenhair Fern): Forest &amp; Kim Starr, CC BY 3.0, https://commons.wikimedia.org/wiki/File:Starr_030807-0143_Adiantum_raddianum.jpg
+- `AGL-COM.jpg` (Chinese Evergreen): Krzysztof Ziarnek, Kenraiz, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Aglaonema_commutatum_kz1.jpg
+- `ALO-AMA.jpg` (African Mask Plant): Jerzy Opioła, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Alocasia_x_amazonica_a1.jpg
+- `ALO-VER.jpg` (Aloe Vera): Collage by en:User:MidgleyDJ, original images from Wikimedia commons (Image:Aloe_vera_offsets.jpg and Image:Aloe_vera_C.jpg), CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Aloe_vera_flower_inset.png
+- `ALO-ZEB.jpg` (Zebra Alocasia): Photo by David J. Stang, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Alocasia_zebrina_4zz.jpg
+- `ANT-AND.jpg` (Flamingo Flower): Taken by Fanghong, CC BY 2.5, https://commons.wikimedia.org/wiki/File:AnthuriumAndraenum.jpg
+- `ARA-HET.jpg` (Norfolk Island Pine): thinboyfatter, CC BY 2.0, https://commons.wikimedia.org/wiki/File:Norfolk-Island-Pines.jpg
+- `ASP-ELA.jpg` (Cast-Iron Plant): KENPEI, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Aspidistra_elatior1.jpg
+- `ASP-NID.jpg` (Bird's Nest Fern): Obsidian Soul, CC0, https://commons.wikimedia.org/wiki/File:Asplenium_nidus_(Bukidnon,_Philippines)_02.jpg
+- `ASP-SET.jpg` (Asparagus Fern): Photo by and (c)2006 Derek Ramsey (Ram-Man). Location credit to the Chanticleer Garden., CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Asparagus_setaceus_Leaves_2760px.jpg
+- `BEA-REC.jpg` (Ponytail Palm): juancruzado, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Beaucarnea_recurvata,_Ocampo,_Tamaulipas,_Mexico_1.jpg
+- `BEG-MAC.jpg` (Polka Dot Begonia): Cliff from I now live in Arlington, VA (Outside Washington DC), USA, CC BY 2.0, https://commons.wikimedia.org/wiki/File:Begonia_maculata3073316230.jpg
+- `BRO-AEC.jpg` (Urn Plant): Paul &amp; Aline Burland, CC BY-SA 2.0, https://commons.wikimedia.org/wiki/File:Aechmea_fasciata2.jpg
+- `BRO-GUZ.jpg` (Scarlet Star): unknown author, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Bromeliaceae03.jpg
+- `CAL-LAN.jpg` (Rattlesnake Plant): Chhe (talk), Public domain, https://commons.wikimedia.org/wiki/File:CalatheaLancifolia.jpg
+- `CAL-MAK.jpg` (Peacock Plant): Chhe (talk), Public domain, https://commons.wikimedia.org/wiki/File:CalatheaMakoyana.jpg
+- `CAL-ORB.jpg` (Calathea Orbifolia): Fregisseur, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Calathea_orbifolia_2.jpg
+- `CER-WOO.jpg` (String of Hearts): Photo: Dr. David Midgley, CC BY-SA 2.5, https://commons.wikimedia.org/wiki/File:Ceropegia_linearis_subsp_woodii.jpg
+- `CHA-ELE.jpg` (Parlour Palm): Bachelot Pierre J-P, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Chamaedorea_elegans_Mart.JPG
+- `CHL-COM.jpg` (Spider Plant): Hierbabuena_0611.JPG: Dtarazona derivative work: Peter coxhead (talk), Public domain, https://commons.wikimedia.org/wiki/File:Hierbabuena_0611_Revised.jpg
+- `CIS-RHO.jpg` (Grape Ivy): Photo by and (c)2014 Derek Ramsey (Ram-Man), GFDL 1.2, https://commons.wikimedia.org/wiki/File:Cissus_alata_Leaves.JPG
+- `CIT-MIC.jpg` (Calamondin Orange): Krzysztof Ziarnek, Kenraiz, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Citrus_%C3%97_microcarpa_kz1.jpg
+- `COF-ARA.jpg` (Coffee Plant): Marcelo Corrêa, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Coffee_Flowers.JPG
+- `COL-SCU.jpg` (Coleus): Bjoertvedt, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Plectranthus_scutellarioides_-_El_Yunque_nat_park_PR_IMG_2120.JPG
+- `CRA-OVA.jpg` (Jade Plant): author is sannse., CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Crassula_ovata_700.jpg
+- `CRO-VAR.jpg` (Croton): Louise Wolff --darina 23:22, 6 May 2005 (UTC), CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Colpfl05.jpg
+- `CTE-BUR.jpg` (Fishbone Prayer Plant): Benutzer:Callipides, CC BY-SA 2.0 de, https://commons.wikimedia.org/wiki/File:Ctenanthe_burle-marxii.jpg
+- `CUR-REP.jpg` (Blue Chalksticks): Krzysztof Golik, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Senecio_serpens_04.jpg
+- `CUR-ROW.jpg` (String of Pearls): Flickr user Forest and Kim Starr, CC BY 2.0, https://commons.wikimedia.org/wiki/File:Senecio_rowleyanus_leaves.jpg
+- `CYC-PER.jpg` (Florist's Cyclamen): Hanay, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Yagur_%E2%80%93_Nesher,_the_Green_Path_%E2%80%93_Mount_Carmel_016.JPG
+- `CYC-REV.jpg` (Sago Palm): unknown author, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Cycas_inflorescence.jpg
+- `DIE-SEG.jpg` (Dumb Cane): Forest &amp; Kim Starr, CC BY 3.0, https://commons.wikimedia.org/wiki/File:Starr_061212-2331_Dieffenbachia_seguine.jpg
+- `DIO-MUS.jpg` (Venus Flytrap): Noah Elhardt, CC BY-SA 2.5, https://commons.wikimedia.org/wiki/File:Venus_Flytrap_showing_trigger_hairs.jpg
+- `DRA-FRA.jpg` (Corn Plant): rojypala, CC BY 2.0, https://commons.wikimedia.org/wiki/File:Dracaena_fragrans_(2).jpg
+- `DRA-MAR.jpg` (Dragon Tree): No machine-readable author provided. B.navez assumed (based on copyright claims)., CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Dracaena_reflexa.JPG
+- `DRO-CAP.jpg` (Cape Sundew): NoahElhardt, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Drosera_capensis_bend.JPG
+- `DYP-LUT.jpg` (Areca Palm): Ping an Chang, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:%E6%95%A3%E5%B0%BE%E8%91%B5Dypsis_lutescens_20210511145013_05.jpg
+- `ECH-ELE.jpg` (Mexican Snowball): EriaWei, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Echeveria_elegans_-_1.png
+- `EPI-AUR.jpg` (Golden Pothos): Mokkie, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Money_Plant_(Epipremnum_aureum)_4.jpg
+- `EUP-TRI.jpg` (African Milk Tree): Totteandersson1, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:EuphorbiaTrigona.png
+- `FAT-JAP.jpg` (Japanese Aralia): Orengi Harvey, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Old_Fatsia_japonica_with_blosems.jpg
+- `FIC-BEN.jpg` (Weeping Fig): Forest and Kim Starr, CC BY 3.0 us, https://commons.wikimedia.org/wiki/File:Starr-080608-7576-Ficus_benjamina-habit_with_Laysan_albatross-Gym_Sand_Island-Midway_Atoll_(24823189861).jpg
+- `FIC-ELA.jpg` (Rubber Plant): B.navez, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Ficus_elastica_leaves_02.JPG
+- `FIC-LYR.jpg` (Fiddle-Leaf Fig): Forest &amp; Kim Starr, CC BY 3.0, https://commons.wikimedia.org/wiki/File:Starr_031108-0130_Ficus_lyrata.jpg
+- `FIC-PUM.jpg` (Creeping Fig): Ixitixel, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Ficus_pumila_(Leafs).jpg
+- `FIT-ALB.jpg` (Nerve Plant): Louise Wolff --darina 00:12, 7 May 2005 (UTC), CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Colpfl25.jpg
+- `GAR-JAS.jpg` (Gardenia): Adriel anv00, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Gardenia_jasminoides_flower_Argentina.jpg
+- `GAS-SPP.jpg` (Ox Tongue): Stan Shebs, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Gasteria_pillansii_var_pillansii_1.jpg
+- `HAW-ATT.jpg` (Zebra Haworthia): stephen boisvert from Chicago, United States, CC BY 2.0, https://commons.wikimedia.org/wiki/File:Winterbourne_-_Haworthia_attenuata_(6120983526).jpg
+- `HED-HEL.jpg` (English Ivy): kallerna, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Hedera_helix_Dover.jpg
+- `HOW-FOR.jpg` (Kentia Palm): Black Diamond Images, CC BY 2.0, https://commons.wikimedia.org/wiki/File:Howea_forsteriana_Lord_Howe_Island.jpg
+- `HOY-CAR.jpg` (Wax Plant): Yvan leduc, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:NKN-2007-06-13_114250_Hoya_Carnosa_(Yvan_Leduc_author_for_Wikipedia).jpg
+- `HOY-KER.jpg` (Sweetheart Hoya): Hobbykafe, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Hoya-kerrii_flowers_op.jpg
+- `HYP-PHY.jpg` (Polka Dot Plant): Forest &amp; Kim Starr, CC BY 3.0, https://commons.wikimedia.org/wiki/File:Starr_080117-1693_Hypoestes_phyllostachya.jpg
+- `JAS-POL.jpg` (Pink Jasmine): Didier Descouens, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:(MHNT)_Jasminum_polyanthum_%E2%80%93_flowers_and_buds.jpg
+- `KAL-BLO.jpg` (Flaming Katy): বাক্যবাগীশ, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Kalanchoe_blossfeldiana_3.jpg
+- `LAU-NOB.jpg` (Bay Laurel): Forest and Kim Starr, CC BY 3.0 us, https://commons.wikimedia.org/wiki/File:Starr-071024-0195-Laurus_nobilis-leaves-Enchanting_Floral_Gardens_of_Kula-Maui_(24867859296).jpg
+- `LIT-SPP.jpg` (Living Stones): yellowcloud, CC BY 2.0, https://commons.wikimedia.org/wiki/File:Lithops_2.jpg
+- `MAM-ELO.jpg` (Ladyfinger Cactus): Chhe (talk), Public domain, https://commons.wikimedia.org/wiki/File:MammillariaElongata2.jpg
+- `MAR-LEU.jpg` (Prayer Plant): Kurt Stüber [1], CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Maranta_leuconeura3.jpg
+- `MIM-PUD.jpg` (Sensitive Plant): Suyash.dwivedi, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Mimosa_pudica_in_September_month.jpg
+- `MON-ADA.jpg` (Swiss Cheese Vine): Aitor, CC BY 4.0, https://commons.wikimedia.org/wiki/File:Monstera_adansonii_79319231.jpg
+- `MON-DEL.jpg` (Swiss Cheese Plant): unknown author, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Monstera_deliciosa2.jpg
+- `MUS-ACU.jpg` (Dwarf Banana): Miya.m, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Musa_acuminata_in_india01.jpg
+- `NEP-ALA.jpg` (Monkey Cup): Attenboroughii at English Wikipedia, CC BY 3.0, https://commons.wikimedia.org/wiki/File:Nepenthes_alata_ASR_062007_mt_ambucao_luzon.jpg
+- `NEP-EXA.jpg` (Boston Fern): Homer Edward Price, CC BY 2.0, https://commons.wikimedia.org/wiki/File:Boston_Fern_(2873392811).png
+- `OLE-EUR.jpg` (Olive Tree): en:User:Nickfraser, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Olivesfromjordan.jpg
+- `OPU-MIC.jpg` (Bunny Ears Cactus): Stan Shebs, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Opuntia_microdasys_3.jpg
+- `ORC-DEN.jpg` (Noble Dendrobium): Fan Wen, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Dendrobium_nobile_-_flower_view_01.jpg
+- `ORC-PHA.jpg` (Moth Orchid): unknown author, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Phalaenopsis_philippinensis_NationalOrchidGarden-Singapore.jpg
+- `OXA-TRI.jpg` (Purple Shamrock): KENPEI, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Oxalis_triangularis6.jpg
+- `PAC-AQU.jpg` (Money Tree): Dennis G. Jarvis, CC BY-SA 2.0, https://commons.wikimedia.org/wiki/File:Flickr_-_archer10_(Dennis)_-_Guatemala-1376.jpg
+- `PEP-ARG.jpg` (Watermelon Peperomia): James Steakley, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Peperomia_argyreia.jpg
+- `PEP-OBT.jpg` (Baby Rubber Plant): Jerzy Opioła, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Peperomia_obtusifolia_3-OB9.jpg
+- `PEP-PRO.jpg` (String of Turtles): Krzysztof Ziarnek, Kenraiz, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Peperomia_prostrata_kz01.jpg
+- `PHI-BIP.jpg` (Tree Philodendron): VSA.bing, Public domain, https://commons.wikimedia.org/wiki/File:Tree1.JPG
+- `PHI-ERU.jpg` (Blushing Philodendron): Alialb, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Philodendron_erubescens_-_Leaves.jpg
+- `PHI-HED.jpg` (Heartleaf Philodendron): KENPEI, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Philodendron_scandens_subsp_oxycardium2.jpg
+- `PIL-CAD.jpg` (Aluminium Plant): Taken by Fanghong, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:PileaCadierei.jpg
+- `PIL-PEP.jpg` (Chinese Money Plant): Husky, CC0, https://commons.wikimedia.org/wiki/File:Pilea_peperomioides_Chinese_money_plant.jpg
+- `PLA-BIF.jpg` (Staghorn Fern): themaskedlapwing, CC0, https://commons.wikimedia.org/wiki/File:Platycerium_bifurcatum_612351086.jpg
+- `POL-SCU.jpg` (Shield Aralia): Daderot, CC0, https://commons.wikimedia.org/wiki/File:Polyscias_scutellaria_-_Krohn_Conservatory_-_DSC03688.JPG
+- `RHA-EXC.jpg` (Lady Palm): Aris riyanto, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Arya_-_Rhapis_excelsa_at_hotel_citradream_Cirebon_2019_0.jpg
+- `RHA-TET.jpg` (Mini Monstera): Theoperatingsystem, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Rhaphidophora_tetrasperma.jpg
+- `SAN-TRI.jpg` (Snake Plant): Mokkie, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Snake_Plant_(Sansevieria_trifasciata_%27Laurentii%27).jpg
+- `SAR-SPP.jpg` (Pitcher Plant): NoahElhardt, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Sarracenia_ne1.JPG
+- `SCH-ARB.jpg` (Dwarf Umbrella Tree): JMK, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Schefflera_arboricola,_vrugte,_a,_Pretoria.jpg
+- `SCH-TRU.jpg` (Christmas Cactus): Hooker, William Jackson, Sir Blackwood, William, publisher; Cadell, Thomas, publisher; Swan, Joseph, engraver, Public domain, https://commons.wikimedia.org/wiki/File:Schlumbergera_truncata_(Exotic_Flora_Plate_20).jpg
+- `SCI-PIC.jpg` (Satin Pothos): Kor!An (Корзун Андрей), CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Scindapsus_pictus_01.jpg
+- `SED-MOR.jpg` (Burro's Tail): Morningdew51 at English Wikipedia, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Donkey%27s_tail_in_bloom_March_06.jpg
+- `SEN-ROW.jpg` (String of Bananas): KaitM42, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:String_of_Bananas.JPG
+- `SOL-SOL.jpg` (Baby's Tears): Hugo.arg, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Soleirolia_soleirolii002.JPG
+- `SPA-WAL.jpg` (Peace Lily): W.carter, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Peace_lily_-_1_-_cropped.jpg
+- `STR-CAP.jpg` (Cape Primrose): Wildfeuer, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:2007-03-20Streptocarpus03.jpg
+- `STR-NIC.jpg` (White Bird of Paradise): Eric in SF, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Strelitzia_nicolai_3.jpg
+- `STR-REG.jpg` (Bird of Paradise): Gabriel Collares, CC BY 4.0, https://commons.wikimedia.org/wiki/File:Ave-do-para%C3%ADso,_Strelitzia_reginae,_em_Bag%C3%A9,_Rio_Grande_do_Sul,_Brasil_-_55211233712.jpg
+- `SYN-POD.jpg` (Arrowhead Vine): unknown author, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Zingiber_malaysianum.jpg
+- `TIL-ION.jpg` (Sky Plant): Andrey Zharkikh from Salt Lake City, USA, CC BY 2.0, https://commons.wikimedia.org/wiki/File:Purple_sky_plant_-_Andrey_Zharkikh.jpg
+- `TRA-ZEB.jpg` (Inch Plant): Ruestz (upload 13:54, 11 January 2008), CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Zebrina_pendula_20060521_2_closer.jpg
+- `YUC-ELE.jpg` (Spineless Yucca): H. Zell, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Yucca_gigantea_-_Jard%C3%ADn_Bot%C3%A1nico_Canario_Viera_y_Clavijo_-_Gran_Canaria.jpg
+- `ZAM-ZAM.jpg` (ZZ Plant): User:WeFt, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Zamioculcas_zamiifolia_1.jpg
