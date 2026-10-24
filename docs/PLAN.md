@@ -416,7 +416,7 @@ Cut order if we fall behind (last cut first): Shopify CSV → public API → web
 - [ ] README: architecture diagram, setup (local via docker-compose; prod via Render + Neon), stack and decisions, scale strategy, cost strategy, screenshots/GIFs, write-up answers (hardest part, accuracy approach, measured numbers, 1M×8 analysis, learnings, how AI was used)
 - [ ] EDGE-CASES.md with statuses, updated through the build
 - [ ] Live demo with demo login, sample files downloadable from the Upload tab, demo mode when no key is set, Settings page to add a key. Deployed as the Docker image on Northflank's free plan (London) with Neon Postgres (Frankfurt): https://p01--catalog-forge--hhb44sdhtcg7.code.run. The shared demo account is locked down (`src/lib/demo-lockdown.ts`)
-- [ ] Screen recording, 6–8 min, following the recording plan below
+- [ ] Screen recording, 3–5 min (target 4½), following the recording plan below
 - [ ] Measured numbers: rows/min (1k and 10k, Fast and Economy, local and hosted), storefront p50/p95/p99 with and without an import, cost per 1,000 products per scenario, eval accuracy per field
 
 **Recording plan.** The video walks the live site with `samples/houseplants-100/` (121 rows, 103 products, 101 photos), imported fresh into the Second Store because the Demo Store already holds it:
@@ -426,7 +426,7 @@ Cut order if we fall behind (last cut first): Shopify CSV → public API → web
 4. Review queue: the SKU conflict, the missing price and the photo-less products with their reasons; claim chips citing source cells; approve one.
 5. Storefront in EN/DE/FR, a product page, the phone preview in the dashboard.
 6. Metrics (Demo Store): cost per product, model routing, the cost-strategies table.
-7. Technical tour: Postgres queue with leases, heartbeats and the reaper; idempotency keys; deterministic cleaner vs AI; grounding validator; translation sentinels; storefront read pool and cache versioning; SSE with polling fallback; store isolation; demo lockdown; upload caps; tests; Docker on Northflank + Neon.
+7. The main innovations, about a minute: edge cases catalogued before code; code owns the facts while the model writes words; grounding validator; translation sentinels; crash-safe Postgres queue (leases, heartbeats, reaper, idempotency keys); cost routing; gated auto-publish; snapshot storefront with its own pool and cache versioning; store isolation and demo lockdown; tests; Docker on Northflank + Neon.
 8. Close.
 
 The crash, chaos, SQL-dump, Google-Sheets and 10k scenes from the first shot list are out of this cut to keep it inside 8 minutes. The features are still there, and the integration tests and README cover them.
@@ -444,7 +444,7 @@ Constraint from Ryanveer: nothing paid. Verified on 2026-10-23 that everything b
 | 3 | **Render account** (Free) | Hosts the web process with the embedded worker. No card. | Sign up at render.com with GitHub. When I say so, click "New → Blueprint", pick the repo (I will commit `render.yaml`), and paste the env vars I give you. The free service spins down after 15 min idle and wakes in ~1 min; the dashboard polls while open so a watched import keeps it awake. |
 | 4 | **Neon account** (Free) | Postgres for production. 1 GB, 100 compute-hours/month, no card, data never deleted. | Sign up at neon.com with GitHub, create a project `catalogforge` (region: Frankfurt or Singapore, closest to Render's region), copy the **direct** connection string into Render's env as `DATABASE_URL` and the **pooled** one as `DATABASE_POOL_URL`. |
 | 5 | **Docker Desktop running** | Local Postgres via docker-compose. Done. | Keep it running. |
-| 6 | **The screen recording** | Only you can record and narrate. | OBS or Loom (free), 6–8 min, following the recording plan in section 15. |
+| 6 | **The screen recording** | Only you can record and narrate. | OBS or Loom (free), 3–5 min, following the recording plan in section 15. |
 | 7 | Optional: a real supplier sheet | Extra messy test data. | Drop it into `samples/private/` (git-ignored). |
 
 Everything else (pnpm, autocannon, sample data, taxonomy file, golden set, `render.yaml`) I will install or generate.
