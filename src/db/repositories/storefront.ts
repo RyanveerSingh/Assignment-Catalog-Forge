@@ -13,6 +13,18 @@ export interface StorefrontStore {
   defaultCurrency: string;
 }
 
+/**
+ * A fingerprint of a store's published catalogue: row count and latest change. Publishing, re-publishing
+ * or unpublishing anything changes it, which is what lets the storefront cache key on it.
+ */
+export async function getStorefrontVersion(db: DbOrTx, storeId: string): Promise<string> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int`, at: sql<string>`coalesce(extract(epoch from max(${storefrontProducts.updatedAt})), 0)::text` })
+    .from(storefrontProducts)
+    .where(eq(storefrontProducts.storeId, storeId));
+  return `${row?.n ?? 0}:${row?.at ?? "0"}`;
+}
+
 /** Storefront reads go through the storefront pool and only touch the published snapshot table (EC-H6). */
 export async function getStorefrontStore(db: DbOrTx, slug: string): Promise<StorefrontStore | null> {
   const [row] = await db

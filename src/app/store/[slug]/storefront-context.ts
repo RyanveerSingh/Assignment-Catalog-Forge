@@ -5,7 +5,7 @@ import { SORT_KEYS, type StorefrontSort } from "@/components/storefront/collecti
 import { resolveLocale } from "@/core/i18n/locale";
 import { getStorefrontDb } from "@/db/client";
 import type { CategoryPhoto } from "@/components/storefront/category-photos";
-import { getStorefrontProduct, getStorefrontStore, listStorefrontCategories, listStorefrontCategoryPhotos, listStorefrontProducts, type StorefrontRow, type StorefrontStore } from "@/db/repositories/storefront";
+import { getStorefrontProduct, getStorefrontStore, getStorefrontVersion, listStorefrontCategories, listStorefrontCategoryPhotos, listStorefrontProducts, type StorefrontRow, type StorefrontStore } from "@/db/repositories/storefront";
 import { singleFlight } from "@/lib/single-flight";
 
 /**
@@ -13,11 +13,26 @@ import { singleFlight } from "@/lib/single-flight";
  * storefront pool and sits behind a 30 s data cache so a running import never adds load (EC-H6).
  * The cache revalidates per request, so the loaders are also coalesced: fifty shoppers landing on a
  * stale page run one query, not fifty.
+ *
+ * Product caches are keyed on the catalogue's version as well, so anything published (by hand or by
+ * an import's auto-publish, which runs in the worker where Next's revalidateTag is unavailable) shows
+ * on the very next request instead of after the stale copy has been served out.
  */
 
 export const PAGE_SIZE = 24;
 const COUNTRY_COOKIE = "cf_country";
 const REVALIDATE_SECONDS = 30;
+/** How long one catalogue-version lookup is reused; under load that is one tiny query per store every 2 s. */
+const VERSION_TTL_MS = 2_000;
+const versions = new Map<string, { value: string; at: number }>();
+
+async function catalogueVersion(storeId: string): Promise<string> {
+  const hit = versions.get(storeId);
+  if (hit && Date.now() - hit.at < VERSION_TTL_MS) return hit.value;
+  const value = await singleFlight(`version:${storeId}`, () => getStorefrontVersion(getStorefrontDb(), storeId));
+  versions.set(storeId, { value, at: Date.now() });
+  return value;
+}
 
 /**
  * The published row minus the Date column: the data cache round-trips through JSON, so Dates would
@@ -92,8 +107,9 @@ function toProduct(row: StorefrontRow): StorefrontProduct {
   };
 }
 
-export function cachedProducts(storeId: string, locale: string, opts: { category?: string; page: number; sort: StorefrontSort }): Promise<{ items: StorefrontProduct[]; total: number }> {
-  const key = ["storefront-products", storeId, locale, opts.category ?? "", String(opts.page), opts.sort];
+export async function cachedProducts(storeId: string, locale: string, opts: { category?: string; page: number; sort: StorefrontSort }): Promise<{ items: StorefrontProduct[]; total: number }> {
+  const version = await catalogueVersion(storeId);
+  const key = ["storefront-products", storeId, version, locale, opts.category ?? "", String(opts.page), opts.sort];
   return unstable_cache(
     () =>
       singleFlight(key.join("|"), async () => {
@@ -110,8 +126,9 @@ export function cachedProducts(storeId: string, locale: string, opts: { category
   )();
 }
 
-export function cachedProduct(storeId: string, locale: string, handle: string): Promise<StorefrontProduct | null> {
-  const key = ["storefront-product", storeId, locale, handle];
+export async function cachedProduct(storeId: string, locale: string, handle: string): Promise<StorefrontProduct | null> {
+  const version = await catalogueVersion(storeId);
+  const key = ["storefront-product", storeId, version, locale, handle];
   return unstable_cache(
     () =>
       singleFlight(key.join("|"), async () => {
@@ -123,8 +140,9 @@ export function cachedProduct(storeId: string, locale: string, handle: string): 
   )();
 }
 
-export function cachedCategories(storeId: string, locale: string): Promise<Array<{ category: string; n: number }>> {
-  const key = ["storefront-categories", storeId, locale];
+export async function cachedCategories(storeId: string, locale: string): Promise<Array<{ category: string; n: number }>> {
+  const version = await catalogueVersion(storeId);
+  const key = ["storefront-categories", storeId, version, locale];
   return unstable_cache(() => singleFlight(key.join("|"), () => listStorefrontCategories(getStorefrontDb(), storeId, locale)), key, {
     revalidate: REVALIDATE_SECONDS,
     tags: [storeTag(storeId)],
@@ -132,8 +150,9 @@ export function cachedCategories(storeId: string, locale: string): Promise<Array
 }
 
 /** One photo per category path for tiles and menus; the same 30 s cache and tag as the categories themselves. */
-export function cachedCategoryPhotos(storeId: string, locale: string): Promise<CategoryPhoto[]> {
-  const key = ["storefront-category-photos", storeId, locale];
+export async function cachedCategoryPhotos(storeId: string, locale: string): Promise<CategoryPhoto[]> {
+  const version = await catalogueVersion(storeId);
+  const key = ["storefront-category-photos", storeId, version, locale];
   return unstable_cache(() => singleFlight(key.join("|"), () => listStorefrontCategoryPhotos(getStorefrontDb(), storeId, locale)), key, {
     revalidate: REVALIDATE_SECONDS,
     tags: [storeTag(storeId)],

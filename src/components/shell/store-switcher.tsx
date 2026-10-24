@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
 import { cn } from "cn";
 import type { StoreAccess } from "@/lib/auth";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { storeInitial } from "./store-initial";
 
 function Badge({ name, className }: { name: string; className?: string }) {
@@ -40,8 +40,10 @@ export function StoreSwitcher({ current, stores }: { current: StoreAccess; store
         <ChevronsUpDownIcon className="size-4 shrink-0 text-ink-muted" aria-hidden />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" sideOffset={6} className="w-[216px] rounded-2xl p-1.5 shadow-[var(--shadow-pop)]">
-        <DropdownMenuLabel>Your stores</DropdownMenuLabel>
-        {stores.map((s) => {
+        {/* Base UI requires a group label to sit inside its group, or the menu throws on open. */}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Your stores</DropdownMenuLabel>
+          {stores.map((s) => {
           const active = s.slug === current.slug;
           return (
             <DropdownMenuItem key={s.id} onClick={() => router.push(`/app/${s.slug}/upload`)} className="h-10 cursor-pointer gap-2.5 rounded-xl px-2">
@@ -50,7 +52,8 @@ export function StoreSwitcher({ current, stores }: { current: StoreAccess; store
               {active ? <CheckIcon className="size-4 text-brand" aria-hidden /> : null}
             </DropdownMenuItem>
           );
-        })}
+          })}
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );

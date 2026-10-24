@@ -5,7 +5,7 @@ import { useState } from "react";
 import { ChevronsUpDownIcon, LogOutIcon } from "lucide-react";
 import { cn } from "cn";
 import type { SessionUser } from "@/lib/auth";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { api } from "@/lib/client/api";
 
 /** Up to two initials from a name ("Demo Merchant" → "DM"); "?" when the name is blank. */
@@ -59,10 +59,12 @@ export function UserMenu({ user, compact = false }: { user: SessionUser; compact
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align={compact ? "end" : "start"} side={compact ? "bottom" : "top"} sideOffset={8} className="w-[232px] rounded-2xl p-1.5 shadow-[var(--shadow-pop)]">
-        <DropdownMenuLabel className="flex flex-col gap-0.5 px-2 py-1.5">
-          <span className="text-[13px] font-semibold text-ink">{user.name}</span>
-          <span className="truncate text-[11px] font-normal text-ink-muted">{user.email}</span>
-        </DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="flex flex-col gap-0.5 px-2 py-1.5">
+            <span className="text-[13px] font-semibold text-ink">{user.name}</span>
+            <span className="truncate text-[11px] font-normal text-ink-muted">{user.email}</span>
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem disabled={busy} onClick={() => void signOut()} className="h-10 cursor-pointer gap-2.5 rounded-xl px-2 text-[13px]">
           <LogOutIcon aria-hidden />

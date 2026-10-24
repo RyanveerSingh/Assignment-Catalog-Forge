@@ -3,7 +3,7 @@ import { appendImportEvent, getImportById, recomputeImportCounts, transitionImpo
 import { markProductsMissingFromImport } from "@/db/repositories/products";
 import { approveProduct } from "@/db/repositories/review";
 import { failOpenRows } from "@/db/repositories/rows";
-import { aiRequests, imports, products, type ImportCostSummary } from "@/db/schema";
+import { aiRequests, imports, photos, products, type ImportCostSummary } from "@/db/schema";
 import { naiveCostMicros } from "@/providers/ai";
 import { JobError } from "@/queue/errors";
 import type { JobHandler } from "@/worker/loop";
@@ -66,19 +66,42 @@ export const finalizeHandler: JobHandler = async ({ job, db, log }) => {
   }
 };
 
+const NO_PHOTO = "No photo: add one before it goes live";
+
 /**
  * "Publish products that pass every check": approve (and so publish) every draft of this import,
  * and re-publish products that were already approved so a re-upload's new photos or text go live.
  * Products that need review keep waiting for a person; approval is the same audited path the
  * review drawer uses, so nothing is published that a reviewer could not have published (EC-F11).
+ * A product with no matched photo is not "passing": a shop listing without a picture goes to review
+ * with the reason "No photo" instead of going live.
  */
 async function autoPublish(db: Parameters<JobHandler>[0]["db"], storeId: string, importId: string): Promise<void> {
   const drafts = await db
     .select({ id: products.id })
     .from(products)
     .where(and(eq(products.lastImportId, importId), inArray(products.status, ["draft", "approved"]), isNull(products.deletedAt)));
+  const withPhoto = new Set(
+    drafts.length === 0
+      ? []
+      : (
+          await db
+            .selectDistinct({ id: photos.productId })
+            .from(photos)
+            .where(and(inArray(photos.productId, drafts.map((d) => d.id)), eq(photos.status, "matched")))
+        ).map((r) => r.id),
+  );
   let published = 0;
+  let noPhoto = 0;
   for (const p of drafts) {
+    if (!withPhoto.has(p.id)) {
+      await db
+        .update(products)
+        .set({ status: "needs_review", reviewReasons: sql`${products.reviewReasons} || ${JSON.stringify([NO_PHOTO])}::jsonb`, updatedAt: new Date() })
+        .where(and(eq(products.id, p.id), sql`not (${products.reviewReasons} ? ${NO_PHOTO})`));
+      noPhoto += 1;
+      continue;
+    }
     const result = await approveProduct(db, storeId, p.id, null);
     if (result.ok) published += 1;
   }
@@ -86,7 +109,8 @@ async function autoPublish(db: Parameters<JobHandler>[0]["db"], storeId: string,
     .select({ n: sql<number>`count(*)::int` })
     .from(products)
     .where(and(eq(products.lastImportId, importId), eq(products.status, "needs_review")));
-  await appendImportEvent(db, importId, "info", `Auto-published ${published} product(s) that passed every check; ${waiting[0]?.n ?? 0} waiting for review`);
+  const held = noPhoto > 0 ? ` (${noPhoto} held because they have no photo)` : "";
+  await appendImportEvent(db, importId, "info", `Auto-published ${published} product(s) that passed every check; ${waiting[0]?.n ?? 0} waiting for review${held}`);
 }
 
 export async function summariseCost(db: Parameters<JobHandler>[0]["db"], importId: string): Promise<ImportCostSummary> {

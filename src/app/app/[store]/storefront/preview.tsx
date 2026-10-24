@@ -76,9 +76,12 @@ export function StorefrontPreview({ storeSlug, initialCountry }: { storeSlug: st
             </div>
           ) : (
             <div className="mx-auto w-[390px] max-w-full overflow-hidden rounded-[2.75rem] bg-ink p-2.5 shadow-[var(--shadow-pop)]">
-              <div className="relative overflow-hidden rounded-[2.1rem] bg-paper">
-                <span aria-hidden className="absolute top-2 left-1/2 z-10 h-6 w-28 -translate-x-1/2 rounded-full bg-ink" />
-                <iframe key={frameKey} title="Storefront preview" src={src} onLoad={() => setLoading(false)} className="block h-[760px] w-full border-0 bg-paper" />
+              <div className="relative overflow-hidden rounded-[2.1rem] bg-background">
+                {/* A status bar like a real phone's: the notch sits in it, so it never covers the shop's header. */}
+                <div aria-hidden className="relative h-10 bg-background">
+                  <span className="absolute top-2 left-1/2 h-6 w-28 -translate-x-1/2 rounded-full bg-ink" />
+                </div>
+                <iframe key={frameKey} title="Storefront preview" src={src} onLoad={() => setLoading(false)} className="block h-[720px] w-full border-0 bg-paper" />
               </div>
             </div>
           )}
@@ -86,7 +89,7 @@ export function StorefrontPreview({ storeSlug, initialCountry }: { storeSlug: st
       </div>
 
       <p className="max-w-3xl px-1 text-xs leading-relaxed text-ink-muted">
-        The storefront reads only the published snapshot table through its own small connection pool, with results cached for 30 seconds. It never calls the AI and never sees drafts or products under review, so it stays fast and stable while an import is running.
+        The storefront reads only the published snapshot table through its own small connection pool. Pages are cached, but anything published shows on the next request. It never calls the AI and never sees drafts or products under review, so it stays fast and stable while an import is running.
       </p>
     </div>
   );
