@@ -5,6 +5,7 @@ import { iterateProductsForExport } from "@/db/repositories/export";
 import { PRODUCT_STATUSES, type ProductStatus } from "@/db/schema";
 import { getConfig } from "@/lib/config";
 import { HttpError, withApi } from "@/lib/http";
+import { optionalUuidQuery, uuidQueryList } from "@/lib/ids";
 import { requireStore } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -21,8 +22,9 @@ export const GET = withApi(async (req: Request, { params }: Ctx) => {
   const format = url.searchParams.get("format") ?? "csv";
   if (!["csv", "json", "shopify"].includes(format)) throw new HttpError(400, "bad_format", "format must be csv, json or shopify");
   const statuses = url.searchParams.getAll("status").filter((s): s is ProductStatus => (PRODUCT_STATUSES as readonly string[]).includes(s));
-  const importId = url.searchParams.get("importId") || undefined;
-  const ids = url.searchParams.getAll("id").slice(0, 500);
+  // Validated before the stream opens: a bad id failing inside the stream can only drop the connection.
+  const importId = optionalUuidQuery(url.searchParams.get("importId"), "importId");
+  const ids = uuidQueryList(url.searchParams.getAll("id").slice(0, 500), "id");
   const base = getConfig().APP_BASE_URL.replace(/\/$/, "");
   const imageUrl = (blobId: string): string => `${base}/api/img/${encodeURIComponent(slug)}/${blobId}`;
   const source = iterateProductsForExport(getDb(), store.id, imageUrl, { status: statuses.length ? statuses : undefined, importId, ids: ids.length ? ids : undefined });

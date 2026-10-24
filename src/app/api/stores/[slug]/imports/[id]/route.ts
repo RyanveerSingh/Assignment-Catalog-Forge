@@ -3,14 +3,18 @@ import { appendImportEvent, getImport, listImportEvents, pauseImport, recomputeI
 import { failOpenRows } from "@/db/repositories/rows";
 import { requestDrive } from "@/jobs/drive";
 import { HttpError, json, parseIntParam, withApi } from "@/lib/http";
+import { requireUuidParam } from "@/lib/ids";
 import { requireStore } from "@/lib/session";
 import { ACTIVE_IMPORT_STATUSES } from "@/db/schema";
 import { serializeImport } from "@/lib/serializers";
 
 type Ctx = { params: Promise<{ slug: string; id: string }> };
 
+const importId = (id: string): string => requireUuidParam(id, "import_not_found", "Import not found");
+
 export const GET = withApi(async (req: Request, { params }: Ctx) => {
-  const { slug, id } = await params;
+  const { slug, id: rawId } = await params;
+  const id = importId(rawId);
   const { store } = await requireStore(slug);
   const db = getDb();
   const imp = await getImport(db, store.id, id);
@@ -23,7 +27,8 @@ export const GET = withApi(async (req: Request, { params }: Ctx) => {
 
 /** Actions: pause, resume, cancel, retry (re-drive). */
 export const POST = withApi(async (req: Request, { params }: Ctx) => {
-  const { slug, id } = await params;
+  const { slug, id: rawId } = await params;
+  const id = importId(rawId);
   const { store, user } = await requireStore(slug);
   const db = getDb();
   const imp = await getImport(db, store.id, id);

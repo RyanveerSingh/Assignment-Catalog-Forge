@@ -2,6 +2,7 @@ import { getDb } from "@/db/client";
 import { getWebhook } from "@/db/repositories/webhooks";
 import { enqueueTestDelivery } from "@/jobs/webhook";
 import { HttpError, json, withApi } from "@/lib/http";
+import { requireUuidParam } from "@/lib/ids";
 import { serializeWebhookDelivery } from "@/lib/serializers";
 import { requireStore } from "@/lib/session";
 
@@ -9,7 +10,8 @@ type Ctx = { params: Promise<{ slug: string; id: string }> };
 
 /** Queues a `webhook.test` delivery through the real job, so the test proves signing, retries and the log, not a shortcut. */
 export const POST = withApi(async (_req: Request, { params }: Ctx) => {
-  const { slug, id } = await params;
+  const { slug, id: rawId } = await params;
+  const id = requireUuidParam(rawId, "webhook_not_found", "Webhook not found");
   const { store } = await requireStore(slug);
   if (store.role !== "owner") throw new HttpError(403, "forbidden", "Only the store owner can send test deliveries");
   const db = getDb();

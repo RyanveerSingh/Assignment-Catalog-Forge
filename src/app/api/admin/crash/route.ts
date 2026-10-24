@@ -1,4 +1,5 @@
 import { getConfig } from "@/lib/config";
+import { assertDemoCrashAllowed, isDemoLockdown, recordDemoCrash } from "@/lib/demo-lockdown";
 import { HttpError, json, withApi } from "@/lib/http";
 import { getLogger } from "@/lib/logger";
 import { currentUser } from "@/lib/session";
@@ -10,14 +11,19 @@ import { crashWorker } from "@/worker/start";
  * them, and the import resumes with nothing lost or doubled (EC-E1, E16), while the storefront and
  * the dashboard keep serving. Exiting the whole process would prove the same thing at the cost of a
  * host cold start and a minute of 502s, which is the opposite of "storefront stays fast".
+ * In the shared demo it stays available to everyone but runs at most once per cooldown, so the
+ * reaper always gets to finish reclaiming before the next crash.
  */
 export const POST = withApi(async () => {
   if (!(await currentUser())) throw new HttpError(401, "unauthenticated", "Sign in to continue");
   if (getConfig().WORKER_MODE !== "embedded") {
     throw new HttpError(409, "worker_not_embedded", "The worker runs as a separate process here; stop that process to simulate a crash");
   }
+  const locked = isDemoLockdown();
+  if (locked) assertDemoCrashAllowed();
   const result = crashWorker();
   if (!result) throw new HttpError(409, "worker_not_running", "No embedded worker is running in this process");
+  if (locked) recordDemoCrash();
   getLogger({ component: "chaos" }).error({ dropped: result.dropped }, "worker crashed from the dashboard; restarting in 2 s");
   return json({
     ok: true,

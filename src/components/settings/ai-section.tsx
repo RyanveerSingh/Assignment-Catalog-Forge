@@ -11,13 +11,15 @@ import type { SectionProps } from "./settings-form";
 const MAX_BUDGET_CENTS = 100_000;
 
 export function AiSection({ settings, disabled, onSave }: SectionProps) {
+  const keyLocked = disabled || settings.demoLock?.apiKey === true;
+  const maxBudgetCents = settings.demoLock ? settings.demoLock.budgetCapCents : MAX_BUDGET_CENTS;
   const [key, setKey] = useState("");
   const [budgetDollars, setBudgetDollars] = useState((settings.importBudgetCents / 100).toFixed(2));
   const keySave = useSave();
   const budgetSave = useSave();
 
   const budgetCents = Math.round(Number.parseFloat(budgetDollars || "0") * 100);
-  const budgetValid = Number.isFinite(budgetCents) && budgetCents >= 0 && budgetCents <= MAX_BUDGET_CENTS;
+  const budgetValid = Number.isFinite(budgetCents) && budgetCents >= 0 && budgetCents <= maxBudgetCents;
   const budgetDirty = budgetValid && budgetCents !== settings.importBudgetCents;
   const live = settings.aiMode === "anthropic";
 
@@ -33,7 +35,7 @@ export function AiSection({ settings, disabled, onSave }: SectionProps) {
             spellCheck={false}
             placeholder="sk-ant-…"
             value={key}
-            disabled={disabled}
+            disabled={keyLocked}
             aria-describedby="api-key-status"
             onChange={(e) => {
               setKey(e.target.value);
@@ -44,7 +46,7 @@ export function AiSection({ settings, disabled, onSave }: SectionProps) {
         <div className="flex flex-wrap items-center gap-2">
           <Button
             size="sm"
-            disabled={disabled || key.trim() === "" || keySave.state.kind === "saving"}
+            disabled={keyLocked || key.trim() === "" || keySave.state.kind === "saving"}
             onClick={() =>
               void keySave.run(async () => {
                 await onSave({ apiKey: key.trim() });
@@ -58,7 +60,7 @@ export function AiSection({ settings, disabled, onSave }: SectionProps) {
           <Button
             size="sm"
             variant="outline"
-            disabled={disabled || !settings.apiKeyMasked || keySave.state.kind === "saving"}
+            disabled={keyLocked || !settings.apiKeyMasked || keySave.state.kind === "saving"}
             onClick={() => void keySave.run(() => onSave({ apiKey: "" }))}
           >
             Clear
@@ -99,7 +101,7 @@ export function AiSection({ settings, disabled, onSave }: SectionProps) {
               type="number"
               inputMode="decimal"
               min={0}
-              max={MAX_BUDGET_CENTS / 100}
+              max={maxBudgetCents / 100}
               step="0.5"
               value={budgetDollars}
               disabled={disabled}
@@ -114,7 +116,7 @@ export function AiSection({ settings, disabled, onSave }: SectionProps) {
           </div>
         </div>
         <p id="import-budget-hint" className="text-xs text-ink-muted">
-          When an import reaches this amount it pauses and asks before spending more. 0 means no limit beyond the server default. Max $1,000.
+          When an import reaches this amount it pauses and asks before spending more. 0 means no limit beyond the server default. Max ${(maxBudgetCents / 100).toLocaleString("en-US", { maximumFractionDigits: 2 })}.
         </p>
       </div>
       <SaveBar state={budgetSave.state} dirty={budgetDirty} disabled={disabled || !budgetValid} label="Save budget" onSave={() => void budgetSave.run(() => onSave({ importBudgetCents: budgetCents }))} />

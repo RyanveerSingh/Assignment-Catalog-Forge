@@ -4,11 +4,11 @@ import { eq, sql } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { imports, stores, users } from "@/db/schema";
 import { createStore, registerUser } from "./auth";
+import { DEMO_EMAIL, DEMO_PASSWORD } from "./demo-lockdown";
 import { getLogger } from "./logger";
 import { acceptUpload } from "./upload";
 
-export const DEMO_EMAIL = "demo@catalogforge.dev";
-export const DEMO_PASSWORD = "demo1234";
+export { DEMO_EMAIL, DEMO_PASSWORD };
 
 /**
  * Demo accounts for the live demo and local development. Idempotent, safe to run on every boot.

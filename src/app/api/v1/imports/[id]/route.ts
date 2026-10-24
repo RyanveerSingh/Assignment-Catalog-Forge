@@ -1,12 +1,13 @@
 import { getDb } from "@/db/client";
 import { getImport, listImportEvents } from "@/db/repositories/imports";
 import { HttpError, json, withApi } from "@/lib/http";
+import { requireUuidParam } from "@/lib/ids";
 import { requireApiKeyStore } from "@/lib/session";
 import { serializeImport } from "@/lib/serializers";
 
 export const GET = withApi(async (req: Request, { params }: { params: Promise<{ id: string }> }) => {
   const { storeId } = await requireApiKeyStore(req);
-  const { id } = await params;
+  const id = requireUuidParam((await params).id, "import_not_found", "Import not found");
   const db = getDb();
   const imp = await getImport(db, storeId, id);
   if (!imp) throw new HttpError(404, "import_not_found", "Import not found");

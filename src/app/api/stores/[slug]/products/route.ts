@@ -5,7 +5,9 @@ import { countProductsByStatus } from "@/db/repositories/overview";
 import { listCategories, listProducts, type ProductSortKey } from "@/db/repositories/products-query";
 import { bulkApprove, bulkRerunAi } from "@/db/repositories/review";
 import { PRODUCT_STATUSES, type ProductStatus } from "@/db/schema";
+import { consumeDemoReruns, isLockedDemoUser } from "@/lib/demo-lockdown";
 import { HttpError, json, parseIntParam, withApi } from "@/lib/http";
+import { isUuid, optionalUuidQuery } from "@/lib/ids";
 import { requireStore } from "@/lib/session";
 
 type Ctx = { params: Promise<{ slug: string }> };
@@ -24,7 +26,7 @@ export const GET = withApi(async (req: Request, { params }: Ctx) => {
     filters: {
       status: statuses.length ? statuses : undefined,
       search: q.get("q")?.slice(0, 100) || undefined,
-      importId: q.get("importId") || undefined,
+      importId: optionalUuidQuery(q.get("importId"), "importId"),
       category: q.get("category") || undefined,
       minConfidence: q.get("minConfidence") ? parseIntParam(q.get("minConfidence"), 0, 0, 100) : undefined,
       maxConfidence: q.get("maxConfidence") ? parseIntParam(q.get("maxConfidence"), 100, 0, 100) : undefined,
@@ -46,7 +48,7 @@ export const GET = withApi(async (req: Request, { params }: Ctx) => {
   return json({ ...result, categories, statusCounts });
 });
 
-const idsSchema = z.array(z.string().min(1).max(64)).min(1, "Select at least one product").max(500);
+const idsSchema = z.array(z.string().refine(isUuid, "Product ids are UUIDs")).min(1, "Select at least one product").max(500);
 
 const bulkSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("approve"), ids: idsSchema, includeNeedsReview: z.boolean().optional() }),
@@ -73,5 +75,6 @@ export const POST = withApi(async (req: Request, { params }: Ctx) => {
   if (!parsed.success) throw new HttpError(400, "invalid_body", "Invalid bulk action", parsed.error.issues);
   const body = parsed.data;
   if (body.action === "approve") return json(await bulkApprove(getDb(), store.id, body.ids, user.id, { includeNeedsReview: Boolean(body.includeNeedsReview) }));
+  if (isLockedDemoUser(user)) consumeDemoReruns(store.id, new Set(body.ids).size);
   return json(await bulkRerunAi(getDb(), store.id, body.ids, user.id, { tier: body.tier, promptVersion: body.promptVersion }));
 });

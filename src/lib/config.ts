@@ -37,7 +37,16 @@ const schema = z.object({
   MAX_PHOTOS_PER_IMPORT: z.coerce.number().int().positive().default(2_000),
   MAX_SHEET_BYTES: z.coerce.number().int().positive().default(50 * 1024 * 1024),
   MAX_PHOTO_BYTES: z.coerce.number().int().positive().default(25 * 1024 * 1024),
-  MAX_ZIP_BYTES: z.coerce.number().int().positive().default(200 * 1024 * 1024),
+  // The ZIP and the whole request must fit in a 512 MB instance: the multipart body is buffered once
+  // by the form parser and copied once more into Buffers, so 120 MB in flight peaks near 250 MB.
+  MAX_ZIP_BYTES: z.coerce.number().int().positive().default(100 * 1024 * 1024),
+  MAX_UPLOAD_BYTES: z.coerce.number().int().positive().default(120 * 1024 * 1024),
+
+  /** "true" seeds the shared demo account at boot. */
+  SEED_DEMO: z.string().optional(),
+  /** Locks the shared demo account out of costly or global settings; defaults to on when SEED_DEMO=true. */
+  DEMO_LOCKDOWN: z.enum(["true", "false"]).optional(),
+  DEMO_BUDGET_CAP_CENTS: z.coerce.number().int().nonnegative().default(200),
 
   CHAOS_RATE_LIMIT_PCT: z.coerce.number().min(0).max(100).default(0),
   CHAOS_TIMEOUT_PCT: z.coerce.number().min(0).max(100).default(0),

@@ -3,12 +3,14 @@ import { getImport } from "@/db/repositories/imports";
 import { listRows } from "@/db/repositories/rows";
 import { ROW_STATUSES, type RowStatus } from "@/db/schema";
 import { HttpError, json, parseIntParam, withApi } from "@/lib/http";
+import { requireUuidParam } from "@/lib/ids";
 import { requireStore } from "@/lib/session";
 
 type Ctx = { params: Promise<{ slug: string; id: string }> };
 
 export const GET = withApi(async (req: Request, { params }: Ctx) => {
-  const { slug, id } = await params;
+  const { slug, id: rawId } = await params;
+  const id = requireUuidParam(rawId, "import_not_found", "Import not found");
   const { store } = await requireStore(slug);
   const db = getDb();
   const imp = await getImport(db, store.id, id);

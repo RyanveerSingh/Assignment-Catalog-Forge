@@ -9,6 +9,7 @@ import { issue, type CanonicalField, type Issue, type ParsedSheet, type RawRow }
 import { decodeText, type DecodedText } from "./encoding";
 import { detectDelimiter } from "./delimiter";
 import { dedupeHeaders, detectHeaderRow, mapColumns } from "./headers";
+import { truncatedIssue, workbookRowLimit } from "./row-cap";
 import { sniffFileType, type FileKind, type SniffResult } from "./sniff";
 import { looksLikeSqlDump, parseSqlDump } from "./sql-dump";
 
@@ -30,6 +31,8 @@ interface Loaded {
   issues: Issue[];
   /** The file could not be read at all; stop before header detection. */
   fatal?: boolean;
+  /** A workbook read with a row limit that its sheet exceeds: the sheet's full row count (EC-A14). */
+  fullSheetRows?: number;
 }
 
 const DELIMITER_SAMPLE_CHARS = 20_000;
@@ -64,7 +67,7 @@ function parse(buf: Buffer, opts: ParseSheetOptions): ParsedSheet {
   }
 
   if (sniff.kind !== "csv") {
-    const loaded = loadWorkbook(buf, sniff.kind);
+    const loaded = loadWorkbook(buf, sniff.kind, opts.maxRows);
     issues.push(...loaded.issues);
     if (loaded.fatal) return { ...emptySheet(loaded.format, issues), sheetName: loaded.sheetName };
     return buildSheet(loaded, opts, issues);
@@ -109,10 +112,12 @@ function loadCsv(decoded: DecodedText): Loaded {
   return { grid, format: "csv", encoding: decoded.encoding, delimiter, issues };
 }
 
-function loadWorkbook(buf: Buffer, format: "xlsx" | "xls"): Loaded {
+function loadWorkbook(buf: Buffer, format: "xlsx" | "xls", maxRows: number): Loaded {
   let workbook: XLSX.WorkBook;
+  // Without a row limit a small XLSX that declares a million rows expands into a million-row grid in memory.
+  const sheetRows = workbookRowLimit(maxRows);
   try {
-    workbook = XLSX.read(buf, { type: "buffer", raw: false, cellText: true, cellDates: false, dense: true });
+    workbook = XLSX.read(buf, { type: "buffer", raw: false, cellText: true, cellDates: false, dense: true, ...(sheetRows > 0 ? { sheetRows } : {}) });
   } catch (err) {
     const message = "The workbook could not be read; it may be corrupt or password-protected.";
     return { grid: [], format, issues: [issue("sheet.unreadable", "error", message, { value: errorMessage(err) })], fatal: true };
@@ -128,9 +133,18 @@ function loadWorkbook(buf: Buffer, format: "xlsx" | "xls"): Loaded {
     if (names.length > 1) {
       issues.push(issue("sheet.selected", "info", `Using sheet "${name}" (the first with data; the workbook has ${names.length} sheets).`, { ec: "A12", value: name }));
     }
-    return { grid, format, sheetName: name, issues };
+    return { grid, format, sheetName: name, issues, fullSheetRows: fullRowCount(sheet as XLSX.WorkSheet) };
   }
   return { grid: [], format, sheetName: names[0], issues: [] };
+}
+
+/** With `sheetRows`, SheetJS keeps the untruncated range in `!fullref`; undefined when nothing was cut. */
+function fullRowCount(sheet: XLSX.WorkSheet): number | undefined {
+  const full = sheet["!fullref"];
+  const ref = sheet["!ref"];
+  if (typeof full !== "string" || typeof ref !== "string" || full === ref) return undefined;
+  const fullRows = XLSX.utils.decode_range(full).e.r + 1;
+  return fullRows > XLSX.utils.decode_range(ref).e.r + 1 ? fullRows : undefined;
 }
 
 function sheetToGrid(sheet: XLSX.WorkSheet): Grid {
@@ -175,9 +189,11 @@ function buildSheet(loaded: Loaded, opts: ParseSheetOptions, issues: Issue[]): P
     rows.push({ rowNumber, cells: toRecord(headers, cells) });
   }
 
-  const totalRows = dataRows.length;
+  // A workbook cut at read time only knows its row range, blank rows included: a lower bound, not a count.
+  const exact = loaded.fullSheetRows === undefined;
+  const totalRows = exact ? dataRows.length : Math.max(dataRows.length, (loaded.fullSheetRows ?? 0) - header.index - 1);
   const truncated = totalRows > maxRows;
-  if (truncated) issues.push(issue("sheet.truncated", "warn", `Rows ${maxRows + 1} and beyond were not imported`, { ec: "A14" }));
+  if (truncated) issues.push(truncatedIssue(maxRows, totalRows, exact));
   if (totalRows === 0) issues.push(issue("sheet.no_data_rows", "info", "The sheet has a header row but no data rows.", { ec: "A16" }));
 
   return { headers, originalHeaders, headerRowIndex: header.index, rows, totalRows, truncated, format, encoding, delimiter, sheetName, issues };

@@ -192,7 +192,11 @@ describe("parseSheet: CSV", () => {
     expect(sheet.rows[9_999]).toMatchObject({ rowNumber: 10_000, cells: { sku: "SKU-10000" } });
     expect(sheet.totalRows).toBe(10_500);
     expect(sheet.truncated).toBe(true);
-    expect(find(sheet.issues, "sheet.truncated")).toMatchObject({ severity: "warn", message: "Rows 10001 and beyond were not imported", ec: "A14" });
+    expect(find(sheet.issues, "sheet.truncated")).toMatchObject({
+      severity: "warn",
+      message: "The sheet has 10,500 data rows; only the first 10,000 were imported (the limit per import). Rows 10,001–10,500 were not imported: split the file and import the rest separately.",
+      ec: "A14",
+    });
   });
 
   it("EC-A14: a sheet within the cap is not truncated", () => {
@@ -235,6 +239,44 @@ describe("parseSheet: CSV", () => {
 });
 
 describe("parseSheet: XLSX / XLS", () => {
+  it("EC-A14: a workbook is read only up to the cap plus a margin, and the cut is reported as a lower bound", () => {
+    const rows: unknown[][] = [["Price list"], ["sku", "name"]];
+    for (let i = 1; i <= 400; i++) rows.push([`SKU-${i}`, `Item ${i}`]);
+    const sheet = parseSheet(workbook([{ name: "Data", rows }]), { filename: "big.xlsx", maxRows: 50 });
+    expect(sheet.rows).toHaveLength(50);
+    expect(sheet.rows[49].cells.sku).toBe("SKU-50");
+    expect(sheet.truncated).toBe(true);
+    // Only the cap plus the read margin was loaded, yet the full range (402 sheet rows) is known.
+    expect(sheet.totalRows).toBe(400);
+    expect(find(sheet.issues, "sheet.truncated")).toMatchObject({
+      severity: "warn",
+      message: "The sheet has more than 50 data rows; only the first 50 were imported (the limit per import). Rows 51 and beyond were not imported: split the file and import the rest separately.",
+      ec: "A14",
+    });
+  });
+
+  it("EC-A14: a workbook declaring a huge range with few real rows is not expanded beyond the cap", () => {
+    const rows: unknown[][] = [["sku", "name"], ["A1", "Vase"], ["A2", "Bowl"]];
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    // A bomb: one cell at row 1,000,000 stretches the range the reader would otherwise walk.
+    XLSX.utils.sheet_add_aoa(ws, [["Z-LAST", "far away"]], { origin: "A1000000" });
+    XLSX.utils.book_append_sheet(wb, ws, "Bomb");
+    const out: unknown = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+    if (!Buffer.isBuffer(out)) throw new Error("XLSX.write did not return a Buffer");
+    const sheet = parseSheet(out, { filename: "bomb.xlsx", maxRows: 10_000 });
+    expect(sheet.rows.map((r) => r.cells.sku)).toEqual(["A1", "A2"]);
+    expect(sheet.truncated).toBe(true);
+    expect(codes(sheet.issues)).toContain("sheet.truncated");
+  });
+
+  it("EC-A14: a workbook within the cap is read whole and not truncated", () => {
+    const sheet = parseSheet(workbook([{ name: "Data", rows: [["sku", "name"], ["A1", "Vase"], ["A2", "Bowl"]] }]), { filename: "small.xlsx", maxRows: 2 });
+    expect(sheet.rows).toHaveLength(2);
+    expect(sheet.truncated).toBe(false);
+    expect(codes(sheet.issues)).not.toContain("sheet.truncated");
+  });
+
   it("EC-A8 / EC-A12: two title rows above the header and a second empty sheet", () => {
     const buf = workbook([
       { name: "Preise", rows: [["Preisliste 2024"], ["Stand: März"], [], ["Artikelnummer", "Bezeichnung", "Preis"], ["TC-01", "Übertopf", "12,50"], ["TC-02", "Schale", "8,00"]] },
@@ -292,7 +334,7 @@ describe("parseSheet: XLSX / XLS", () => {
     const sheet = parseSheet(workbook([{ name: "S", rows }]), { maxRows: 20 });
     expect(sheet.rows).toHaveLength(20);
     expect(sheet.totalRows).toBe(25);
-    expect(find(sheet.issues, "sheet.truncated")?.message).toBe("Rows 21 and beyond were not imported");
+    expect(find(sheet.issues, "sheet.truncated")?.message).toMatch(/^The sheet has 25 data rows; only the first 20 were imported .*Rows 21–25 were not imported/);
   });
 
   it("legacy XLS (BIFF8) is parsed with format 'xls'", () => {

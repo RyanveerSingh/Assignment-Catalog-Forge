@@ -27,6 +27,15 @@ export interface StoreSettingsDto {
   apiKeyMasked: string | null;
   serverKeyConfigured: boolean;
   aiMode: "anthropic" | "mock";
+  /** Set for the shared demo account: which controls the server refuses, and why. */
+  demoLock: DemoLockDto | null;
+}
+
+export interface DemoLockDto {
+  message: string;
+  budgetCapCents: number;
+  apiKey: boolean;
+  languages: boolean;
 }
 
 export type SettingsPatch = Partial<Pick<StoreSettingsDto, "name" | "defaultCurrency" | "locales" | "countryLocaleMap" | "glossary" | "translateOn" | "importBudgetCents">> & { apiKey?: string };
@@ -38,6 +47,11 @@ export interface ChaosDto {
   inventedClaimPct: number;
 }
 
+/** What the chaos endpoint returns: the knobs plus, in the shared demo, when they switch themselves off. */
+export interface ChaosStateDto extends ChaosDto {
+  expiresAt?: string | null;
+}
+
 export interface SectionProps {
   settings: StoreSettingsDto;
   disabled: boolean;
@@ -46,7 +60,7 @@ export interface SectionProps {
 
 export function SettingsForm({ storeSlug, isOwner }: { storeSlug: string; isOwner: boolean }) {
   const [settings, setSettings] = useState<StoreSettingsDto | null>(null);
-  const [chaos, setChaos] = useState<ChaosDto | null>(null);
+  const [chaos, setChaos] = useState<ChaosStateDto | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -55,7 +69,7 @@ export function SettingsForm({ storeSlug, isOwner }: { storeSlug: string; isOwne
       const [s, c] = await Promise.all([
         api<StoreSettingsDto>(`${storeApi(storeSlug)}/settings`, { cache: "no-store" }),
         // Chaos is a global test switch; failing to read it must not block the store settings.
-        api<ChaosDto>("/api/admin/chaos", { cache: "no-store" }).catch(() => null),
+        api<ChaosStateDto>("/api/admin/chaos", { cache: "no-store" }).catch(() => null),
       ]);
       setSettings(s);
       setChaos(c);
@@ -107,11 +121,17 @@ export function SettingsForm({ storeSlug, isOwner }: { storeSlug: string; isOwne
               Only the store owner can change these settings. You can view them.
             </p>
           ) : null}
+          {!disabled && settings.demoLock ? (
+            <p role="note" className="flex items-center gap-2 rounded-2xl bg-brand-soft px-4 py-3 text-sm text-brand">
+              <Lock aria-hidden className="size-4 shrink-0" />
+              {settings.demoLock.message}
+            </p>
+          ) : null}
           <Reveal index={0}>
             <StoreSection settings={settings} disabled={disabled} onSave={onSave} />
           </Reveal>
           <Reveal index={1}>
-            <LanguagesSection settings={settings} disabled={disabled} onSave={onSave} />
+            <LanguagesSection settings={settings} disabled={disabled || settings.demoLock?.languages === true} onSave={onSave} />
           </Reveal>
           <Reveal index={2}>
             <TranslationSection settings={settings} disabled={disabled} onSave={onSave} />

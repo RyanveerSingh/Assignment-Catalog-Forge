@@ -4,12 +4,13 @@ import { getDb } from "@/db/client";
 import { stores, type StoreSettings } from "@/db/schema";
 import { encryptSecret, decryptSecret, maskSecret } from "@/lib/crypto";
 import { getConfig } from "@/lib/config";
+import { demoLocked, demoLockInfo, isLockedDemoUser, lockedSettingsChange } from "@/lib/demo-lockdown";
 import { HttpError, json, withApi } from "@/lib/http";
 import { requireStore } from "@/lib/session";
 
 type Ctx = { params: Promise<{ slug: string }> };
 
-function serialize(row: typeof stores.$inferSelect) {
+function serialize(row: typeof stores.$inferSelect, demoLock: boolean) {
   const cfg = getConfig();
   let keyMasked: string | null = null;
   if (row.settings.encryptedApiKey) {
@@ -32,15 +33,17 @@ function serialize(row: typeof stores.$inferSelect) {
     apiKeyMasked: keyMasked,
     serverKeyConfigured: cfg.AI_PROVIDER === "anthropic" && Boolean(cfg.ANTHROPIC_API_KEY),
     aiMode: keyMasked || (cfg.AI_PROVIDER === "anthropic" && cfg.ANTHROPIC_API_KEY) ? "anthropic" : "mock",
+    /** Set for the shared demo account: which controls are locked, so the page can say so. */
+    demoLock: demoLock ? demoLockInfo(cfg.DEMO_BUDGET_CAP_CENTS) : null,
   };
 }
 
 export const GET = withApi(async (_req: Request, { params }: Ctx) => {
   const { slug } = await params;
-  const { store } = await requireStore(slug);
+  const { store, user } = await requireStore(slug);
   const [row] = await getDb().select().from(stores).where(eq(stores.id, store.id)).limit(1);
   if (!row) throw new HttpError(404, "store_not_found", "Store not found");
-  return json(serialize(row));
+  return json(serialize(row, isLockedDemoUser(user)));
 });
 
 const patchSchema = z.object({
@@ -57,7 +60,7 @@ const patchSchema = z.object({
 
 export const PATCH = withApi(async (req: Request, { params }: Ctx) => {
   const { slug } = await params;
-  const { store } = await requireStore(slug);
+  const { store, user } = await requireStore(slug);
   if (store.role !== "owner") throw new HttpError(403, "forbidden", "Only the store owner can change settings");
   const parsed = patchSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) throw new HttpError(400, "invalid_body", "Invalid settings", parsed.error.issues);
@@ -65,6 +68,11 @@ export const PATCH = withApi(async (req: Request, { params }: Ctx) => {
   const [row] = await db.select().from(stores).where(eq(stores.id, store.id)).limit(1);
   if (!row) throw new HttpError(404, "store_not_found", "Store not found");
   const d = parsed.data;
+  const locked = isLockedDemoUser(user);
+  if (locked) {
+    const reason = lockedSettingsChange(d, { locales: row.locales, countryLocaleMap: row.countryLocaleMap }, getConfig().DEMO_BUDGET_CAP_CENTS);
+    if (reason) throw demoLocked(reason);
+  }
   const settings: StoreSettings = { ...row.settings };
   if (d.glossary !== undefined) settings.glossary = d.glossary;
   if (d.translateOn !== undefined) settings.translateOn = d.translateOn;
@@ -88,5 +96,6 @@ export const PATCH = withApi(async (req: Request, { params }: Ctx) => {
     })
     .where(eq(stores.id, store.id));
   const [updated] = await db.select().from(stores).where(eq(stores.id, store.id)).limit(1);
-  return json(serialize(updated!));
+  if (!updated) throw new HttpError(404, "store_not_found", "Store not found");
+  return json(serialize(updated, locked));
 });

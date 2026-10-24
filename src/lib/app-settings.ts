@@ -43,13 +43,37 @@ export function currentChaos(): ChaosSettings {
   return chaosSnapshot ?? chaosFromEnv();
 }
 
-export async function refreshChaos(db: DbOrTx): Promise<ChaosSettings> {
-  // Settings saved before a knob existed lack its key; the env default fills it in.
-  chaosSnapshot = { ...chaosFromEnv(), ...(await getSetting<Partial<ChaosSettings>>(db, CHAOS_KEY, {})) };
-  return chaosSnapshot;
+/** What is stored: the knobs plus, in the shared demo, when they switch themselves off (epoch ms). */
+type StoredChaos = Partial<ChaosSettings> & { expiresAt?: number };
+
+export interface ChaosState {
+  settings: ChaosSettings;
+  /** Epoch ms when the stored knobs lapse back to the defaults; null when they never do. */
+  expiresAt: number | null;
 }
 
-export async function setChaos(db: DbOrTx, settings: ChaosSettings): Promise<void> {
-  await setSetting(db, CHAOS_KEY, settings);
+/** Pure: stored value → effective settings. Lapsed knobs fall back to the env defaults. */
+export function resolveChaos(stored: StoredChaos, defaults: ChaosSettings, now: number): ChaosState {
+  const { expiresAt, ...knobs } = stored;
+  if (typeof expiresAt === "number" && expiresAt <= now) return { settings: defaults, expiresAt: null };
+  // Settings saved before a knob existed lack its key; the env default fills it in.
+  return { settings: { ...defaults, ...knobs }, expiresAt: typeof expiresAt === "number" ? expiresAt : null };
+}
+
+export async function getChaosState(db: DbOrTx): Promise<ChaosState> {
+  const state = resolveChaos(await getSetting<StoredChaos>(db, CHAOS_KEY, {}), chaosFromEnv(), Date.now());
+  chaosSnapshot = state.settings;
+  return state;
+}
+
+export async function refreshChaos(db: DbOrTx): Promise<ChaosSettings> {
+  return (await getChaosState(db)).settings;
+}
+
+export async function setChaos(db: DbOrTx, settings: ChaosSettings, opts: { ttlMs?: number } = {}): Promise<ChaosState> {
+  const expiresAt = opts.ttlMs !== undefined ? Date.now() + opts.ttlMs : null;
+  const stored: StoredChaos = expiresAt === null ? { ...settings } : { ...settings, expiresAt };
+  await setSetting(db, CHAOS_KEY, stored);
   chaosSnapshot = settings;
+  return { settings, expiresAt };
 }

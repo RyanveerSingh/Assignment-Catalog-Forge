@@ -1,11 +1,12 @@
 import { sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { json } from "@/lib/http";
+import { getLogger } from "@/lib/logger";
 import { queueDepth } from "@/queue/queue";
 
 export const dynamic = "force-dynamic";
 
-/** Used by the host for restarts (EC-J3). Never throws: a bad database answers 503 with details. */
+/** Used by the host for restarts (EC-J3). Never throws: a bad database answers 503; the cause goes to the log, not the public. */
 export async function GET(): Promise<Response> {
   const started = Date.now();
   try {
@@ -21,6 +22,7 @@ export async function GET(): Promise<Response> {
       time: new Date().toISOString(),
     });
   } catch (err) {
-    return json({ ok: false, error: err instanceof Error ? err.message : String(err) }, { status: 503 });
+    getLogger({ component: "health" }).error({ err }, "health check failed");
+    return json({ ok: false, error: "The database is unavailable" }, { status: 503 });
   }
 }

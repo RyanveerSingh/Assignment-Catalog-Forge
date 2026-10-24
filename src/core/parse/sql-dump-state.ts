@@ -6,6 +6,7 @@
 
 import { issue, type Issue, type ParsedSheet, type RawRow } from "../types";
 import { dedupeHeaders } from "./headers";
+import { truncatedIssue } from "./row-cap";
 
 export interface TableData {
   name: string;
@@ -126,7 +127,7 @@ export function assemble(state: DumpState): ParsedSheet {
     return { rowNumber: i + 1, cells };
   });
   const truncated = chosen.total > state.maxRows;
-  if (truncated) issues.push(issue("sheet.truncated", "warn", `Rows ${state.maxRows + 1} and beyond were not imported`, { ec: "A14" }));
+  if (truncated) issues.push(truncatedIssue(state.maxRows, chosen.total, true));
   return { headers, originalHeaders, headerRowIndex: 0, rows, totalRows: chosen.total, truncated, format: "sql", sheetName: chosen.name, issues };
 }
 

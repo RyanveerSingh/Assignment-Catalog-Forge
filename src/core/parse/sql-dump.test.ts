@@ -175,7 +175,11 @@ describe("parseSqlDump: INSERT statements (EC-A20)", () => {
     expect(sheet.rows[4].cells.sku).toBe("S5");
     expect(sheet.totalRows).toBe(12);
     expect(sheet.truncated).toBe(true);
-    expect(find(sheet.issues, "sheet.truncated")).toMatchObject({ severity: "warn", message: "Rows 6 and beyond were not imported", ec: "A14" });
+    expect(find(sheet.issues, "sheet.truncated")).toMatchObject({
+      severity: "warn",
+      message: "The sheet has 12 data rows; only the first 5 were imported (the limit per import). Rows 6–12 were not imported: split the file and import the rest separately.",
+      ec: "A14",
+    });
   });
 
   it("EC-A16: CREATE TABLE without any INSERT behaves like a header-only sheet", () => {

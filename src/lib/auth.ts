@@ -26,9 +26,21 @@ export async function registerUser(db: DbOrTx, input: { email: string; password:
   return row;
 }
 
+let dummyHash: Promise<string> | null = null;
+
+/** A real scrypt hash of a random password, so an unknown email costs the same scrypt run as a known one. */
+function getDummyHash(): Promise<string> {
+  dummyHash ??= hashPassword(randomToken(16));
+  return dummyHash;
+}
+
 export async function authenticate(db: DbOrTx, email: string, password: string): Promise<SessionUser | null> {
   const [row] = await db.select().from(users).where(eq(users.email, email.toLowerCase().trim())).limit(1);
-  if (!row) return null;
+  if (!row) {
+    // Same work as a wrong password, so response time does not reveal which emails have accounts.
+    await verifyPassword(password, await getDummyHash());
+    return null;
+  }
   const ok = await verifyPassword(password, row.passwordHash);
   return ok ? { id: row.id, email: row.email, name: row.name } : null;
 }

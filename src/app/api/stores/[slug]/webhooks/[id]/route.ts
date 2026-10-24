@@ -2,6 +2,7 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import { deleteWebhook, lastDeliveriesByWebhook, setWebhookActive } from "@/db/repositories/webhooks";
 import { HttpError, json, withApi } from "@/lib/http";
+import { requireUuidParam } from "@/lib/ids";
 import { serializeWebhook } from "@/lib/serializers";
 import { requireStore } from "@/lib/session";
 
@@ -11,7 +12,8 @@ const patchSchema = z.object({ active: z.boolean() });
 
 /** Pause or resume a webhook without losing its secret; a disabled webhook gets no deliveries. */
 export const PATCH = withApi(async (req: Request, { params }: Ctx) => {
-  const { slug, id } = await params;
+  const { slug, id: rawId } = await params;
+  const id = requireUuidParam(rawId, "webhook_not_found", "Webhook not found");
   const { store } = await requireStore(slug);
   if (store.role !== "owner") throw new HttpError(403, "forbidden", "Only the store owner can change webhooks");
   const parsed = patchSchema.safeParse(await req.json().catch(() => null));
@@ -24,7 +26,8 @@ export const PATCH = withApi(async (req: Request, { params }: Ctx) => {
 });
 
 export const DELETE = withApi(async (_req: Request, { params }: Ctx) => {
-  const { slug, id } = await params;
+  const { slug, id: rawId } = await params;
+  const id = requireUuidParam(rawId, "webhook_not_found", "Webhook not found");
   const { store } = await requireStore(slug);
   if (store.role !== "owner") throw new HttpError(403, "forbidden", "Only the store owner can delete webhooks");
   const removed = await deleteWebhook(getDb(), store.id, id);

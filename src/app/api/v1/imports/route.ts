@@ -1,5 +1,7 @@
 import { getDb } from "@/db/client";
 import { listImports } from "@/db/repositories/imports";
+import { getConfig } from "@/lib/config";
+import { capImportBudget, isDemoLockdown } from "@/lib/demo-lockdown";
 import { json, parseIntParam, withApi } from "@/lib/http";
 import { readImportRequest } from "@/lib/import-request";
 import { requireApiKeyStore } from "@/lib/session";
@@ -16,7 +18,11 @@ import { serializeImport } from "@/lib/serializers";
 export const POST = withApi(async (req: Request) => {
   const { storeId } = await requireApiKeyStore(req);
   const request = await readImportRequest(req);
-  const result = await acceptUpload(getDb(), { storeId, ...request });
+  const cfg = getConfig();
+  // Keys on the shared demo belong to the demo account, so its budget cap applies here too.
+  const capped = isDemoLockdown() ? capImportBudget(request.budgetCents, cfg.AI_IMPORT_BUDGET_CENTS, cfg.DEMO_BUDGET_CAP_CENTS) : null;
+  const result = await acceptUpload(getDb(), { storeId, ...request, ...(capped ? { budgetCents: capped.budgetCents } : {}) });
+  if (capped?.warning && !result.reused) result.warnings.push(capped.warning);
   return json({ importId: result.importId, reused: result.reused, warnings: result.warnings, statusUrl: `/api/v1/imports/${result.importId}` }, { status: result.reused ? 200 : 202 });
 });
 

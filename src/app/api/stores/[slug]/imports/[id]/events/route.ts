@@ -2,6 +2,7 @@ import { getDb } from "@/db/client";
 import { getImport, listImportEvents } from "@/db/repositories/imports";
 import { getBus, type ImportLogEvent, type ImportProgressEvent } from "@/lib/events";
 import { HttpError, parseIntParam, withApi } from "@/lib/http";
+import { requireUuidParam } from "@/lib/ids";
 import { requireStore } from "@/lib/session";
 import { serializeImport } from "@/lib/serializers";
 
@@ -17,7 +18,8 @@ const HEARTBEAT_MS = 15_000;
  * worker is embedded, and by polling the database otherwise, so it works in both modes.
  */
 export const GET = withApi(async (req: Request, { params }: Ctx) => {
-  const { slug, id } = await params;
+  const { slug, id: rawId } = await params;
+  const id = requireUuidParam(rawId, "import_not_found", "Import not found");
   const { store } = await requireStore(slug);
   const db = getDb();
   const imp = await getImport(db, store.id, id);

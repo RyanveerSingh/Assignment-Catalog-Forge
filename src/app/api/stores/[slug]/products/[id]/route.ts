@@ -4,18 +4,23 @@ import { asColumnMappings, buildCleaningXray, isCleanedRow } from "@/core/clean/
 import { getDb } from "@/db/client";
 import { getProductDetail } from "@/db/repositories/products-query";
 import { approveProduct, rejectProduct, rerunProductAi, restoreProduct, sendBackProduct, setManualTranslation, softDeleteProduct, updateProductDraft } from "@/db/repositories/review";
+import { consumeDemoReruns, isLockedDemoUser } from "@/lib/demo-lockdown";
 import { HttpError, json, withApi } from "@/lib/http";
+import { requireUuidParam } from "@/lib/ids";
 import { requireStore } from "@/lib/session";
 
 type Ctx = { params: Promise<{ slug: string; id: string }> };
+
+const productId = (id: string): string => requireUuidParam(id, "product_not_found", "Product not found");
 
 /**
  * Product detail for the review drawer. Each source row carries its cleaning X-ray (raw → cleaned per
  * field) instead of the stored CleanedRow blob, which is far larger than what the drawer needs.
  */
 export const GET = withApi(async (_req: Request, { params }: Ctx) => {
-  const { slug, id } = await params;
+  const { slug, id: rawId } = await params;
   const { store } = await requireStore(slug);
+  const id = productId(rawId);
   const detail = await getProductDetail(getDb(), store.id, id);
   if (!detail) throw new HttpError(404, "product_not_found", "Product not found");
   const { columnMap, sourceRows, ...rest } = detail;
@@ -38,8 +43,9 @@ const patchSchema = z.object({
 
 /** Edit the draft. Fields you send become manual overrides (EC-F1); `version` guards concurrent edits (EC-F7). */
 export const PATCH = withApi(async (req: Request, { params }: Ctx) => {
-  const { slug, id } = await params;
+  const { slug, id: rawId } = await params;
   const { store, user } = await requireStore(slug);
+  const id = productId(rawId);
   const parsed = patchSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) throw new HttpError(400, "invalid_body", "Invalid product patch", parsed.error.issues);
   const { version, ...rest } = parsed.data;
@@ -65,12 +71,14 @@ const actionSchema = z.discriminatedUnion("action", [
 ]);
 
 export const POST = withApi(async (req: Request, { params }: Ctx) => {
-  const { slug, id } = await params;
+  const { slug, id: rawId } = await params;
   const { store, user } = await requireStore(slug);
+  const id = productId(rawId);
   const parsed = actionSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) throw new HttpError(400, "invalid_body", "Invalid action", parsed.error.issues);
   const db = getDb();
   const a = parsed.data;
+  if (a.action === "rerun" && isLockedDemoUser(user)) consumeDemoReruns(store.id, 1);
   const result = await (async () => {
     switch (a.action) {
       case "approve":

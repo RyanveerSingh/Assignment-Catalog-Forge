@@ -6,7 +6,7 @@ import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { api, ApiError } from "@/lib/client/api";
 import { SaveBar, SectionCard, useSave } from "./section-card";
-import type { ChaosDto } from "./settings-form";
+import type { ChaosDto, ChaosStateDto } from "./settings-form";
 
 const SLIDERS: ReadonlyArray<{ key: keyof ChaosDto; label: string; hint: string }> = [
   { key: "rateLimitPct", label: "Rate limit (429)", hint: "share of AI calls that come back rate-limited; the worker backs off and retries" },
@@ -24,7 +24,7 @@ const RANGE =
 type CrashState = { kind: "idle" } | { kind: "confirm" } | { kind: "sending" } | { kind: "sent"; message: string } | { kind: "error"; message: string };
 
 /** Live failure injection for demos. Any signed-in user may use it; it is global, not per store. */
-export function ChaosPanel({ chaos, onApplied }: { chaos: ChaosDto | null; onApplied: (c: ChaosDto) => void }) {
+export function ChaosPanel({ chaos, onApplied }: { chaos: ChaosStateDto | null; onApplied: (c: ChaosStateDto) => void }) {
   const [draft, setDraft] = useState<ChaosDto | null>(chaos);
   const [crash, setCrash] = useState<CrashState>({ kind: "idle" });
   const { state, run, reset } = useSave();
@@ -81,6 +81,11 @@ export function ChaosPanel({ chaos, onApplied }: { chaos: ChaosDto | null; onApp
           })}
         </div>
       )}
+      {chaos?.expiresAt ? (
+        <p className="text-xs text-ink-muted">
+          Shared demo: these settings switch back off at {new Date(chaos.expiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}, so the next reviewer starts clean.
+        </p>
+      ) : null}
       <SaveBar
         state={state}
         dirty={dirty}
@@ -89,7 +94,7 @@ export function ChaosPanel({ chaos, onApplied }: { chaos: ChaosDto | null; onApp
         onSave={() =>
           void run(async () => {
             if (!draft) return;
-            const applied = await api<ChaosDto>("/api/admin/chaos", { method: "PATCH", json: draft });
+            const applied = await api<ChaosStateDto>("/api/admin/chaos", { method: "PATCH", json: draft });
             onApplied(applied);
           })
         }
