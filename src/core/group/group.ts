@@ -104,7 +104,7 @@ function buildGroup(bucket: Keyed[], allDuplicates: DuplicateRow[], claimed: Map
   const draft: Omit<ProductGroup, "complexity" | "sourceHash"> = {
     productKey,
     keySource: bucket[0].source,
-    title: pickTitle(rows, variants.length >= 2),
+    title: pickTitle(rows, variants.length >= 2 ? variants.map((v) => v.options) : null),
     descriptionHtml: description.html,
     descriptionText: description.text,
     category: firstNonNull(rows, (r) => r.category),

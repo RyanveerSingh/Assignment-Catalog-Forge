@@ -238,3 +238,42 @@ describe("mapColumns: other conflicts", () => {
     expect(canonicals([], [])).toEqual([]);
   });
 });
+
+describe("mapColumns: product-name and Shopify export headers (EC-A11, EC-C7)", () => {
+  it.each([
+    ["Product"], ["Product name"], ["Item"], ["Item name"], ["Article"], ["Artikel"], ["Produkt"], ["Bezeichnung"], ["Désignation"], ["Produit"],
+  ])("EC-A11: %j maps to title", (header) => {
+    expect(canonicals(["SKU", header])).toEqual(["sku", "title"]);
+  });
+
+  it("EC-C7: a Shopify product export maps every field it can", () => {
+    const headers = ["Handle", "Title", "Body (HTML)", "Vendor", "Option1 Name", "Option1 Value", "Option2 Name", "Option2 Value", "Option3 Name", "Option3 Value", "Variant SKU", "Variant Grams", "Variant Price", "Image Src"];
+    expect(canonicals(headers)).toEqual(["handle", "title", "description", "vendor", null, null, null, null, null, null, "sku", "weight", "price", "image"]);
+  });
+
+  it("EC-C7: option value columns never become a price by content", () => {
+    const rows = [["12.50", "Size", "9.99"], ["14.50", "", "11.99"]];
+    expect(canonicals(["Option1 Value", "Option1 Name", "Variant Price"], rows)).toEqual([null, null, "price"]);
+  });
+
+  it.each([["Gewicht (kg)"], ["Weight [lbs]"], ["Poids (kg)"], ["Weight (kg)"]])("EC-A11: %j still maps to weight", (header) => {
+    expect(canonicals(["SKU", header])).toEqual(["sku", "weight"]);
+  });
+});
+
+describe("detectHeaderRow: text-only tables (EC-A8)", () => {
+  it("EC-A8: [Name, Description, Notes] above three text rows is the header, not the last data row", () => {
+    const rows = [["Name", "Description", "Notes"], ["Vase", "A nice vase", "fragile"], ["Mug", "Big mug", "dishwasher safe"], ["Bowl", "Round bowl", "handmade"]];
+    expect(detectHeaderRow(rows)?.index).toBe(0);
+  });
+
+  it("EC-A8: recognised labels after a title row still win over the data below", () => {
+    const rows = [["Spring list"], ["Title", "Colour", "Notes"], ["Vase", "Blue", "fragile"], ["Mug", "Red", "big"]];
+    expect(detectHeaderRow(rows)?.index).toBe(1);
+  });
+
+  it("EC-A9: a text-only table with unknown labels fails as headerless rather than using its last data row", () => {
+    const rows = [["Foo", "Bar", "Baz"], ["Vase", "A nice vase", "fragile"], ["Bowl", "Round bowl", "handmade"]];
+    expect(detectHeaderRow(rows)).toBeNull();
+  });
+});

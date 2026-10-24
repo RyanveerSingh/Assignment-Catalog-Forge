@@ -264,3 +264,94 @@ describe("currency helpers", () => {
     expect(extractCurrency(raw, defaultForKr)).toEqual({ currency, rest, ambiguous });
   });
 });
+
+describe("parsePrice: prefixed dollars, rupees, lakh grouping, unreadable shapes", () => {
+  it.each<[string, number, string]>([
+    ["C$ 15", 1500, "CAD"],
+    ["CA$15", 1500, "CAD"],
+    ["A$20", 2000, "AUD"],
+    ["AU$ 20", 2000, "AUD"],
+    ["R$ 50", 5000, "BRL"],
+    ["US$ 12", 1200, "USD"],
+    ["NZ$ 9.50", 950, "NZD"],
+    ["HK$ 88", 8800, "HKD"],
+    ["S$ 5", 500, "SGD"],
+    ["MX$ 120", 12000, "MXN"],
+    ["15 C$", 1500, "CAD"],
+    ["Rs. 499", 49900, "INR"],
+    ["Rs 499", 49900, "INR"],
+    ["₹499", 49900, "INR"],
+    ["INR 499", 49900, "INR"],
+    ["₹1,29,999", 12999900, "INR"],
+    ["₹ 12,34,567.50", 123456750, "INR"],
+  ])("EC-B2/EC-B5: %j → %i %s from the value, no issue", (raw, cents, currency) => {
+    const r = parsePrice(raw, { defaultCurrency: "EUR" });
+    expect(r.money).toEqual({ cents, currency });
+    expect(r.currencySource).toBe("value");
+    expect(r.issues).toEqual([]);
+  });
+
+  it("EC-B2: a bare '$' in a EUR store is USD and says so", () => {
+    const r = parsePrice("$12", { defaultCurrency: "EUR" });
+    expect(r.money).toEqual({ cents: 1200, currency: "USD" });
+    expect(r.issues).toEqual([expect.objectContaining({ code: "price.dollar_assumed", severity: "info", ec: "B2" })]);
+  });
+
+  it("EC-B2: a bare '$' in a USD store needs no note", () => {
+    expect(parsePrice("$12", { defaultCurrency: "USD" }).issues).toEqual([]);
+  });
+
+  it.each<[Partial<PriceContext>, string]>([
+    [{ defaultCurrency: "CAD" }, "CAD"],
+    [{ defaultCurrency: "EUR", headerCurrency: "AUD" }, "AUD"],
+    [{ defaultCurrency: "EUR", columnCurrency: "NZD" }, "NZD"],
+  ])("EC-B2: a bare '$' takes the dollar the context names (%j → %s)", (ctx, currency) => {
+    const r = parsePrice("$12", { defaultCurrency: "EUR", ...ctx });
+    expect(r.money).toEqual({ cents: 1200, currency });
+    expect(r.issues.map((i) => i.code)).toEqual(["price.dollar_resolved"]);
+  });
+
+  it.each([["1e3"], ["1E5"], ["1.2E+04"]])("EC-B5: scientific notation %j is unparseable, never 100 cents", (raw) => {
+    const r = parsePrice(raw, { defaultCurrency: "EUR" });
+    expect(r.money).toBeNull();
+    expect(r.issues.map((i) => i.code)).toContain("price.unparseable");
+  });
+
+  it.each([["2x 9.99"], ["2 x 9,99"], ["3× 4.50 €"]])("EC-B5: multipack %j gives no price and a review warning", (raw) => {
+    const r = parsePrice(raw, { defaultCurrency: "EUR" });
+    expect(r.money).toBeNull();
+    expect(r.issues).toContainEqual(expect.objectContaining({ code: "price.multipack", severity: "warn", ec: "B5" }));
+  });
+
+  it("EC-B2: a bare cell inherits the currency the rest of its column states", () => {
+    const r = parsePrice("12.00", { defaultCurrency: "EUR", valueCurrency: "USD" });
+    expect(r.money).toEqual({ cents: 1200, currency: "USD" });
+    expect(r.currencySource).toBe("column");
+    expect(r.issues.map((i) => i.code)).toEqual(["price.currency_inherited"]);
+  });
+
+  it("EC-B2: a currency column still beats the column majority", () => {
+    const r = parsePrice("12.00", { defaultCurrency: "EUR", valueCurrency: "USD", columnCurrency: "GBP" });
+    expect(r.money?.currency).toBe("GBP");
+    expect(r.issues.map((i) => i.code)).not.toContain("price.currency_inherited");
+  });
+
+  it("EC-B2: a majority equal to the store default changes nothing", () => {
+    const r = parsePrice("12.00", { defaultCurrency: "EUR", valueCurrency: "EUR" });
+    expect(r.currencySource).toBe("default");
+    expect(r.issues.map((i) => i.code)).toEqual(["price.currency_assumed"]);
+  });
+
+  it.each<[string, string]>([
+    ["Price (C$)", "CAD"],
+    ["Preis (Rs.)", "INR"],
+    ["Price ($)", "USD"],
+  ])("EC-B2: detectCurrencyInHeader(%j) → %s", (header, code) => {
+    expect(detectCurrencyInHeader(header)).toBe(code);
+  });
+
+  it("EC-B2: extractCurrency marks a bare '$' so the caller can resolve it", () => {
+    expect(extractCurrency("$12")).toEqual({ currency: "USD", rest: "12", ambiguous: false, bareDollar: true });
+    expect(extractCurrency("US$12")).toEqual({ currency: "USD", rest: "12", ambiguous: false });
+  });
+});

@@ -2,7 +2,7 @@
  * Steps 1–3 of grouping: drop exact duplicate rows, forward-fill Shopify-style children from their
  * parent row, then give every row a deterministic product key.
  */
-import { slugify } from "../clean/row";
+import { shopifyOption, slugify } from "../clean/row";
 import type { CleanedRow, DuplicateRow, ProductKeySource } from "../types";
 import { issue } from "../types";
 import { deriveSkuStem, syntheticSku, titleKey } from "./key";
@@ -62,9 +62,22 @@ function sameStem(a: string | null, b: string | null): boolean {
   return sa !== null && sb !== null && sa.toLowerCase() === sb.toLowerCase();
 }
 
+/** Shopify children carry "option1" values whose names ("Size") only the parent row states. */
+function nameOptions(child: CleanedRow, parent: CleanedRow): Record<string, string> {
+  const options: Record<string, string> = {};
+  for (const [key, value] of Object.entries(child.options)) {
+    const n = /^option([1-3])$/.exec(key)?.[1];
+    const name = n === undefined ? undefined : parent.attributes[`option${n}_name`];
+    const pair: [string, string] | null = name === undefined ? [key, value] : shopifyOption(name, value);
+    if (pair && options[pair[0]] === undefined) options[pair[0]] = pair[1];
+  }
+  return options;
+}
+
 function inherit(child: CleanedRow, parent: CleanedRow): CleanedRow {
   return {
     ...child,
+    options: nameOptions(child, parent),
     title: parent.title,
     descriptionHtml: child.descriptionHtml ?? parent.descriptionHtml,
     descriptionText: child.descriptionText ?? parent.descriptionText,

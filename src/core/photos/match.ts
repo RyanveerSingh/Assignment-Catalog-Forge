@@ -64,10 +64,15 @@ function stripExtension(name: string): string {
   return name.replace(EXTENSION_RE, "");
 }
 
-/** "photos/TC-PL-20_2.jpg" → { stem: "tc pl 20", sequence: 2 }; "x.png" → { stem: "x", sequence: null }. */
-export function normalizePhotoStem(filename: string): { stem: string; sequence: number | null } {
+/**
+ * Every reading of a filename from the full stem down to the most stripped one:
+ * "TC_PL_20-1.png" → "tc pl 20 1", "tc pl 20" (photo 1), "tc pl" (photo 1). Matching prefers the
+ * longest reading that hits, so "_20" stays part of the SKU when a SKU "TC-PL-20" exists.
+ */
+function stemReadings(filename: string): Array<{ stem: string; sequence: number | null }> {
   let name = stripExtension(basename(filename));
   let sequence: number | null = null;
+  const readings: Array<{ stem: string; sequence: number | null }> = [{ stem: foldForMatch(name), sequence }];
   for (let pass = 0; pass < 3; pass++) {
     const before = name;
     for (const re of SEQUENCE_RES) {
@@ -78,8 +83,15 @@ export function normalizePhotoStem(filename: string): { stem: string; sequence: 
       break;
     }
     if (name === before) break;
+    readings.push({ stem: foldForMatch(name), sequence });
   }
-  return { stem: foldForMatch(name), sequence };
+  return readings;
+}
+
+/** "photos/TC-PL-20_2.jpg" → { stem: "tc pl 20", sequence: 2 }; "x.png" → { stem: "x", sequence: null }. */
+export function normalizePhotoStem(filename: string): { stem: string; sequence: number | null } {
+  const readings = stemReadings(filename);
+  return readings[readings.length - 1];
 }
 
 export function matchPhotos(filenames: string[], groups: ProductGroup[]): PhotoMatchResult {
@@ -89,21 +101,26 @@ export function matchPhotos(filenames: string[], groups: ProductGroup[]): PhotoM
   const pending: Array<{ filename: string; hit: Hit | null; sequence: number | null }> = [];
 
   for (const filename of files) {
-    const raw = foldForMatch(stripExtension(basename(filename)));
-    const norm = normalizePhotoStem(filename);
-    seenStems.add(raw);
-    seenStems.add(norm.stem);
+    const readings = stemReadings(filename);
+    const norm = readings[readings.length - 1];
+    for (const r of readings) seenStems.add(r.stem);
 
-    const hitStripped = exactHit(norm.stem, index);
-    const hitRaw = raw === norm.stem ? null : exactHit(raw, index);
-    let hit = hitStripped;
+    // The best-ranked reading wins, the longer one on a tie: the suffix belongs to the identifier
+    // ("TC-PL-2") unless a shorter reading points at the same target, then it really was a sequence.
+    const hits = readings.map((r) => exactHit(r.stem, index));
+    let at = -1;
+    hits.forEach((h, k) => {
+      const current = at >= 0 ? hits[at] : null;
+      if (h && (!current || RANK[h.method] < RANK[current.method])) at = k;
+    });
+    let hit: Hit | null = at >= 0 ? hits[at] : null;
     let sequence = norm.sequence;
-    if (hitRaw && (!hitStripped || RANK[hitRaw.method] <= RANK[hitStripped.method])) {
-      // The full name matched at least as well: the suffix belongs to the identifier ("TC-PL-2")
-      // unless both forms point at the same target, in which case it really was a sequence.
-      const same = hitStripped !== null && sameTarget(hitRaw, hitStripped);
-      hit = same ? hitStripped : hitRaw;
-      if (!same) sequence = null;
+    if (hit) {
+      const chosen = hit;
+      const shorter = hits.findLastIndex((h, k) => k > at && h !== null && sameTarget(h, chosen));
+      if (shorter > at) at = shorter;
+      hit = hits[at];
+      sequence = readings[at].sequence;
     }
     if (!hit) hit = tokenHit(norm.stem, index) ?? fuzzyHit(norm.stem, index);
     pending.push({ filename, hit, sequence });
@@ -161,14 +178,25 @@ function tokenHit(stem: string, index: Index): Hit | null {
   return { productKey: best.productKey, sku: best.sku, method: "sku_token" };
 }
 
-/** Unique best SKU within two edits; ties mean we do not know, so the photo stays unmatched. */
+/** The numbers in a stem, with look-alike letters next to digits read as digits ("3O" → 30). */
+function numbersIn(s: string): string {
+  const digits = s.replace(/(?<=\d)[oO]|[oO](?=\d)/g, "0").replace(/(?<=\d)[lI]|[lI](?=\d)/g, "1");
+  return (digits.match(/\d+/g) ?? []).map((n) => n.replace(/^0+(?=\d)/, "")).join(" ");
+}
+
+/**
+ * Unique best SKU within two edits; ties mean we do not know, so the photo stays unmatched.
+ * Numbers must agree exactly: "VASE-12" is a different product from "VASE-1", not a typo.
+ */
 function fuzzyHit(stem: string, index: Index): Hit | null {
   if (stem.length < FUZZY_MIN_STEM) return null;
+  const numbers = numbersIn(stem);
   let best: Target | null = null;
   let bestDistance = FUZZY_MAX_DISTANCE + 1;
   let bestCount = 0;
   for (const candidate of index.skuList) {
     if (Math.abs(candidate.folded.length - stem.length) > FUZZY_MAX_DISTANCE) continue;
+    if (numbersIn(candidate.folded) !== numbers) continue;
     const d = damerauLevenshtein(stem, candidate.folded, FUZZY_MAX_DISTANCE);
     if (d < bestDistance) {
       bestDistance = d;

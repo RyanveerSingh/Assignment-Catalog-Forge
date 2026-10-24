@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Dimensions } from "../types";
-import { formatCm, parseDimensions, parseLength, parseWeight } from "./units";
+import { formatCm, parseDimensions, parseLength, parseWeight, readWeight, unitFromHeader, type LengthUnit, type WeightUnit } from "./units";
 
 // Written as a code point so the invisible character stays visible in the test data.
 const NBSP = String.fromCodePoint(0xa0);
@@ -8,7 +8,7 @@ const NBSP = String.fromCodePoint(0xa0);
 interface LengthCase {
   name: string;
   raw: string | null | undefined;
-  opts?: { assumeUnit?: "cm" | "mm" | "in" };
+  opts?: { assumeUnit?: LengthUnit };
   cm: number | null;
   assumed?: boolean;
   codes?: string[];
@@ -213,5 +213,140 @@ describe("formatCm", () => {
     [0, "0 cm"],
   ])("formatCm(%j) → %j", (cm, expected) => {
     expect(formatCm(cm)).toBe(expected);
+  });
+});
+
+describe("parseWeight: separators, several weights, ranges and foreign units", () => {
+  it.each<{ name: string; raw: string; grams: number | null; codes: string[] }>([
+    { name: "EC-B7: '1,200 g' reads the comma as a thousands separator", raw: "1,200 g", grams: 1200, codes: [] },
+    { name: "EC-B7: '1.500 g' German thousands dot", raw: "1.500 g", grams: 1500, codes: [] },
+    { name: "EC-B7: '1,200 kg' is German 1.2 kg", raw: "1,200 kg", grams: 1200, codes: [] },
+    { name: "EC-B7: '1.200,5 g' with both separators", raw: "1.200,5 g", grams: 1201, codes: [] },
+    { name: "EC-B7: '1.5kg (net), 2kg (gross)' takes the net weight, never the sum", raw: "1.5kg (net), 2kg (gross)", grams: 1500, codes: ["weight.multiple"] },
+    { name: "EC-B7: 'brutto 2 kg, netto 1,5 kg' finds the net label before its weight", raw: "brutto 2 kg, netto 1,5 kg", grams: 1500, codes: ["weight.multiple"] },
+    { name: "EC-B7: '2 kg / 3 kg' without labels takes the first", raw: "2 kg / 3 kg", grams: 2000, codes: ["weight.multiple"] },
+    { name: "EC-B7: '1 kg + 200 g' is still a compound", raw: "1 kg + 200 g", grams: 1200, codes: [] },
+    { name: "EC-B7: '1 Pfund' is a German pound", raw: "1 Pfund", grams: 454, codes: [] },
+    { name: "EC-B7: '2 livres' is a French pound", raw: "2 livres", grams: 907, codes: [] },
+    { name: "EC-B7: '3 Unzen' is ounces", raw: "3 Unzen", grams: 85, codes: [] },
+    { name: "EC-B7: '500 Gramm' is grams", raw: "500 Gramm", grams: 500, codes: [] },
+    { name: "EC-B7: '1,5 Kilogramm' is kilograms", raw: "1,5 Kilogramm", grams: 1500, codes: [] },
+    { name: "EC-B7: '250 grammes' is grams", raw: "250 grammes", grams: 250, codes: [] },
+    { name: "EC-B8: '3 g' is kept but flagged as a likely unit mistake", raw: "3 g", grams: 3, codes: ["weight.implausible"] },
+    { name: "EC-B8: '5 g' is the smallest plausible weight", raw: "5 g", grams: 5, codes: [] },
+  ])("$name", ({ raw, grams, codes }) => {
+    const result = readWeight(raw);
+    expect(result.weight?.grams ?? null).toBe(grams);
+    expect(result.issues.map((i) => i.code)).toEqual(codes);
+  });
+
+  it.each([
+    ["2-3 kg"],
+    ["2 – 3 kg"],
+    ["2 kg - 3 kg"],
+    ["2 to 3 kg"],
+    ["2 bis 3 kg"],
+  ])("EC-B7: range %j gives no weight and a weight.range warning", (raw) => {
+    const result = readWeight(raw);
+    expect(result.weight).toBeNull();
+    expect(result.issues).toEqual([expect.objectContaining({ code: "weight.range", severity: "warn", ec: "B7" })]);
+    expect(parseWeight(raw)).toBeNull();
+  });
+
+  it("EC-B7: '12 Zoll' in a weight cell is a length, not 12 g", () => {
+    const result = readWeight("12 Zoll");
+    expect(result.weight).toBeNull();
+    expect(result.issues.map((i) => i.code)).toEqual(["weight.length_unit"]);
+  });
+
+  it.each<[string, WeightUnit, number]>([
+    ["2", "kg", 2000],
+    ["1,5", "kg", 1500],
+    ["3", "lb", 1361],
+    ["500", "g", 500],
+    ["1,200", "g", 1200],
+  ])("EC-B7: bare %j with header unit %s is %i g", (raw, headerUnit, grams) => {
+    const result = parseWeight(raw, { headerUnit });
+    expect(result?.grams).toBe(grams);
+    expect(result?.assumed).toBe(false);
+    expect(result?.issues.map((i) => i.code)).toEqual(["unit.from_header"]);
+  });
+
+  it("EC-B7: a unit in the value beats the header's", () => {
+    expect(parseWeight("500 g", { headerUnit: "kg" })?.grams).toBe(500);
+  });
+
+  it("EC-B8: a header unit that makes the value implausible is flagged", () => {
+    expect(parseWeight("800", { headerUnit: "kg" })?.issues.map((i) => i.code)).toEqual(["unit.from_header", "weight.implausible"]);
+  });
+});
+
+describe("parseLength and parseDimensions: foreign units, mixed units, word labels", () => {
+  it.each<[string, number]>([
+    ["12 Zoll", 30.5],
+    ["12 pouces", 30.5],
+    ["2 Meter", 200],
+    ["15 Zentimeter", 15],
+    ["150 millimètres", 15],
+    ["1,200 mm", 120],
+  ])("EC-B7: parseLength(%j) is %d cm", (raw, cm) => {
+    const result = parseLength(raw);
+    expect(result?.cm).toBe(cm);
+    expect(result?.assumed).toBe(false);
+  });
+
+  it("EC-B7: a bare length takes the header's unit without calling it an assumption", () => {
+    const result = parseLength("20", { headerUnit: "in" });
+    expect(result).toMatchObject({ cm: 50.8, assumed: false });
+    expect(result?.issues.map((i) => i.code)).toEqual(["unit.from_header"]);
+  });
+
+  it("EC-B8: '0.3 cm' is flagged as implausible", () => {
+    expect(parseLength("0.3 cm")?.issues.map((i) => i.code)).toEqual(["length.implausible"]);
+  });
+
+  it.each<[string, Dimensions]>([
+    ["20 x 15 cm x 10 mm", { lengthCm: 20, widthCm: 15, heightCm: 1 }],
+    ["20 cm x 15 x 10", { lengthCm: 20, widthCm: 15, heightCm: 10 }],
+    ["30cm hoch, 25cm breit", { heightCm: 30, widthCm: 25 }],
+    ["30 cm high, 20 cm wide, 10 cm deep", { heightCm: 30, widthCm: 20, lengthCm: 10 }],
+    ["40 cm haut, 30 cm large", { heightCm: 40, widthCm: 30 }],
+    ["8 x 6 Zoll", { lengthCm: 20.3, widthCm: 15.2 }],
+  ])("EC-B7: parseDimensions(%j)", (raw, dims) => {
+    expect(parseDimensions(raw)?.dims).toEqual(dims);
+  });
+
+  it("EC-B7: unitless dimensions take the header's unit", () => {
+    const result = parseDimensions("10 x 8 x 4", { headerUnit: "in" });
+    expect(result?.dims).toEqual({ lengthCm: 25.4, widthCm: 20.3, heightCm: 10.2 });
+    expect(result?.issues.map((i) => i.code)).toEqual(["unit.from_header", "dimensions.order_assumed"]);
+  });
+});
+
+describe("unitFromHeader", () => {
+  it.each<[string, WeightUnit | null, LengthUnit | null]>([
+    ["Gewicht (kg)", "kg", null],
+    ["Weight (kg)", "kg", null],
+    ["Weight [lbs]", "lb", null],
+    ["Poids (kg)", "kg", null],
+    ["Weight kg", "kg", null],
+    ["Weight in g", "g", null],
+    ["Variant Grams", "g", null],
+    ["Dimensions (in)", null, "in"],
+    ["Size (inch)", null, "in"],
+    ["Länge (in cm)", null, "cm"],
+    ["Höhe in Zoll", null, "in"],
+    ["Breite (mm)", null, "mm"],
+    ["Weight", null, null],
+    ["Size", null, null],
+    ["Price (EUR)", null, null],
+    ["", null, null],
+  ])("EC-B7: %j → weight %s, length %s", (header, weight, length) => {
+    expect(unitFromHeader(header)).toEqual({ weight, length });
+  });
+
+  it("never throws on non-string input", () => {
+    expect(unitFromHeader(null)).toEqual({ weight: null, length: null });
+    expect(unitFromHeader(undefined)).toEqual({ weight: null, length: null });
   });
 });

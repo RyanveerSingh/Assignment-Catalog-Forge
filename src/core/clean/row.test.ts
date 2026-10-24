@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ColumnMapping, RawRow } from "@/core/types";
-import { buildCleanRowContext, cleanRow, hashRow, normalizeSizeValue, parseCombinedVariant } from "./row";
+import { buildCleanRowContext, cleanRow, dominantValueCurrency, hashRow, normalizeSizeValue, parseCombinedVariant, shopifyOption } from "./row";
 
 const headers = ["SKU", "Parent SKU", "Title", "Beschreibung", "Category", "Preis (€)", "Currency", "Size", "Farbe", "Weight", "Dimensions", "Image", "Notes", "Supplier Ref"];
 const mappings: ColumnMapping[] = [
@@ -146,5 +146,112 @@ describe("helpers", () => {
     expect(parseCombinedVariant("20cm / Blue", {})).toEqual({ size: "20 cm", color: "blue" });
     expect(parseCombinedVariant("Rot, L", {})).toEqual({ color: "red", size: "L" });
     expect(parseCombinedVariant("matte", {})).toEqual({ style: "matte" });
+  });
+});
+
+describe("cleanRow: units stated in the header (EC-B7)", () => {
+  function cleanWith(cells: Record<string, string>, canon: Array<ColumnMapping["canonical"]>) {
+    const maps = Object.keys(cells).map((h, i) => m(h, i, canon[i]));
+    const raw: RawRow = { rowNumber: 1, cells };
+    return cleanRow(raw, buildCleanRowContext({ rows: [raw] }, maps, "EUR"));
+  }
+
+  it.each<[string, string, number]>([
+    ["Gewicht (kg)", "2", 2000],
+    ["Weight (kg)", "1,5", 1500],
+    ["Weight [lbs]", "3", 1361],
+    ["Poids (kg)", "0,8", 800],
+    ["Weight (kg)", "500 g", 500],
+  ])("EC-B7: header %j with %j is %i g", (header, value, grams) => {
+    const row = cleanWith({ SKU: "A-1", [header]: value }, ["sku", "weight"]);
+    expect(row.weightGrams).toBe(grams);
+  });
+
+  it("EC-B7: a header unit is reported as such, not as an assumption", () => {
+    const row = cleanWith({ SKU: "A-1", "Gewicht (kg)": "2" }, ["sku", "weight"]);
+    expect(row.issues.map((i) => i.code)).toContain("unit.from_header");
+    expect(row.issues.map((i) => i.code)).not.toContain("unit.assumed");
+  });
+
+  it("EC-B7: 'Dimensions (in)' and 'Height (in)' convert bare numbers from inches", () => {
+    const row = cleanWith({ SKU: "A-1", "Dimensions (in)": "10 x 8", "Height (in)": "4" }, ["sku", "dimensions", "height"]);
+    expect(row.dimensions).toEqual({ lengthCm: 25.4, widthCm: 20.3, heightCm: 10.2 });
+  });
+
+  it("EC-B18: 'Size (inch)' turns a bare 20 into 50.8 cm", () => {
+    const row = cleanWith({ SKU: "A-1", "Size (inch)": "20" }, ["sku", "option_size"]);
+    expect(row.options.size).toBe("50.8 cm");
+  });
+
+  it("EC-B7: a weight range is reported as a range, not as unreadable", () => {
+    const row = cleanWith({ SKU: "A-1", Weight: "2-3 kg" }, ["sku", "weight"]);
+    expect(row.weightGrams).toBeNull();
+    expect(row.issues.map((i) => i.code)).toContain("weight.range");
+    expect(row.issues.map((i) => i.code)).not.toContain("weight.unparseable");
+  });
+});
+
+describe("cleanRow: mixed currencies in one price column (EC-B2)", () => {
+  const maps = [m("SKU", 0, "sku"), m("Price", 1, "price")];
+  const rows: RawRow[] = [
+    { rowNumber: 1, cells: { SKU: "A-1", Price: "$12" } },
+    { rowNumber: 2, cells: { SKU: "A-2", Price: "12.00" } },
+    { rowNumber: 3, cells: { SKU: "A-3", Price: "$15.50" } },
+  ];
+  const context = buildCleanRowContext({ rows }, maps, "EUR");
+
+  it("EC-B2: bare cells inherit the dollar the rest of the column states", () => {
+    expect(context.priceColumnCurrency).toBe("USD");
+    const bare = cleanRow(rows[1], context);
+    expect(bare.price?.money).toEqual({ cents: 1200, currency: "USD" });
+    expect(bare.issues.map((i) => i.code)).toContain("price.currency_inherited");
+    expect(cleanRow(rows[0], context).price?.money?.currency).toBe("USD");
+  });
+
+  it.each<[Array<string | null>, string, string | null]>([
+    [["$12", "$13", "14"], "EUR", "USD"],
+    [["$12", "$13", "14"], "CAD", "CAD"],
+    [["C$ 12", "13"], "EUR", "CAD"],
+    [["€12", "$13", "14"], "EUR", null],
+    [["12", "13"], "EUR", null],
+    [[null, "", "£5"], "EUR", "GBP"],
+  ])("EC-B2: dominantValueCurrency(%j, %s) → %s", (values, store, expected) => {
+    expect(dominantValueCurrency(values, store)).toBe(expected);
+  });
+});
+
+describe("shopifyOption (EC-C7)", () => {
+  it.each<[string, string, [string, string] | null]>([
+    ["Size", "20cm", ["size", "20 cm"]],
+    ["Größe", "M", ["size", "M"]],
+    ["Color", "Blau", ["color", "blue"]],
+    ["Colour", "Burnt Orange", ["color", "orange"]],
+    ["Material", "Linen", ["material", "linen"]],
+    ["Pack Size", "Set of 4", ["pack_size", "set of 4"]],
+    ["Title", "Default Title", null],
+    ["Size", "", null],
+  ])("EC-C7: %j = %j → %j", (name, value, expected) => {
+    expect(shopifyOption(name, value)).toEqual(expected);
+  });
+});
+
+describe("cleanRow: currency column spellings (EC-B2)", () => {
+  const maps = [m("SKU", 0, "sku"), m("Price", 1, "price"), m("Currency", 2, "currency")];
+  it.each<[string, string]>([
+    ["Euro", "EUR"],
+    ["€", "EUR"],
+    ["eur", "EUR"],
+    ["C$", "CAD"],
+  ])("EC-B2: currency cell %j is %s, not an unknown code", (cell, code) => {
+    const raw: RawRow = { rowNumber: 1, cells: { SKU: "A-1", Price: "12.00", Currency: cell } };
+    const row = cleanRow(raw, buildCleanRowContext({ rows: [raw] }, maps, "GBP"));
+    expect(row.price?.money).toEqual({ cents: 1200, currency: code });
+    expect(row.issues.map((i) => i.code)).not.toContain("price.currency_unrecognised");
+  });
+
+  it("EC-B2: a currency cell with more than a currency in it is still unrecognised", () => {
+    const raw: RawRow = { rowNumber: 1, cells: { SKU: "A-1", Price: "12.00", Currency: "Euro or GBP" } };
+    const row = cleanRow(raw, buildCleanRowContext({ rows: [raw] }, maps, "GBP"));
+    expect(row.issues.map((i) => i.code)).toContain("price.currency_unrecognised");
   });
 });

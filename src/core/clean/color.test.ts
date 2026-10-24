@@ -240,3 +240,38 @@ describe("COLOR_VOCABULARY", () => {
     }
   });
 });
+
+describe("normalizeColor: materials and modifiers are never colour typos", () => {
+  it.each([["Teak"], ["teak"], ["Bamboo"], ["Rattan"], ["Jute"], ["Ash"], ["Burnt"], ["Dusty"], ["Warm"]])(
+    "EC-B9: %j matches no colour",
+    (input) => {
+      expect(normalizeColor(input)).toMatchObject({ primary: null, all: [], method: "none" });
+    },
+  );
+
+  it.each<[string, string[]]>([
+    ["Burnt Orange", ["orange"]],
+    ["Teak / Black", ["black"]],
+    ["Dark Walnut", ["walnut"]],
+    ["Oak", ["oak"]],
+    ["Pine", ["pine"]],
+  ])("EC-B9: %j → %j", (input, all) => {
+    expect(normalizeColor(input).all).toEqual(all);
+  });
+
+  it.each([["teal", "teal"], ["whte", "white"], ["gery", "grey"]])("EC-B9: short word %j still reads as %j (exact, dropped letter or swap)", (input, expected) => {
+    expect(normalizeColor(input).primary).toBe(expected);
+  });
+
+  it.each([["tean"], ["rex"], ["bloe"]])("EC-B9: a four-letter word one substitution away is not a colour (%j)", (input) => {
+    expect(normalizeColor(input).primary).toBeNull();
+  });
+
+  it("EC-B9: terracota is still a typo for terracotta", () => {
+    expect(normalizeColor("terracota")).toMatchObject({ primary: "terracotta", method: "fuzzy" });
+  });
+
+  it("EC-B9: 'teak' in free text is not teal", () => {
+    expect(extractColorTokens("Teak garden bench with burnt finish")).toEqual([]);
+  });
+});

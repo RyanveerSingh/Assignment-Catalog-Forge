@@ -104,6 +104,17 @@ const MODIFIERS: Readonly<Record<string, Modifier>> = {
 /** German glues the modifier onto the colour: "hellrot", "dunkelgelb". */
 const GLUED_PREFIXES: ReadonlyArray<readonly [string, Modifier]> = [["dunkel", "dark"], ["hell", "light"]];
 
+/**
+ * Words that are never a typo for a colour: woods and materials ("teak" is not "teal") and shade
+ * modifiers ("burnt" is not German "bunt"). Exact colour entries such as "oak" still match exactly.
+ */
+const NEVER_FUZZY: ReadonlySet<string> = new Set([
+  "teak", "oak", "walnut", "ash", "pine", "bamboo", "rattan", "jute", "birch", "beech", "maple", "cedar", "acacia",
+  "mango", "elm", "cherry", "wood", "wicker", "seagrass", "cork", "linen", "cotton", "wool", "felt", "glass", "steel",
+  "brass", "iron", "metal", "clay", "marble", "stone", "concrete", "leather", "suede", "velvet",
+  "burnt", "dark", "light", "pale", "deep", "bright", "dusty", "warm", "cool", "soft", "matt", "matte", "glossy",
+]);
+
 /** Single tokens that are colours only as a cell value, never in free text ("red or blue"). */
 const TEXT_IGNORED: ReadonlySet<string> = new Set(["or"]);
 
@@ -237,12 +248,19 @@ function maxEdits(length: number, mode: FuzzyMode): number {
   return length >= 4 ? 1 : 0;
 }
 
+/** A four-letter word may only have lost a letter ("whte") or swapped two ("gery"); "teak" → "teal" is a different word. */
+function shortWordEdit(word: string, key: string): boolean {
+  if (key.length === word.length + 1) return true;
+  return key.length === word.length && [...key].sort().join("") === [...word].sort().join("");
+}
+
 function lookupFuzzy(folded: string, mode: FuzzyMode): Hit | null {
   const limit = maxEdits(folded.length, mode);
-  if (limit === 0) return null;
+  if (limit === 0 || folded.split(" ").some((w) => NEVER_FUZZY.has(w))) return null;
   let best: string | null = null;
   let bestDistance = limit + 1;
   for (const [key, canonical] of FUZZY_CANDIDATES) {
+    if (folded.length <= 4 && !shortWordEdit(folded, key)) continue;
     const distance = osaDistance(folded, key, limit);
     if (distance < bestDistance) {
       bestDistance = distance;

@@ -25,6 +25,19 @@ const ALIASES: Readonly<Record<string, CurrencyCode>> = {
   "£": "GBP",
   "¥": "JPY",
   "₹": "INR",
+  "₨": "INR",
+  rs: "INR",
+  "us$": "USD",
+  "c$": "CAD",
+  "ca$": "CAD",
+  "a$": "AUD",
+  "au$": "AUD",
+  "nz$": "NZD",
+  "hk$": "HKD",
+  "s$": "SGD",
+  "sg$": "SGD",
+  "mx$": "MXN",
+  "r$": "BRL",
   fr: "CHF",
   sfr: "CHF",
   "zł": "PLN",
@@ -34,10 +47,15 @@ const ALIASES: Readonly<Record<string, CurrencyCode>> = {
 };
 
 // Letter tokens must be whole words so "from", "inkl." or "Fri" are never read as currencies.
+// Prefixed dollars ("C$", "A$", "US$") come first so the "$" alone never claims them.
 const TOKEN_RE = new RegExp(
-  `(?<!\\p{L})(?:${CURRENCY_CODES.join("|")}|euros?|dollars?|sfr\\.?|fr\\.?|kr\\.?|zł|zl|kč|kc)(?!\\p{L})|[€$£¥₹]`,
+  `(?<!\\p{L})(?:us|ca|c|au|a|nz|hk|sg|s|mx|r)\\$|` +
+    `(?<!\\p{L})(?:${CURRENCY_CODES.join("|")}|euros?|dollars?|sfr\\.?|fr\\.?|kr\\.?|rs\\.?|zł|zl|kč|kc)(?!\\p{L})|[€$£¥₹₨]`,
   "iu",
 );
+
+/** Currencies written with a plain "$"; a bare "$" is read as one of these when the context names it (EC-B2). */
+export const DOLLAR_CURRENCIES: ReadonlySet<string> = new Set(["USD", "CAD", "AUD", "NZD", "HKD", "SGD", "MXN"]);
 
 // Written as a code point so the invisible character stays visible to reviewers.
 const NBSP_RE = new RegExp(String.fromCodePoint(0xa0), "g");
@@ -75,7 +93,7 @@ function codeForKey(key: string): CurrencyCode | null {
 export function extractCurrency(
   raw: string,
   defaultForKr?: CurrencyCode,
-): { currency: CurrencyCode | null; rest: string; ambiguous: boolean } {
+): { currency: CurrencyCode | null; rest: string; ambiguous: boolean; bareDollar?: true } {
   const match = TOKEN_RE.exec(raw);
   if (!match) return { currency: null, rest: raw, ambiguous: false };
 
@@ -91,6 +109,8 @@ export function extractCurrency(
     }
     return { currency: null, rest, ambiguous: true };
   }
+  // A plain "$" is USD only by convention; the caller may know better (a CAD store, a "Price (AUD)" header).
+  if (key === "$") return { currency: "USD", rest, ambiguous: false, bareDollar: true };
   return { currency: codeForKey(key), rest, ambiguous: false };
 }
 

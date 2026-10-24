@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { detectCurrencyInHeader } from "@/core/clean/currency";
+import { detectCurrencyInHeader, isCurrencyCode } from "@/core/clean/currency";
 import type { NumberLocale } from "@/core/clean/price";
 import { cleanRow, findMapping, type CleanRowContext } from "@/core/clean/row";
 import type { ColumnMapping } from "@/core/types";
@@ -48,5 +48,7 @@ export function contextFromImport(mappings: ColumnMapping[] | null, meta: Record
     compareAtLocale: locale(meta?.compareAtLocale),
     priceHeaderCurrency: priceMap ? detectCurrencyInHeader(priceMap.originalHeader) : null,
     compareAtHeaderCurrency: compareMap ? detectCurrencyInHeader(compareMap.originalHeader) : null,
+    // Saved at ingest: bare price cells inherit the currency most of their column states.
+    priceColumnCurrency: typeof meta?.priceColumnCurrency === "string" && isCurrencyCode(meta.priceColumnCurrency) ? meta.priceColumnCurrency : null,
   };
 };

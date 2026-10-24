@@ -14,7 +14,7 @@ export const HEADER_SYNONYMS: Readonly<Record<CanonicalField, ReadonlyArray<stri
   sku: ["sku", "article number", "article no", "artikelnummer", "artikel-nr", "art.-nr.", "art nr", "artnr", "artikelnr", "art no", "item number", "item no", "item code", "item id", "item sku", "product code", "product id", "product sku", "part number", "part no", "ref", "référence", "reference", "code article", "code produit", "n article", "numero article", "numéro d'article", "variant sku", "sku code"],
   parent_sku: ["parent sku", "parent", "parent id", "parent code", "parent article", "parent product", "parent reference", "master sku", "master", "hauptartikel", "elternartikel", "stammartikel", "article parent", "reference parent", "variant of"],
   handle: ["handle", "slug", "url key", "url handle", "product handle", "permalink"],
-  title: ["title", "name", "product name", "product title", "item name", "article name", "produktname", "produkttitel", "bezeichnung", "artikelname", "artikelbezeichnung", "produktbezeichnung", "titel", "nom", "nom du produit", "nom produit", "nom de l'article", "désignation", "titre", "libellé", "libellé produit", "intitulé"],
+  title: ["title", "name", "product", "produkt", "produit", "item", "article", "artikel", "product name", "product title", "item name", "article name", "produktname", "produkttitel", "bezeichnung", "artikelname", "artikelbezeichnung", "produktbezeichnung", "titel", "nom", "nom du produit", "nom produit", "nom de l'article", "désignation", "titre", "libellé", "libellé produit", "intitulé"],
   description: ["description", "desc", "body", "body html", "long description", "product description", "full description", "short description", "description html", "details", "beschreibung", "produktbeschreibung", "artikelbeschreibung", "langtext", "kurztext", "kurzbeschreibung", "description longue", "description courte", "description produit", "description du produit", "descriptif"],
   category: ["category", "categories", "product category", "type", "product type", "type de produit", "kategorie", "kategorien", "produktkategorie", "produkttyp", "produktgruppe", "warengruppe", "catégorie", "catégories", "famille", "rubrique", "gamme", "collection", "department"],
   brand: ["brand", "brand name", "marke", "markenname", "marque", "hersteller", "manufacturer", "manufacturer name", "fabricant"],
@@ -167,7 +167,12 @@ export function detectHeaderRow(rows: string[][]): { index: number; confidence: 
     if (p.hasNumeric && p.synonymHits === 0) continue;
 
     const next = profiles.slice(i + 1).find((q) => q.nonEmpty >= 2) ?? profiles.slice(i + 1).find((q) => q.nonEmpty >= 1);
-    if (next && !profileDiffers(p, next)) continue;
+    // Mostly known labels ("Name, Description, Notes") make a header even above text-only data.
+    const recognised = p.synonymHits >= 2 && p.synonymHits * 2 >= p.nonEmpty;
+    if (next && !profileDiffers(p, next) && !recognised) continue;
+    // The last row with nothing below it is only a header-only sheet when we know its labels;
+    // otherwise it is the last data row of a text-only table.
+    if (!next && p.synonymHits === 0) continue;
 
     let score =
       0.4 * ratio +
@@ -227,8 +232,11 @@ export function mapColumns(headers: string[], sampleRows: string[][]): ColumnMap
   return mappings;
 }
 
+/** Shopify's "Option1 Name"/"Option1 Value" pairs are read by the row cleaner, never mapped to a field. */
+const SHOPIFY_OPTION_KEY_RE = /^option ?[1-3] (?:name|value)$/;
+
 function matchHeader(key: string): Match {
-  if (!key) return { canonical: null, via: "none", confidence: 0 };
+  if (!key || SHOPIFY_OPTION_KEY_RE.test(key)) return { canonical: null, via: "none", confidence: 0 };
   const costLike = isCostLike(key);
   const exact = EXACT_INDEX.get(key);
   if (exact) return finish(exact, "exact", costLike);
@@ -298,7 +306,7 @@ function applyContentMapping(mappings: ColumnMapping[], samples: string[][]): vo
   let hasImage = mappings.some((m) => m.canonical === "image");
   let hasImages = mappings.some((m) => m.canonical === "images");
   for (const m of mappings) {
-    if (m.canonical !== null || m.via !== "none") continue;
+    if (m.canonical !== null || m.via !== "none" || SHOPIFY_OPTION_KEY_RE.test(normaliseHeader(m.originalHeader))) continue;
     const values = samples[m.index];
     if (values.length === 0) continue;
     if (!hasPrice && !isCostLike(normaliseHeader(m.originalHeader)) && fraction(values, (v) => STRICT_MONEY_RE.test(v)) >= CONTENT_MAJORITY) {

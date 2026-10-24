@@ -6,7 +6,7 @@ import {
   type Severity,
   issue,
 } from "../types";
-import { extractCurrency } from "./currency";
+import { DOLLAR_CURRENCIES, extractCurrency } from "./currency";
 
 export type NumberLocale = "eu" | "us" | "unknown";
 
@@ -16,6 +16,8 @@ export interface PriceContext {
   columnCurrency?: CurrencyCode | null;
   /** From the price column header ("Price EUR"). */
   headerCurrency?: CurrencyCode | null;
+  /** The currency most cells of this column state ("$12" beside a bare "12.00"); see `dominantValueCurrency`. */
+  valueCurrency?: CurrencyCode | null;
   /** From `inferColumnNumberLocale` over the whole column. */
   locale?: NumberLocale;
 }
@@ -38,6 +40,12 @@ const RANGE_RE = /\d\s*(?:[-–—−~]|bis|to|à)\s*\d/iu;
 const NEGATIVE_RE = /^[-−–]\s*\d/u;
 const NUMBER_RE = /\d+(?:[.,]\d+)*/g;
 const PERCENT_RE = /\d+(?:[.,]\d+)*\s*%/g;
+// "1e3", "1.2E+04": a spreadsheet number format, never how a supplier writes a price.
+const SCIENTIFIC_RE = /^\d+(?:[.,]\d+)?e[+-]?\d+$/iu;
+// "2x 9.99", "2 x 9,99": the price of a pack or of one unit? Either reading may be off by the pack size.
+const MULTIPACK_RE = /^\d{1,3}\s*[x×]\s*\d/iu;
+// Indian lakh grouping: "1,29,999" is 129999 (EC-B5).
+const INDIAN_GROUPS_RE = /^\d{1,2}(?:,\d{2})+,\d{3}$/;
 
 const MAX_PLAUSIBLE_CENTS = 10_000_000 * 100;
 /** Keeps major*100 well inside Number's exact integer range. */
@@ -71,6 +79,8 @@ interface NumberParts {
 function readNumber(token: string, locale: NumberLocale): NumberParts | null {
   const dots = count(token, ".");
   const commas = count(token, ",");
+  const [lakhInt, lakhDec = ""] = token.split(".");
+  if (dots <= 1 && INDIAN_GROUPS_RE.test(lakhInt)) return { intDigits: lakhInt.replace(/,/g, ""), decDigits: lakhDec, ambiguous: null };
 
   if (dots === 0 && commas === 0) return { intDigits: token, decDigits: "", ambiguous: null };
 
@@ -120,6 +130,8 @@ function resolveFallback(ctx: PriceContext, kroneOnly: boolean): ResolvedCurrenc
   const candidates: Array<{ currency: CurrencyCode | null | undefined; source: CurrencySource }> = [
     { currency: ctx.columnCurrency, source: "column" },
     { currency: ctx.headerCurrency, source: "header" },
+    // Only worth saying when it differs from what the default would give anyway.
+    { currency: ctx.valueCurrency === ctx.defaultCurrency ? null : ctx.valueCurrency, source: "column" },
     { currency: ctx.defaultCurrency, source: "default" },
   ];
   for (const c of candidates) {
@@ -128,6 +140,24 @@ function resolveFallback(ctx: PriceContext, kroneOnly: boolean): ResolvedCurrenc
     return { currency: c.currency, source: c.source };
   }
   return null;
+}
+
+/**
+ * A bare "$": the dollar the context names (currency column, header, store default),
+ * else USD by convention, said out loud when the store does not sell in USD (EC-B2).
+ */
+function resolveDollar(ctx: PriceContext): { currency: CurrencyCode; issue: Issue | null } {
+  const named = [ctx.columnCurrency, ctx.headerCurrency, ctx.defaultCurrency].find(
+    (c): c is CurrencyCode => typeof c === "string" && DOLLAR_CURRENCIES.has(c),
+  );
+  if (named !== undefined) {
+    const note = named === "USD" ? null : issue("price.dollar_resolved", "info", `"$" read as ${named} from the sheet and store context.`, { ec: "B2" });
+    return { currency: named, issue: note };
+  }
+  return {
+    currency: "USD",
+    issue: issue("price.dollar_assumed", "info", `"$" is used by several currencies; assumed USD (the store sells in ${ctx.defaultCurrency}).`, { ec: "B2" }),
+  };
 }
 
 /**
@@ -160,6 +190,11 @@ export function parsePrice(raw: string | null | undefined, ctx: PriceContext): P
   if (found.currency) {
     currency = found.currency;
     source = "value";
+    if (found.bareDollar) {
+      const resolved = resolveDollar(ctx);
+      currency = resolved.currency;
+      if (resolved.issue) issues.push({ ...resolved.issue, value: original });
+    }
     if (ctx.columnCurrency && ctx.columnCurrency !== currency) {
       issues.push(
         issue(
@@ -183,6 +218,14 @@ export function parsePrice(raw: string | null | undefined, ctx: PriceContext): P
     }
     currency = resolved.currency;
     source = resolved.source;
+    if (source === "column" && !ctx.columnCurrency && currency === ctx.valueCurrency) {
+      issues.push(
+        issue("price.currency_inherited", "info", `No currency in this cell; used ${currency}, which the rest of the column states.`, {
+          value: original,
+          ec: "B2",
+        }),
+      );
+    }
     if (source === "default") {
       penalty += 25;
       issues.push(
@@ -213,6 +256,11 @@ export function parsePrice(raw: string | null | undefined, ctx: PriceContext): P
   if (NEGATIVE_RE.test(rest)) return fail("price.negative", "error", "Price is negative.", "B5");
   if (RANGE_RE.test(rest)) {
     return fail("price.range", "error", "Value is a price range; one price is needed.");
+  }
+
+  if (SCIENTIFIC_RE.test(rest)) return unparseable("Value is in scientific notation (a spreadsheet format); write the price out in full.");
+  if (MULTIPACK_RE.test(rest)) {
+    return fail("price.multipack", "warn", "Value looks like a multipack price; unclear whether it is per pack or per unit.", "B5");
   }
 
   rest = rest.replace(GROUPING_RE, "$1");

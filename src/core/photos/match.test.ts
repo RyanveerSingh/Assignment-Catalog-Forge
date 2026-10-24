@@ -174,3 +174,36 @@ describe("matchPhotos", () => {
     expect(matchPhotos(undefined as unknown as string[], undefined as unknown as ProductGroup[])).toEqual({ matches: [], missingReferences: [] });
   });
 });
+
+describe("matchPhotos: numbers and separators in SKUs (EC-C12, EC-C13)", () => {
+  const vases = makeGroup("VASE", "Vase", [makeVariant("VASE-1"), makeVariant("VASE-2")]);
+  const planter = makeGroup("TC-PL", "Terracotta Planter", [makeVariant("TC-PL-20"), makeVariant("TC-PL-30")]);
+
+  it("EC-C13: 'VASE-12.jpg' is not a typo for VASE-1; it stays unmatched", () => {
+    const [m] = matchPhotos(["VASE-12.jpg"], [vases]).matches;
+    expect(m).toMatchObject({ method: "none", productKey: null, sku: null });
+  });
+
+  it.each<[string, string, number]>([
+    ["TC_PL_20-1.png", "TC-PL-20", 0],
+    ["TC_PL_20_2.png", "TC-PL-20", 1],
+    ["tc_pl_30.jpg", "TC-PL-30", 0],
+    ["TC-PL-20-1.jpg", "TC-PL-20", 0],
+  ])("EC-C12: %j attaches to variant %s at position %i", (file, sku, position) => {
+    const [m] = matchPhotos([file], [planter]).matches;
+    expect(m).toMatchObject({ productKey: "TC-PL", sku, position, method: "sku" });
+  });
+
+  it("EC-C12: a letter O typed for a zero is still a fuzzy match", () => {
+    const [m] = matchPhotos(["TC-PL-3O.jpg"], [planter]).matches;
+    expect(m).toMatchObject({ method: "fuzzy", sku: "TC-PL-30" });
+  });
+
+  it("EC-C12: 'VASE-1.jpg' and 'VASE-1_2.jpg' still match VASE-1 exactly", () => {
+    const ms = matchPhotos(["VASE-1.jpg", "VASE-1_2.jpg"], [vases]).matches;
+    expect(ms.map((m) => [m.sku, m.method, m.position])).toEqual([
+      ["VASE-1", "sku", 0],
+      ["VASE-1", "sku", 1],
+    ]);
+  });
+});

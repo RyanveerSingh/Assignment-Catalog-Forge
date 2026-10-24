@@ -5,14 +5,19 @@
 import { createHash } from "node:crypto";
 import { foldForMatch } from "../clean/text";
 import type { CleanedRow, DetectedLanguage, Issue, Lang, ProductGroup } from "../types";
-import { stripOptionTokens } from "./options";
+import { stripOptionTokens, varyingOptionKeys } from "./options";
 
-/** Most frequent (base) title, ties broken by length then by earliest row, so the choice is stable. */
-export function pickTitle(rows: CleanedRow[], strip: boolean): string | null {
+/**
+ * Most frequent (base) title, ties broken by length then by earliest row, so the choice is stable.
+ * With variants, only the option tokens that actually vary across them leave the title.
+ */
+export function pickTitle(rows: CleanedRow[], variantOptions: Array<Record<string, string>> | null): string | null {
+  const titles = rows.map((r) => r.title).filter((t): t is string => typeof t === "string" && t !== "");
+  const varying = variantOptions ? varyingOptionKeys(titles, variantOptions) : null;
   const counts = new Map<string, { text: string; count: number; row: number }>();
   for (const r of rows) {
     if (!r.title) continue;
-    const text = strip ? stripOptionTokens(r.title) : r.title;
+    const text = varying ? stripOptionTokens(r.title, varying) : r.title;
     const id = foldForMatch(text);
     const entry = counts.get(id);
     if (entry) entry.count++;

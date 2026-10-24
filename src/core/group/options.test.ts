@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { inferOptionsFromTitle, stripOptionTokens } from "./options";
+import { inferOptionsFromTitle, stripOptionTokens, varyingOptionKeys } from "./options";
 
 describe("inferOptionsFromTitle", () => {
   it.each([
@@ -96,5 +96,35 @@ describe("stripOptionTokens", () => {
   it("returns the base title only", () => {
     expect(stripOptionTokens("Terracotta Planter 20cm Blue")).toBe("Terracotta Planter");
     expect(stripOptionTokens("Ceramic Mug")).toBe("Ceramic Mug");
+  });
+});
+
+describe("option tokens are only stripped when they are options (EC-C5)", () => {
+  it.each([
+    ["Black Walnut Desk Organiser"],
+    ["Planter Terracotta Outdoor Pot"],
+    ["Mug Red Enamel Rim"],
+  ])("EC-C5: a colour followed by product words describes the product: %j", (title) => {
+    expect(inferOptionsFromTitle(title).options.color).toBeUndefined();
+    expect(stripOptionTokens(title)).toBe(title);
+  });
+
+  it("EC-C5: with only size varying, the material colour stays in the title", () => {
+    expect(stripOptionTokens("Übertopf Terrakotta 20cm", new Set(["size"]))).toBe("Übertopf Terrakotta");
+  });
+
+  it("EC-C5: with colour varying, the colour leaves the title", () => {
+    expect(stripOptionTokens("Mug 300 ml Blue", new Set(["color"]))).toBe("Mug 300 ml");
+  });
+
+  it("EC-C5: an empty key set strips nothing", () => {
+    expect(stripOptionTokens("Planter 20cm Blue", new Set())).toBe("Planter 20cm Blue");
+  });
+
+  it("EC-C5: varying keys come from the titles and from the variants' options", () => {
+    expect(varyingOptionKeys(["Übertopf Terrakotta 20cm", "Übertopf Terrakotta 30cm"], [])).toEqual(new Set(["size"]));
+    expect(varyingOptionKeys(["Mug Blue", "Mug Blue"], [{ color: "blue" }, { color: "red" }])).toEqual(new Set(["color"]));
+    expect(varyingOptionKeys(["Vase 20cm", "Vase"], [])).toEqual(new Set(["size"]));
+    expect(varyingOptionKeys(["Planter 20cm Blue", "Planter 20cm Red"], [])).toEqual(new Set(["color"]));
   });
 });

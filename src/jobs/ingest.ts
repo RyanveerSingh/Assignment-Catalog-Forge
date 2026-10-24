@@ -61,7 +61,7 @@ export const ingestHandler: JobHandler = async ({ job, db, log }) => {
   await updateImport(db, importId, {
     totalRows: parsed.rows.length,
     columnMap: mappings,
-    parseMeta: metaFrom(parsed, mappings, { priceLocale: ctx.priceLocale, compareAtLocale: ctx.compareAtLocale }),
+    parseMeta: metaFrom(parsed, mappings, { priceLocale: ctx.priceLocale, compareAtLocale: ctx.compareAtLocale, priceColumnCurrency: ctx.priceColumnCurrency ?? null }),
   });
   await appendImportEvent(db, importId, "info", `Parsed ${parsed.rows.length} rows from ${sheet.originalName}`, {
     format: parsed.format,
@@ -91,7 +91,7 @@ export const ingestHandler: JobHandler = async ({ job, db, log }) => {
   await driveImport(db, importId);
 };
 
-function metaFrom(parsed: ReturnType<typeof parseSheet>, mappings: ColumnMapping[], locales: { priceLocale: string; compareAtLocale: string } | null) {
+function metaFrom(parsed: ReturnType<typeof parseSheet>, mappings: ColumnMapping[], locales: { priceLocale: string; compareAtLocale: string; priceColumnCurrency: string | null } | null) {
   return {
     format: parsed.format,
     encoding: parsed.encoding,

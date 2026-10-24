@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { CleanedRow, ParsedPrice } from "../types";
 import { issue } from "../types";
+import { buildCleanRowContext, cleanRow } from "../clean/row";
+import { mapColumns } from "../parse/headers";
 import { groupRows } from "./group";
 
 type RowPatch = Partial<CleanedRow> & { rowNumber: number };
@@ -448,5 +450,69 @@ describe("groupRows: product fields and complexity", () => {
     groupRows([row, parent], opts);
     expect(row.title).toBeNull();
     expect(row.issues).toEqual([]);
+  });
+});
+
+describe("groupRows: title keeps what does not vary (EC-C5)", () => {
+  it("EC-C5: sizes vary, so the material word stays in the product title", () => {
+    const rows = [
+      makeRow({ rowNumber: 1, sku: "UT-20", title: "Übertopf Terrakotta 20cm", options: { size: "20 cm" }, price: price(1000) }),
+      makeRow({ rowNumber: 2, sku: "UT-30", title: "Übertopf Terrakotta 30cm", options: { size: "30 cm" }, price: price(1500) }),
+    ];
+    const { groups } = groupRows(rows, opts);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].title).toBe("Übertopf Terrakotta");
+  });
+
+  it("EC-C5: colours vary, so the colour leaves the title", () => {
+    const rows = [
+      makeRow({ rowNumber: 1, sku: "MUG-BLUE", title: "Mug Blue", options: { color: "blue" }, price: price(800) }),
+      makeRow({ rowNumber: 2, sku: "MUG-RED", title: "Mug Red", options: { color: "red" }, price: price(800) }),
+    ];
+    expect(groupRows(rows, opts).groups[0].title).toBe("Mug");
+  });
+
+  it("EC-C5: a wood name in the middle of the title is never cut", () => {
+    const rows = [
+      makeRow({ rowNumber: 1, sku: "BW-DO-S", title: "Black Walnut Desk Organiser", options: { size: "S" }, price: price(3000) }),
+      makeRow({ rowNumber: 2, sku: "BW-DO-L", title: "Black Walnut Desk Organiser", options: { size: "L" }, price: price(4000) }),
+    ];
+    expect(groupRows(rows, opts).groups[0].title).toBe("Black Walnut Desk Organiser");
+  });
+});
+
+describe("groupRows: Shopify export end to end (EC-C7, EC-B4)", () => {
+  const headers = ["Handle", "Title", "Body (HTML)", "Vendor", "Option1 Name", "Option1 Value", "Option2 Name", "Option2 Value", "Variant SKU", "Variant Grams", "Variant Price", "Image Src"];
+  const grid = [
+    ["linen-apron", "Linen Apron", "<p>Cross-back apron</p>", "Hinterland", "Size", "S", "Color", "Natur", "LA-S-NAT", "300", "39.00", "apron.jpg"],
+    ["linen-apron", "", "", "", "", "M", "", "Natur", "LA-M-NAT", "320", "39.00", ""],
+    ["linen-apron", "", "", "", "", "M", "", "Blau", "LA-M-BLU", "320", "41.00", ""],
+    ["tea-towel", "Tea Towel", "<p>Waffle weave</p>", "Hinterland", "Title", "Default Title", "", "", "TT-01", "90", "12.00", ""],
+  ];
+
+  function clean() {
+    const mappings = mapColumns(headers, grid);
+    const rows = grid.map((cells, i) => ({ rowNumber: i + 1, cells: Object.fromEntries(mappings.map((m) => [m.header, cells[m.index] ?? ""])) }));
+    const ctx = buildCleanRowContext({ rows }, mappings, "EUR");
+    return rows.map((r) => cleanRow(r, ctx));
+  }
+
+  it("EC-C7: child rows take option names from the parent and group under the handle", () => {
+    const { groups } = groupRows(clean(), opts);
+    expect(groups.map((g) => g.productKey)).toEqual(["linen-apron", "tea-towel"]);
+    const apron = groups[0];
+    expect(apron.title).toBe("Linen Apron");
+    expect(apron.brand).toBe("Hinterland");
+    expect(apron.variants.map((v) => [v.sku, v.options, v.weightGrams, v.priceCents])).toEqual([
+      ["LA-S-NAT", { size: "S", color: "natural" }, 300, 3900],
+      ["LA-M-NAT", { size: "M", color: "natural" }, 320, 3900],
+      ["LA-M-BLU", { size: "M", color: "blue" }, 320, 4100],
+    ]);
+  });
+
+  it("EC-C7: Shopify's 'Default Title' option is no option at all", () => {
+    const towel = groupRows(clean(), opts).groups[1];
+    expect(towel.variants[0].options).toEqual({});
+    expect(towel.variants[0].weightGrams).toBe(90);
   });
 });

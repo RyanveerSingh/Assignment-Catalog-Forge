@@ -100,34 +100,73 @@ interface Token extends Span {
   folded: string;
 }
 
-export function inferOptionsFromTitle(title: string): InferredOptions {
-  if (typeof title !== "string") return { options: {}, baseTitle: "" };
-  const text = normalizeText(title);
-  if (text === "") return { options: {}, baseTitle: "" };
+interface Keyed extends Found {
+  key: string;
+}
 
-  const spans: Span[] = [];
-  const free = (s: Span): boolean => !spans.some((t) => s.start < t.end && t.start < s.end);
-  const claim = (f: Found | null): string | null => {
-    if (f) spans.push(f);
-    return f ? f.value : null;
+/** Every option token in the title with its span, in detection order. */
+function analyse(title: string): { text: string; found: Keyed[] } {
+  if (typeof title !== "string") return { text: "", found: [] };
+  const text = normalizeText(title);
+  if (text === "") return { text, found: [] };
+
+  const found: Keyed[] = [];
+  const free = (s: Span): boolean => !found.some((t) => s.start < t.end && t.start < s.end);
+  const claim = (key: string, f: Found | null): void => {
+    if (f) found.push({ ...f, key });
   };
   // Packs first so "Set of 4 in Blue" never reads "4 in" as inches.
-  const pack = claim(lastMatch(text, PACK, free));
-  const capacity = claim(lastMatch(text, CAPACITY, free));
-  const size = claim(lastMatch(text, SIZE, free));
-  const color = claim(findColor(text, free));
+  claim("pack", lastMatch(text, PACK, free));
+  claim("capacity", lastMatch(text, CAPACITY, free));
+  claim("size", lastMatch(text, SIZE, free));
+  // A colour followed by more product words ("Black Walnut Desk Organiser") describes the product.
+  const color = findColor(text, free);
+  if (color && onlyTokensAfter(text, color.end, found)) claim("color", color);
+  return { text, found };
+}
 
+export function inferOptionsFromTitle(title: string): InferredOptions {
+  const { text, found } = analyse(title);
+  if (text === "") return { options: {}, baseTitle: "" };
   const options: Record<string, string> = {};
-  if (size !== null) options.size = size;
-  if (capacity !== null) options.capacity = capacity;
-  if (color !== null) options.color = color;
-  if (pack !== null) options.pack = pack;
-  const baseTitle = tidy(cut(text, spans));
+  for (const key of ["size", "capacity", "color", "pack"]) {
+    const f = found.find((x) => x.key === key);
+    if (f) options[key] = f.value;
+  }
+  const baseTitle = tidy(cut(text, found));
   return { options, baseTitle: baseTitle === "" ? text : baseTitle };
 }
 
-export function stripOptionTokens(title: string): string {
-  return inferOptionsFromTitle(title).baseTitle;
+/**
+ * The title without its option tokens. With `keys`, only those options are removed, so a group
+ * whose variants differ by size keeps "Terrakotta" in "Übertopf Terrakotta 20cm" (EC-C5).
+ */
+export function stripOptionTokens(title: string, keys?: ReadonlySet<string>): string {
+  if (keys === undefined) return inferOptionsFromTitle(title).baseTitle;
+  const { text, found } = analyse(title);
+  const base = tidy(cut(text, found.filter((f) => keys.has(f.key))));
+  return base === "" ? text : base;
+}
+
+/**
+ * Option keys whose values differ across a group: from the titles (a token missing from some titles
+ * counts as a difference) and from the variants' own options.
+ */
+export function varyingOptionKeys(titles: string[], variantOptions: Array<Record<string, string>>): Set<string> {
+  const keys = new Set<string>();
+  const collect = (list: Array<Record<string, string>>): void => {
+    const all = new Set(list.flatMap((o) => Object.keys(o)));
+    for (const key of all) if (new Set(list.map((o) => o[key] ?? "")).size > 1) keys.add(key);
+  };
+  collect(titles.map((t) => inferOptionsFromTitle(t).options));
+  collect(variantOptions);
+  return keys;
+}
+
+function onlyTokensAfter(text: string, end: number, spans: Span[]): boolean {
+  let rest = "";
+  for (let i = end; i < text.length; i++) rest += spans.some((s) => i >= s.start && i < s.end) ? " " : text[i];
+  return !/[\p{L}\p{N}]/u.test(rest);
 }
 
 /** The trailing-most free match: greatest end, then the longest span, so "Size 20 cm" wins over "20 cm". */
